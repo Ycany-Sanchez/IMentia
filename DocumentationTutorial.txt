@@ -1,0 +1,1108 @@
+IMentia_Prototype — Documentation & Mini-Tutorial
+------------------------------------------------
+
+**Overview**
+This prototype captures webcam frames, runs OpenCV face detection and recognition, draws rectangles around detected faces and provides a small UI to add and save people. The project uses Java + Bytedeco/OpenCV bindings and stores simple serialized person data to disk.
+
+**Prerequisites**
+- Java 8+ (JDK)
+- Bytedeco/OpenCV native bindings available via Maven (the code uses org.bytedeco packages)
+- `src/main/resources/haarcascade_frontalface_default.xml` present on the classpath
+- A webcam available as device 0
+
+**High-level Flow**
+- `Main` loads the face cascade and starts the Swing UI (`MainWindow`).
+- `MainWindow` opens the camera, runs detection with the cascade and draws rectangles around faces.
+- When the user captures a face, `FaceRecognitionService` attempts to identify the person using LBPH recognizer.
+- If unknown, the user can add the person via `PersonFormDialog`; persons are persisted with `FileHandler`.
+- `ImageUtils` converts between OpenCV `Mat` and Java `BufferedImage`/`FaceData`.
+
+---
+
+Below are the source files (brief description + full source) from `src/main/java`.
+
+---
+
+File: `Main.java`
+Description: App entrypoint. Loads cascade from resources, initializes the main window.
+
+```java
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.PrintStream;
+import javax.swing.SwingUtilities;
+import org.bytedeco.opencv.global.opencv_core;
+import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
+import ui.MainWindow;
+
+public class Main {
+    public static void main(String[] args) {
+        System.setOut(new PrintStream(System.out, true));
+        System.setErr(new PrintStream(System.err, true));
+        System.out.println("===== APPLICATION STARTING =====");
+        System.out.println("OpenCV Version: " + opencv_core.CV_VERSION);
+        CascadeClassifier faceDetector = loadFaceDetector();
+        if (faceDetector == null) {
+            System.out.println("Error loading face detector!");
+        } else {
+            System.out.println("Face detector loaded successfully");
+            SwingUtilities.invokeLater(() -> {
+                System.out.println("Creating main window...");
+                MainWindow window = new MainWindow(faceDetector);
+                window.setVisible(true);
+                System.out.println("Window displayed");
+            });
+        }
+    }
+
+    private static CascadeClassifier loadFaceDetector() {
+        try {
+            System.out.println("Loading face detector from resources...");
+            InputStream is = Main.class.getResourceAsStream("/haarcascade_frontalface_default.xml");
+            if (is == null) {
+                System.out.println("Could not find haarcascade file in resources!");
+                return null;
+            } else {
+                File tempFile = File.createTempFile("haarcascade", ".xml");
+                tempFile.deleteOnExit();
+                FileOutputStream os = new FileOutputStream(tempFile);
+                byte[] buffer = new byte[4096];
+
+                int bytesRead;
+                while((bytesRead = is.read(buffer)) != -1) {
+                    os.write(buffer, 0, bytesRead);
+                }
+
+                is.close();
+                os.close();
+                System.out.println("Temp file created at: " + tempFile.getAbsolutePath());
+                CascadeClassifier classifier = new CascadeClassifier(tempFile.getAbsolutePath());
+                if (classifier.empty()) {
+                    System.out.println("Classifier is empty!");
+                    return null;
+                } else {
+                    return classifier;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Exception while loading face detector:");
+            e.printStackTrace();
+            return null;
+        }
+    }
+}
+```
+
+---
+
+File: `people/FaceData.java`
+Description: Simple serializable container that stores raw image bytes and optional face encoding.
+
+```java
+package people;
+
+import java.io.Serializable;
+import java.util.Date;
+
+public class FaceData implements Serializable {
+    private static final long serialVersionUID = 1L;
+    private byte[] imageBytes;
+    private int imageWidth;
+    private int imageHeight;
+    private int imageType;
+    private byte[] encoding;
+    private Date capturedAt;
+
+    public FaceData(byte[] imageBytes, int width, int height, int type, byte[] encoding) {
+        this.imageBytes = imageBytes;
+        this.imageWidth = width;
+        this.imageHeight = height;
+        this.imageType = type;
+        this.encoding = encoding;
+        this.capturedAt = new Date();
+    }
+
+    public byte[] getImageBytes() {
+        return this.imageBytes;
+    }
+
+    public int getImageWidth() {
+        return this.imageWidth;
+    }
+
+    public int getImageHeight() {
+        return this.imageHeight;
+    }
+
+    public int getImageType() {
+        return this.imageType;
+    }
+
+    public byte[] getEncoding() {
+        return this.encoding;
+    }
+
+    public Date getCapturedAt() {
+        return this.capturedAt;
+    }
+}
+```
+
+---
+
+File: `people/MeetingHistory.java`
+Description: Placeholder class (empty). Intended for meeting history tracking.
+
+```java
+package people;
+
+public class MeetingHistory {
+}
+```
+
+---
+
+File: `people/MeetingRecord.java`
+Description: Placeholder class (empty). Intended for single meeting records.
+
+```java
+package people;
+
+public class MeetingRecord {
+}
+```
+
+---
+
+File: `people/Person.java`
+Description: Serializable person model containing id, name, relationship and a list of `FaceData` entries.
+
+```java
+package people;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Person implements Serializable {
+    private static final long serialVersionUID = 1L;
+    private String id;
+    private String name;
+    private String relationship;
+    private List<FaceData> faces;
+
+    public Person(String id, String name, String relationship) {
+        this.id = id;
+        this.name = name;
+        this.relationship = relationship;
+        this.faces = new ArrayList();
+    }
+
+    public void addFace(FaceData face) {
+        this.faces.add(face);
+    }
+
+    public String getId() {
+        return this.id;
+    }
+
+    public String getName() {
+        return this.name;
+    }
+
+    public String getRelationship() {
+        return this.relationship;
+    }
+
+    public List<FaceData> getFaces() {
+        return this.faces;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setRelationship(String relationship) {
+        this.relationship = relationship;
+    }
+}
+```
+
+---
+
+File: `service/FaceDetectionService.java`
+Description: Placeholder for higher-level detection logic (currently empty).
+
+```java
+package service;
+
+public class FaceDetectionService {
+}
+```
+
+---
+
+File: `service/FaceRecognitionService.java`
+Description: Trains and uses an LBPH recognizer (Bytedeco wrapping of OpenCV face recognizer). Trains from stored `Person` objects and their `FaceData`.
+
+```java
+package service;
+
+import java.io.PrintStream;
+import java.nio.IntBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import org.bytedeco.opencv.global.opencv_core;
+import org.bytedeco.opencv.global.opencv_imgproc;
+import org.bytedeco.opencv.opencv_core.Mat;
+import org.bytedeco.opencv.opencv_core.MatVector;
+import org.bytedeco.opencv.opencv_core.Size;
+import org.bytedeco.opencv.opencv_face.LBPHFaceRecognizer;
+import people.FaceData;
+import people.Person;
+import util.ImageUtils;
+
+public class FaceRecognitionService {
+    private LBPHFaceRecognizer recognizer;
+    private List<Person> trainedPersons;
+    private boolean isTrained = false;
+    private static final double CONFIDENCE_THRESHOLD = (double)100.0F;
+
+    public FaceRecognitionService() {
+        System.out.println("FaceRecognitionService created");
+        this.recognizer = LBPHFaceRecognizer.create(1, 8, 8, 8, (double)100.0F);
+        this.trainedPersons = new ArrayList();
+    }
+
+    public void train(List<Person> persons) {
+        System.out.println("\n===== TRAINING START =====");
+        System.out.println("Received " + persons.size() + " person(s) to train");
+        if (persons.isEmpty()) {
+            System.out.println("No persons to train on - marking as untrained");
+            this.isTrained = false;
+        } else {
+            MatVector faceImages = new MatVector();
+            List<Integer> labelList = new ArrayList();
+            this.trainedPersons.clear();
+            int label = 0;
+
+            for(Person person : persons) {
+                System.out.println("\nProcessing person: " + person.getName());
+                System.out.println("  Relationship: " + person.getRelationship());
+                System.out.println("  Face count: " + person.getFaces().size());
+                if (person.getFaces().isEmpty()) {
+                    System.out.println("  ⚠ Skipping - no faces");
+                } else {
+                    int faceIndex = 0;
+
+                    for(FaceData faceData : person.getFaces()) {
+                        ++faceIndex;
+                        System.out.println("  Face " + faceIndex + ":");
+                        PrintStream var10000 = System.out;
+                        int var10001 = faceData.getImageWidth();
+                        var10000.println("    Stored size: " + var10001 + "x" + faceData.getImageHeight());
+
+                        try {
+                            Mat faceMat = ImageUtils.faceDataToMat(faceData);
+                            var10000 = System.out;
+                            var10001 = faceMat.cols();
+                            var10000.println("    Converted Mat: " + var10001 + "x" + faceMat.rows() + ", channels=" + faceMat.channels());
+                            Mat grayFace = new Mat();
+                            if (faceMat.channels() > 1) {
+                                opencv_imgproc.cvtColor(faceMat, grayFace, 6);
+                                System.out.println("    ✓ Converted to grayscale");
+                            } else {
+                                grayFace = faceMat.clone();
+                                System.out.println("    Already grayscale");
+                            }
+
+                            Mat resizedFace = new Mat();
+                            opencv_imgproc.resize(grayFace, resizedFace, new Size(100, 100));
+                            System.out.println("    ✓ Resized to 100x100");
+                            faceImages.push_back(resizedFace);
+                            labelList.add(label);
+                            System.out.println("    ✓ Added to training set with label " + label);
+                        } catch (Exception e) {
+                            System.out.println("    ✗ ERROR processing face:");
+                            e.printStackTrace();
+                        }
+                    }
+
+                    this.trainedPersons.add(person);
+                    System.out.println("  ✓ Person assigned label: " + label);
+                    ++label;
+                }
+            }
+
+            if (faceImages.size() == 0L) {
+                System.out.println("\n✗ No valid face images to train on");
+                this.isTrained = false;
+            } else {
+                Mat labels = new Mat(labelList.size(), 1, opencv_core.CV_32SC1);
+                IntBuffer labelBuffer = (IntBuffer)labels.createBuffer();
+
+                for(int i = 0; i < labelList.size(); ++i) {
+                    labelBuffer.put(i, (Integer)labelList.get(i));
+                }
+
+                System.out.println("\nTraining recognizer...");
+                System.out.println("  Total images: " + faceImages.size());
+                System.out.println("  Total persons: " + this.trainedPersons.size());
+
+                try {
+                    this.recognizer.train(faceImages, labels);
+                    this.isTrained = true;
+                    System.out.println("  ✓ Training successful!");
+                } catch (Exception e) {
+                    System.out.println("  ✗ Training failed:");
+                    e.printStackTrace();
+                    this.isTrained = false;
+                }
+
+                System.out.println("\n===== TRAINING COMPLETE =====");
+                System.out.println("Label mapping:");
+
+                for(int i = 0; i < this.trainedPersons.size(); ++i) {
+                    System.out.println("  Label " + i + " → " + ((Person)this.trainedPersons.get(i)).getName());
+                }
+
+                System.out.println("==============================\n");
+            }
+        }
+    }
+
+    public RecognitionResult recognize(Mat faceImage) {
+        System.out.println("\n===== RECOGNITION START =====");
+        if (!this.isTrained) {
+            System.out.println("✗ Cannot recognize - not trained!");
+            return new RecognitionResult((Person)null, (double)-1.0F, "Not Trained");
+        } else {
+            PrintStream var10000 = System.out;
+            int var10001 = faceImage.cols();
+            var10000.println("Input face: " + var10001 + "x" + faceImage.rows() + ", channels=" + faceImage.channels());
+
+            try {
+                Mat grayFace = new Mat();
+                if (faceImage.channels() > 1) {
+                    opencv_imgproc.cvtColor(faceImage, grayFace, 6);
+                    System.out.println("✓ Converted to grayscale");
+                } else {
+                    grayFace = faceImage.clone();
+                    System.out.println("Already grayscale");
+                }
+
+                Mat resizedFace = new Mat();
+                opencv_imgproc.resize(grayFace, resizedFace, new Size(100, 100));
+                System.out.println("✓ Resized to 100x100");
+                int[] predictedLabel = new int[1];
+                double[] confidence = new double[1];
+                System.out.println("Calling recognizer.predict()...");
+                this.recognizer.predict(resizedFace, predictedLabel, confidence);
+                System.out.println("✓ Prediction complete");
+                System.out.println("\n--- PREDICTION RESULT ---");
+                System.out.println("Predicted label: " + predictedLabel[0]);
+                System.out.println("Confidence: " + confidence[0]);
+                System.out.println("Threshold: 100.0");
+                System.out.println("-------------------------");
+                String confidenceLevel = this.getConfidenceLevel(confidence[0]);
+                if (confidence[0] > (double)100.0F) {
+                    System.out.println("✗ Confidence " + confidence[0] + " > 100.0");
+                    System.out.println("Match not good enough → UNKNOWN");
+                    System.out.println("===== RECOGNITION END (UNKNOWN) =====\n");
+                    return new RecognitionResult((Person)null, confidence[0], confidenceLevel);
+                } else if (predictedLabel[0] >= 0 && predictedLabel[0] < this.trainedPersons.size()) {
+                    Person matched = (Person)this.trainedPersons.get(predictedLabel[0]);
+                    System.out.println("✓ Confidence acceptable!");
+                    System.out.println("*** MATCH: " + matched.getName() + " ***");
+                    System.out.println("===== RECOGNITION END (MATCHED) =====\n");
+                    return new RecognitionResult(matched, confidence[0], confidenceLevel);
+                } else {
+                    System.out.println("✗ Label " + predictedLabel[0] + " out of range");
+                    System.out.println("===== RECOGNITION END (UNKNOWN) =====\n");
+                    return new RecognitionResult((Person)null, confidence[0], confidenceLevel);
+                }
+            } catch (Exception e) {
+                System.out.println("✗ ERROR during recognition:");
+                e.printStackTrace();
+                System.out.println("===== RECOGNITION END (ERROR) =====\n");
+                return new RecognitionResult((Person)null, (double)-1.0F, "Error");
+            }
+        }
+    }
+
+    private String getConfidenceLevel(double confidence) {
+        if (confidence < (double)0.0F) {
+            return "Error";
+        } else if (confidence < (double)40.0F) {
+            return "Excellent Match";
+        } else if (confidence < (double)60.0F) {
+            return "Very Good Match";
+        } else if (confidence < (double)80.0F) {
+            return "Good Match";
+        } else if (confidence < (double)100.0F) {
+            return "Fair Match";
+        } else {
+            return confidence < (double)120.0F ? "Poor Match" : "Very Poor Match";
+        }
+    }
+
+    public boolean isTrained() {
+        return this.isTrained;
+    }
+
+    public static class RecognitionResult {
+        private Person person;
+        private double confidence;
+        private String confidenceLevel;
+
+        public RecognitionResult(Person person, double confidence, String confidenceLevel) {
+            this.person = person;
+            this.confidence = confidence;
+            this.confidenceLevel = confidenceLevel;
+        }
+
+        public Person getPerson() {
+            return this.person;
+        }
+
+        public double getConfidence() {
+            return this.confidence;
+        }
+
+        public String getConfidenceLevel() {
+            return this.confidenceLevel;
+        }
+
+        public boolean isRecognized() {
+            return this.person != null;
+        }
+    }
+}
+```
+
+---
+
+File: `ui/CameraPanel.java`
+Description: Placeholder for a camera display panel (empty).
+
+```java
+package ui;
+
+public class CameraPanel {
+}
+```
+
+---
+
+File: `ui/MainWindow.java`
+Description: Swing UI: opens camera, runs detection, draws rectangles, allows capture and adding new persons.
+
+```java
+package ui;
+
+import people.Person;
+import org.bytedeco.opencv.opencv_core.*;
+import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
+import org.bytedeco.opencv.opencv_videoio.VideoCapture;
+import service.FaceRecognitionService;
+import util.FileHandler;
+import util.ImageUtils;
+
+import static org.bytedeco.opencv.global.opencv_imgproc.*;
+import static org.bytedeco.opencv.global.opencv_core.*;
+
+import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.util.List;
+
+public class MainWindow extends JFrame {
+    private JLabel cameraLabel;
+    private JButton captureButton;
+    private JLabel infoLabel;
+
+    private VideoCapture camera;
+    private CascadeClassifier faceDetector;
+    private FaceRecognitionService recognitionService;
+    private FileHandler fileHandler;
+    private List<Person> persons;
+
+    private Mat currentFrame;
+    private Rect currentFaceRect;
+    private boolean running = true;
+
+    public MainWindow(CascadeClassifier faceDetector) {
+        System.out.println("=== MainWindow Constructor START ===");
+
+        this.faceDetector = faceDetector;
+        this.fileHandler = new FileHandler();
+        this.recognitionService = new FaceRecognitionService();
+
+        System.out.println("Loading persons from file...");
+        this.persons = fileHandler.loadPersons();
+        System.out.println("Loaded " + persons.size() + " persons");
+
+        for (Person p : persons) {
+            System.out.println("  - Person: " + p.getName() +
+                    " (" + p.getRelationship() + ") " +
+                    "with " + p.getFaces().size() + " face(s)");
+        }
+
+        System.out.println("Training face recognizer...");
+        recognitionService.train(persons);
+        System.out.println("Training complete. Trained: " + recognitionService.isTrained());
+
+        setupUI();
+        startCamera();
+
+        System.out.println("=== MainWindow Constructor END ===");
+    }
+
+    private void setupUI() {
+        System.out.println("Setting up UI...");
+
+        setTitle("IMentia - Dementia Assistance");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(900, 700);
+        setLayout(new BorderLayout(10, 10));
+
+        cameraLabel = new JLabel();
+        cameraLabel.setHorizontalAlignment(JLabel.CENTER);
+        cameraLabel.setPreferredSize(new Dimension(640, 480));
+        add(cameraLabel, BorderLayout.CENTER);
+
+        JPanel bottomPanel = new JPanel(new BorderLayout(10, 10));
+        bottomPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        captureButton = new JButton("CAPTURE FACE");
+        captureButton.setFont(new Font("Arial", Font.BOLD, 24));
+        captureButton.setPreferredSize(new Dimension(250, 60));
+        captureButton.addActionListener(e -> {
+            System.out.println("\n*** CAPTURE BUTTON CLICKED ***");
+            captureFace();
+        });
+
+        infoLabel = new JLabel("Loaded " + persons.size() + " saved person(s). Point camera at a face.");
+        infoLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+        infoLabel.setHorizontalAlignment(JLabel.CENTER);
+
+        bottomPanel.add(captureButton, BorderLayout.WEST);
+        bottomPanel.add(infoLabel, BorderLayout.CENTER);
+
+        add(bottomPanel, BorderLayout.SOUTH);
+
+        System.out.println("UI setup complete");
+    }
+
+    private void startCamera() {
+        System.out.println("Starting camera...");
+        camera = new VideoCapture(0);
+
+        if (!camera.isOpened()) {
+            System.out.println("ERROR: Cannot open camera!");
+            JOptionPane.showMessageDialog(this, "Cannot open camera!");
+            return;
+        }
+
+        System.out.println("Camera opened successfully");
+
+        Thread cameraThread = new Thread(() -> {
+            System.out.println("Camera thread started");
+            Mat frame = new Mat();
+            Mat grayFrame = new Mat();
+
+            while (running) {
+                if (!camera.read(frame)) {
+                    continue;
+                }
+
+                currentFrame = frame.clone();
+
+                cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
+
+                RectVector detections = new RectVector();
+                faceDetector.detectMultiScale(grayFrame, detections);
+
+                long numFaces = detections.size();
+                if (numFaces > 0) {
+                    Rect[] faces = new Rect[(int)numFaces];
+                    for (int i = 0; i < numFaces; i++) {
+                        faces[i] = detections.get(i);
+                    }
+
+                    currentFaceRect = getBiggestFace(faces);
+
+                    rectangle(
+                            frame,
+                            new Point(currentFaceRect.x(), currentFaceRect.y()),
+                            new Point(currentFaceRect.x() + currentFaceRect.width(),
+                                    currentFaceRect.y() + currentFaceRect.height()),
+                            new Scalar(0, 255, 0, 0),
+                            3, LINE_8, 0
+                    );
+                } else {
+                    currentFaceRect = null;
+                }
+
+                ImageIcon icon = new ImageIcon(ImageUtils.matToBufferedImage(frame));
+                SwingUtilities.invokeLater(() -> cameraLabel.setIcon(icon));
+
+                try {
+                    Thread.sleep(30);
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+
+            camera.release();
+            System.out.println("Camera thread stopped");
+        });
+
+        cameraThread.setDaemon(true);
+        cameraThread.start();
+    }
+
+    private Rect getBiggestFace(Rect[] faces) {
+        Rect biggest = faces[0];
+        int maxArea = biggest.width() * biggest.height();
+
+        for (int i = 1; i < faces.length; i++) {
+            int area = faces[i].width() * faces[i].height();
+            if (area > maxArea) {
+                maxArea = area;
+                biggest = faces[i];
+            }
+        }
+
+        return biggest;
+    }
+
+    private void captureFace() {
+        System.out.println("=== captureFace() called ===");
+
+        if (currentFrame == null || currentFaceRect == null) {
+            System.out.println("No face detected in current frame");
+            JOptionPane.showMessageDialog(this,
+                    "No face detected! Please look at the camera.",
+                    "No Face",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        System.out.println("Extracting face from frame...");
+        System.out.println("Face rect: x=" + currentFaceRect.x() +
+                ", y=" + currentFaceRect.y() +
+                ", w=" + currentFaceRect.width() +
+                ", h=" + currentFaceRect.height());
+
+        Mat faceImage = new Mat(currentFrame, currentFaceRect);
+        System.out.println("Face image extracted: " +
+                faceImage.cols() + "x" + faceImage.rows() +
+                ", channels=" + faceImage.channels());
+
+        System.out.println("Calling recognitionService.recognize()...");
+        FaceRecognitionService.RecognitionResult result = recognitionService.recognize(faceImage);
+        System.out.println("Recognition completed");
+        System.out.println("Result - isRecognized: " + result.isRecognized() +
+                ", confidence: " + result.getConfidence());
+
+        if (result.isRecognized()) {
+            System.out.println("*** PERSON RECOGNIZED: " + result.getPerson().getName() + " ***");
+            showRecognizedPerson(result.getPerson(), result.getConfidence());
+        } else {
+            System.out.println("*** PERSON NOT RECOGNIZED ***");
+            int choice = JOptionPane.showConfirmDialog(this,
+                    "Person not recognized. Would you like to add them?",
+                    "Unknown Person",
+                    JOptionPane.YES_NO_OPTION);
+
+            if (choice == JOptionPane.YES_OPTION) {
+                System.out.println("User chose to add new person");
+                showAddPersonDialog(faceImage);
+            } else {
+                System.out.println("User chose not to add person");
+            }
+        }
+    }
+
+    private void showRecognizedPerson(Person person, double confidence) {
+        System.out.println("Showing recognized person dialog for: " + person.getName());
+
+        String confidenceLevel = getConfidenceDescription(confidence);
+
+        String message = String.format(
+                "<html><center>" +
+                        "<h1 style='font-size: 32px; margin: 10px;'>%s</h1>" +
+                        "<h2 style='font-size: 24px; color: #666; margin: 10px;'>%s</h2>" +
+                        "<div style='margin-top: 20px; padding: 10px; background-color: %s; border-radius: 5px;'>" +
+                        "<p style='font-size: 18px; margin: 5px;'><b>Match Quality:</b> %s</p>" +
+                        "<p style='font-size: 14px; color: #666; margin: 5px;'>Confidence Score: %.1f</p>" +
+                        "</div>" +
+                        "</center></html>",
+                person.getName(),
+                person.getRelationship(),
+                getConfidenceColor(confidence),
+                confidenceLevel,
+                confidence
+        );
+
+        infoLabel.setText("Recognized: " + person.getName() + " - " + confidenceLevel);
+
+        JOptionPane.showMessageDialog(this,
+                message,
+                "Person Recognized!",
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private String getConfidenceDescription(double confidence) {
+        if (confidence < 40) return "Excellent Match";
+        else if (confidence < 60) return "Very Good Match";
+        else if (confidence < 80) return "Good Match";
+        else if (confidence < 100) return "Fair Match";
+        else if (confidence < 120) return "Poor Match";
+        else return "Very Poor Match";
+    }
+
+    private String getConfidenceColor(double confidence) {
+        if (confidence < 40) return "#d4edda";
+        else if (confidence < 60) return "#d1ecf1";
+        else if (confidence < 80) return "#fff3cd";
+        else if (confidence < 100) return "#f8d7da";
+        else return "#f8d7da";
+    }
+
+    private void showAddPersonDialog(Mat faceImage) {
+        System.out.println("Opening add person dialog...");
+        PersonFormDialog dialog = new PersonFormDialog(this, faceImage);
+        dialog.setVisible(true);
+
+        if (dialog.isConfirmed()) {
+            Person newPerson = dialog.getPerson();
+            System.out.println("New person confirmed: " + newPerson.getName());
+            persons.add(newPerson);
+
+            System.out.println("Saving persons to file...");
+            fileHandler.savePersons(persons);
+
+            System.out.println("Retraining recognizer...");
+            recognitionService.train(persons);
+
+            infoLabel.setText("Saved: " + newPerson.getName() + " (" + newPerson.getRelationship() + ")");
+        } else {
+            System.out.println("Add person dialog cancelled");
+        }
+    }
+
+    @Override
+    public void dispose() {
+        System.out.println("Disposing window...");
+        running = false;
+        super.dispose();
+    }
+}
+```
+
+---
+
+File: `ui/PersonFormDialog.java`
+Description: Dialog used to create a new `Person` from a captured face image.
+
+```java
+package ui;
+
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridLayout;
+import java.util.UUID;
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import org.bytedeco.opencv.opencv_core.Mat;
+import people.FaceData;
+import people.Person;
+import util.ImageUtils;
+
+public class PersonFormDialog extends JDialog {
+    private JTextField nameField;
+    private JTextField relationshipField;
+    private JButton saveButton;
+    private JButton cancelButton;
+    private Mat faceImage;
+    private Person person;
+    private boolean confirmed = false;
+
+    public PersonFormDialog(JFrame parent, Mat faceImage) {
+        super(parent, "Add New Person", true);
+        this.faceImage = faceImage;
+        this.setupUI();
+    }
+
+    private void setupUI() {
+        this.setSize(400, 300);
+        this.setLocationRelativeTo(this.getParent());
+        this.setLayout(new BorderLayout(10, 10));
+        JLabel facePreview = new JLabel();
+        facePreview.setIcon(new ImageIcon(ImageUtils.matToBufferedImage(this.faceImage)));
+        facePreview.setHorizontalAlignment(0);
+        this.add(facePreview, "North");
+        JPanel formPanel = new JPanel(new GridLayout(2, 2, 10, 10));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        JLabel nameLabel = new JLabel("Name:");
+        nameLabel.setFont(new Font("Arial", 1, 16));
+        this.nameField = new JTextField();
+        this.nameField.setFont(new Font("Arial", 0, 16));
+        JLabel relationshipLabel = new JLabel("Relationship:");
+        relationshipLabel.setFont(new Font("Arial", 1, 16));
+        this.relationshipField = new JTextField();
+        this.relationshipField.setFont(new Font("Arial", 0, 16));
+        formPanel.add(nameLabel);
+        formPanel.add(this.nameField);
+        formPanel.add(relationshipLabel);
+        formPanel.add(this.relationshipField);
+        this.add(formPanel, "Center");
+        JPanel buttonPanel = new JPanel(new FlowLayout(1, 20, 10));
+        this.saveButton = new JButton("SAVE");
+        this.saveButton.setFont(new Font("Arial", 1, 18));
+        this.saveButton.addActionListener((e) -> this.save());
+        this.cancelButton = new JButton("CANCEL");
+        this.cancelButton.setFont(new Font("Arial", 1, 18));
+        this.cancelButton.addActionListener((e) -> this.cancel());
+        buttonPanel.add(this.saveButton);
+        buttonPanel.add(this.cancelButton);
+        this.add(buttonPanel, "South");
+    }
+
+    private void save() {
+        String name = this.nameField.getText().trim();
+        String relationship = this.relationshipField.getText().trim();
+        if (name.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter a name!");
+        } else {
+            String id = UUID.randomUUID().toString();
+            this.person = new Person(id, name, relationship);
+            FaceData faceData = ImageUtils.matToFaceData(this.faceImage, (byte[])null);
+            this.person.addFace(faceData);
+            this.confirmed = true;
+            this.dispose();
+        }
+    }
+
+    private void cancel() {
+        this.confirmed = false;
+        this.dispose();
+    }
+
+    public boolean isConfirmed() {
+        return this.confirmed;
+    }
+
+    public Person getPerson() {
+        return this.person;
+    }
+}
+```
+
+---
+
+File: `util/FileHandler.java`
+Description: Persists and loads `List<Person>` to disk using simple Java serialization. Stores data under `imentia_data/persons.dat`.
+
+```java
+package util;
+
+import people.Person;
+
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class FileHandler {
+    private static final String DATA_FOLDER = "imentia_data";
+    private static final String PERSONS_FILE = "persons.dat";
+
+    public FileHandler() {
+        System.out.println("FileHandler created");
+        File folder = new File(DATA_FOLDER);
+        if (!folder.exists()) {
+            System.out.println("Creating data folder: " + DATA_FOLDER);
+            folder.mkdir();
+        }
+    }
+
+    public void savePersons(List<Person> persons) {
+        try {
+            File file = new File(DATA_FOLDER, PERSONS_FILE);
+            System.out.println("Saving " + persons.size() + " person(s) to " + file.getAbsolutePath());
+
+            ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
+            oos.writeObject(persons);
+            oos.close();
+
+            System.out.println("✓ Save successful");
+        } catch (IOException e) {
+            System.out.println("✗ Error saving persons:");
+            e.printStackTrace();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Person> loadPersons() {
+        File file = new File(DATA_FOLDER, PERSONS_FILE);
+        System.out.println("Loading persons from: " + file.getAbsolutePath());
+
+        if (!file.exists()) {
+            System.out.println("File does not exist - returning empty list");
+            return new ArrayList<>();
+        }
+
+        try {
+            ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file));
+            List<Person> persons = (List<Person>) ois.readObject();
+            ois.close();
+            System.out.println("✓ Loaded " + persons.size() + " person(s)");
+            return persons;
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("✗ Error loading persons:");
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+}
+```
+
+---
+
+File: `util/ImageUtils.java`
+Description: Utility conversions between `Mat` and `BufferedImage` and between `Mat` and `FaceData`.
+
+```java
+package util;
+
+import people.FaceData;
+import org.bytedeco.opencv.opencv_core.Mat;
+import org.bytedeco.javacpp.indexer.UByteIndexer;
+
+import java.awt.image.BufferedImage;
+
+public class ImageUtils {
+
+    public static BufferedImage matToBufferedImage(Mat mat) {
+        int width = mat.cols();
+        int height = mat.rows();
+        int channels = mat.channels();
+
+        int type = (channels > 1) ? BufferedImage.TYPE_3BYTE_BGR : BufferedImage.TYPE_BYTE_GRAY;
+        BufferedImage image = new BufferedImage(width, height, type);
+
+        UByteIndexer indexer = mat.createIndexer();
+
+        if (channels == 3) {
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    int b = indexer.get(y, x, 0);
+                    int g = indexer.get(y, x, 1);
+                    int r = indexer.get(y, x, 2);
+
+                    int rgb = ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
+                    image.setRGB(x, y, rgb);
+                }
+            }
+        } else {
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    int gray = indexer.get(y, x, 0);
+                    int rgb = ((gray & 0xFF) << 16) | ((gray & 0xFF) << 8) | (gray & 0xFF);
+                    image.setRGB(x, y, rgb);
+                }
+            }
+        }
+
+        indexer.release();
+        return image;
+    }
+
+    public static FaceData matToFaceData(Mat mat, byte[] encoding) {
+        System.out.println("Converting Mat to FaceData:");
+        System.out.println("  Size: " + mat.cols() + "x" + mat.rows());
+        System.out.println("  Channels: " + mat.channels());
+
+        int width = mat.cols();
+        int height = mat.rows();
+        int channels = mat.channels();
+
+        UByteIndexer indexer = mat.createIndexer();
+        byte[] bytes = new byte[width * height * channels];
+
+        int idx = 0;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                for (int c = 0; c < channels; c++) {
+                    bytes[idx++] = (byte) indexer.get(y, x, c);
+                }
+            }
+        }
+
+        indexer.release();
+
+        System.out.println("  Byte array size: " + bytes.length);
+
+        return new FaceData(bytes, width, height, channels, encoding);
+    }
+
+    public static Mat faceDataToMat(FaceData faceData) {
+        System.out.println("Converting FaceData to Mat:");
+        System.out.println("  Stored size: " + faceData.getImageWidth() + "x" + faceData.getImageHeight());
+        System.out.println("  Channels: " + faceData.getImageType());
+
+        int width = faceData.getImageWidth();
+        int height = faceData.getImageHeight();
+        int channels = faceData.getImageType();
+
+        int cvType = (channels > 1) ? org.bytedeco.opencv.global.opencv_core.CV_8UC3 :
+                org.bytedeco.opencv.global.opencv_core.CV_8UC1;
+
+        Mat mat = new Mat(height, width, cvType);
+
+        UByteIndexer indexer = mat.createIndexer();
+        byte[] bytes = faceData.getImageBytes();
+
+        int idx = 0;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                for (int c = 0; c < channels; c++) {
+                    indexer.put(y, x, c, bytes[idx++] & 0xFF);
+                }
+            }
+        }
+
+        indexer.release();
+
+        System.out.println("  Reconstructed: " + mat.cols() + "x" + mat.rows() + ", channels=" + mat.channels());
+
+        return mat;
+    }
+}
+```
+
+---
+
+Notes & Next Steps
+- To run: ensure the Haar cascade is on the classpath (e.g., `src/main/resources/haarcascade_frontalface_default.xml`) and the Bytedeco/OpenCV dependency is configured in `pom.xml`.
+- If the camera fails to open, check macOS camera permissions and that no other app is using the camera.
+- You can extend `MeetingHistory` / `MeetingRecord` and `FaceDetectionService` for more features.
+
+If you'd like, I can:
+- Commit this `DocumentationTutorial.txt` to the repository,
+- Add a minimal `README.md` and run instructions,
+- Or run/build the project here to check for runtime issues.
+
+--- End of document
