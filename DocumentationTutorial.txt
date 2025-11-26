@@ -21,12 +21,11 @@ This prototype captures webcam frames, runs OpenCV face detection and recognitio
 
 Below are the source files (brief description + full source) from `src/main/java`.
 
----
+// ============================================================
+// IMENTIA PROTOTYPE - FULL SOURCE CODE (UPDATED)
+// ============================================================
 
-File: `Main.java`
-Description: App entrypoint. Loads cascade from resources, initializes the main window.
-
-```java
+// >>> FILE: src/main/java/Main.java
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -38,17 +37,25 @@ import ui.MainWindow;
 
 public class Main {
     public static void main(String[] args) {
+        // --- APPLICATION INITIALIZATION ---
+        // Direct System.out and System.err to ensure proper logging/output handling.
         System.setOut(new PrintStream(System.out, true));
         System.setErr(new PrintStream(System.err, true));
         System.out.println("===== APPLICATION STARTING =====");
         System.out.println("OpenCV Version: " + opencv_core.CV_VERSION);
+
+        // 1. Load the pre-trained Haar Cascade XML file for face detection.
         CascadeClassifier faceDetector = loadFaceDetector();
+
         if (faceDetector == null) {
-            System.out.println("Error loading face detector!");
+            System.out.println("Error loading face detector! Application cannot start.");
         } else {
             System.out.println("Face detector loaded successfully");
+
+            // 2. Start the Swing UI on the Event Dispatch Thread (EDT).
             SwingUtilities.invokeLater(() -> {
                 System.out.println("Creating main window...");
+                // Pass the loaded CascadeClassifier to the main window.
                 MainWindow window = new MainWindow(faceDetector);
                 window.setVisible(true);
                 System.out.println("Window displayed");
@@ -56,19 +63,28 @@ public class Main {
         }
     }
 
+    /**
+     * Loads the Haar Cascade XML file from the classpath resources and creates a physical
+     * temporary file, as Bytedeco/OpenCV's CascadeClassifier requires a file path, not a stream.
+     * @return A loaded CascadeClassifier or null if loading failed.
+     */
     private static CascadeClassifier loadFaceDetector() {
         try {
             System.out.println("Loading face detector from resources...");
+            // STEP 1: Get the resource as an InputStream (from JAR/classpath)
             InputStream is = Main.class.getResourceAsStream("/haarcascade_frontalface_default.xml");
+
             if (is == null) {
                 System.out.println("Could not find haarcascade file in resources!");
                 return null;
             } else {
+                // STEP 2: Create a temporary file on the filesystem
                 File tempFile = File.createTempFile("haarcascade", ".xml");
-                tempFile.deleteOnExit();
+                tempFile.deleteOnExit(); // Ensure the temp file is deleted on exit
                 FileOutputStream os = new FileOutputStream(tempFile);
                 byte[] buffer = new byte[4096];
 
+                // STEP 3: Copy data from resource stream to the temporary file
                 int bytesRead;
                 while((bytesRead = is.read(buffer)) != -1) {
                     os.write(buffer, 0, bytesRead);
@@ -77,9 +93,12 @@ public class Main {
                 is.close();
                 os.close();
                 System.out.println("Temp file created at: " + tempFile.getAbsolutePath());
+
+                // STEP 4: Initialize the CascadeClassifier using the temp file's path
                 CascadeClassifier classifier = new CascadeClassifier(tempFile.getAbsolutePath());
+
                 if (classifier.empty()) {
-                    System.out.println("Classifier is empty!");
+                    System.out.println("Classifier is empty! XML loading failed.");
                     return null;
                 } else {
                     return classifier;
@@ -92,27 +111,26 @@ public class Main {
         }
     }
 }
-```
 
----
 
-File: `people/FaceData.java`
-Description: Simple serializable container that stores raw image bytes and optional face encoding.
-
-```java
+// >>> FILE: src/main/java/people/FaceData.java
 package people;
 
 import java.io.Serializable;
 import java.util.Date;
 
+/**
+ * FaceData is a serializable container for a captured face image, designed for
+ * persistence and transport within the application.
+ */
 public class FaceData implements Serializable {
     private static final long serialVersionUID = 1L;
-    private byte[] imageBytes;
-    private int imageWidth;
-    private int imageHeight;
-    private int imageType;
-    private byte[] encoding;
-    private Date capturedAt;
+    private byte[] imageBytes; // Raw pixel data of the face image
+    private int imageWidth;    // Width of the face image
+    private int imageHeight;   // Height of the face image
+    private int imageType;     // Number of channels (e.g., 3 for BGR, 1 for GRAY)
+    private byte[] encoding;   // Placeholder for a potential face vector/encoding
+    private Date capturedAt;   // Timestamp of capture
 
     public FaceData(byte[] imageBytes, int width, int height, int type, byte[] encoding) {
         this.imageBytes = imageBytes;
@@ -147,50 +165,39 @@ public class FaceData implements Serializable {
         return this.capturedAt;
     }
 }
-```
 
----
 
-File: `people/MeetingHistory.java`
-Description: Placeholder class (empty). Intended for meeting history tracking.
-
-```java
+// >>> FILE: src/main/java/people/MeetingHistory.java
 package people;
 
 public class MeetingHistory {
 }
-```
 
----
 
-File: `people/MeetingRecord.java`
-Description: Placeholder class (empty). Intended for single meeting records.
-
-```java
+// >>> FILE: src/main/java/people/MeetingRecord.java
 package people;
 
 public class MeetingRecord {
 }
-```
 
----
 
-File: `people/Person.java`
-Description: Serializable person model containing id, name, relationship and a list of `FaceData` entries.
-
-```java
+// >>> FILE: src/main/java/people/Person.java
 package people;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Person is the model for a recognized individual, storing their metadata
+ * and a list of captured face samples (FaceData) used for training.
+ */
 public class Person implements Serializable {
     private static final long serialVersionUID = 1L;
     private String id;
     private String name;
     private String relationship;
-    private List<FaceData> faces;
+    private List<FaceData> faces; // List of face samples for this person
 
     public Person(String id, String name, String relationship) {
         this.id = id;
@@ -199,6 +206,10 @@ public class Person implements Serializable {
         this.faces = new ArrayList();
     }
 
+    /**
+     * Adds a new FaceData sample to this person's training set.
+     * @param face The FaceData object to add.
+     */
     public void addFace(FaceData face) {
         this.faces.add(face);
     }
@@ -227,26 +238,16 @@ public class Person implements Serializable {
         this.relationship = relationship;
     }
 }
-```
 
----
 
-File: `service/FaceDetectionService.java`
-Description: Placeholder for higher-level detection logic (currently empty).
-
-```java
+// >>> FILE: src/main/java/service/FaceDetectionService.java
 package service;
 
 public class FaceDetectionService {
 }
-```
 
----
 
-File: `service/FaceRecognitionService.java`
-Description: Trains and uses an LBPH recognizer (Bytedeco wrapping of OpenCV face recognizer). Trains from stored `Person` objects and their `FaceData`.
-
-```java
+// >>> FILE: src/main/java/service/FaceRecognitionService.java
 package service;
 
 import java.io.PrintStream;
@@ -263,53 +264,68 @@ import people.FaceData;
 import people.Person;
 import util.ImageUtils;
 
+/**
+ * Manages the training and recognition process using the Local Binary Patterns Histograms (LBPH)
+ * algorithm from OpenCV, wrapped by Bytedeco.
+ */
 public class FaceRecognitionService {
     private LBPHFaceRecognizer recognizer;
     private List<Person> trainedPersons;
     private boolean isTrained = false;
+    // The confidence threshold determines the maximum "distance" for a match to be considered a known person.
     private static final double CONFIDENCE_THRESHOLD = (double)100.0F;
 
     public FaceRecognitionService() {
         System.out.println("FaceRecognitionService created");
+        // Create the LBPH recognizer instance.
+        // Parameters: radius=1, neighbors=8, grid_x=8, grid_y=8, threshold=100.0
         this.recognizer = LBPHFaceRecognizer.create(1, 8, 8, 8, (double)100.0F);
         this.trainedPersons = new ArrayList();
     }
 
+    /**
+     * Trains the LBPH recognizer using faces from the provided list of Person objects.
+     * @param persons The list of people with associated FaceData to train on.
+     */
     public void train(List<Person> persons) {
         System.out.println("\n===== TRAINING START =====");
         System.out.println("Received " + persons.size() + " person(s) to train");
+
         if (persons.isEmpty()) {
             System.out.println("No persons to train on - marking as untrained");
             this.isTrained = false;
         } else {
-            MatVector faceImages = new MatVector();
-            List<Integer> labelList = new ArrayList();
+            MatVector faceImages = new MatVector(); // Container for all face images (Mat objects)
+            List<Integer> labelList = new ArrayList(); // Container for corresponding labels (person IDs)
             this.trainedPersons.clear();
-            int label = 0;
+            int label = 0; // Unique integer ID assigned to each Person
 
             for(Person person : persons) {
                 System.out.println("\nProcessing person: " + person.getName());
                 System.out.println("  Relationship: " + person.getRelationship());
                 System.out.println("  Face count: " + person.getFaces().size());
+
+                // --- TRAINING PRE-PROCESSING FOR EACH FACE ---
+                // Each person gets a unique label 'label'
                 if (person.getFaces().isEmpty()) {
+                    // Skip if no face samples available
                     System.out.println("  ⚠ Skipping - no faces");
                 } else {
                     int faceIndex = 0;
-
                     for(FaceData faceData : person.getFaces()) {
                         ++faceIndex;
                         System.out.println("  Face " + faceIndex + ":");
-                        PrintStream var10000 = System.out;
-                        int var10001 = faceData.getImageWidth();
-                        var10000.println("    Stored size: " + var10001 + "x" + faceData.getImageHeight());
+                        System.out.println("    Stored size: " + faceData.getImageWidth() + "x" + faceData.getImageHeight());
 
                         try {
+                            // 1. Convert persisted FaceData back into an OpenCV Mat object
                             Mat faceMat = ImageUtils.faceDataToMat(faceData);
-                            var10000 = System.out;
-                            var10001 = faceMat.cols();
-                            var10000.println("    Converted Mat: " + var10001 + "x" + faceMat.rows() + ", channels=" + faceMat.channels());
+                            System.out.println("    Converted Mat: " + faceMat.cols() + "x" + faceMat.rows() + ", channels=" + faceMat.channels());
+
+                            // 2. Convert face image to grayscale (required by LBPH)
                             Mat grayFace = new Mat();
                             if (faceMat.channels() > 1) {
+                                // COLOR_BGR2GRAY is code 6
                                 opencv_imgproc.cvtColor(faceMat, grayFace, 6);
                                 System.out.println("    ✓ Converted to grayscale");
                             } else {
@@ -317,11 +333,15 @@ public class FaceRecognitionService {
                                 System.out.println("    Already grayscale");
                             }
 
+                            // 3. Resize face to a fixed size (100x100 is standard for this recognizer)
                             Mat resizedFace = new Mat();
                             opencv_imgproc.resize(grayFace, resizedFace, new Size(100, 100));
                             System.out.println("    ✓ Resized to 100x100");
+
+                            // 4. Add the pre-processed face image and its corresponding person label to the training set
                             faceImages.push_back(resizedFace);
                             labelList.add(label);
+
                             System.out.println("    ✓ Added to training set with label " + label);
                         } catch (Exception e) {
                             System.out.println("    ✗ ERROR processing face:");
@@ -329,6 +349,7 @@ public class FaceRecognitionService {
                         }
                     }
 
+                    // Add the person to the list of trained persons and increment label
                     this.trainedPersons.add(person);
                     System.out.println("  ✓ Person assigned label: " + label);
                     ++label;
@@ -339,9 +360,10 @@ public class FaceRecognitionService {
                 System.out.println("\n✗ No valid face images to train on");
                 this.isTrained = false;
             } else {
+                // 5. Create the Labels Mat
+                // Labels must be provided as a continuous Mat of integers (CV_32SC1)
                 Mat labels = new Mat(labelList.size(), 1, opencv_core.CV_32SC1);
                 IntBuffer labelBuffer = (IntBuffer)labels.createBuffer();
-
                 for(int i = 0; i < labelList.size(); ++i) {
                     labelBuffer.put(i, (Integer)labelList.get(i));
                 }
@@ -350,6 +372,7 @@ public class FaceRecognitionService {
                 System.out.println("  Total images: " + faceImages.size());
                 System.out.println("  Total persons: " + this.trainedPersons.size());
 
+                // 6. Execute Training
                 try {
                     this.recognizer.train(faceImages, labels);
                     this.isTrained = true;
@@ -362,62 +385,76 @@ public class FaceRecognitionService {
 
                 System.out.println("\n===== TRAINING COMPLETE =====");
                 System.out.println("Label mapping:");
-
                 for(int i = 0; i < this.trainedPersons.size(); ++i) {
                     System.out.println("  Label " + i + " → " + ((Person)this.trainedPersons.get(i)).getName());
                 }
-
                 System.out.println("==============================\n");
             }
         }
     }
 
+    /**
+     * Attempts to recognize a face image against the trained model.
+     * @param faceImage The input face image (extracted Mat from the camera frame).
+     * @return A RecognitionResult object containing the matched Person or null.
+     */
     public RecognitionResult recognize(Mat faceImage) {
         System.out.println("\n===== RECOGNITION START =====");
         if (!this.isTrained) {
             System.out.println("✗ Cannot recognize - not trained!");
             return new RecognitionResult((Person)null, (double)-1.0F, "Not Trained");
         } else {
-            PrintStream var10000 = System.out;
-            int var10001 = faceImage.cols();
-            var10000.println("Input face: " + var10001 + "x" + faceImage.rows() + ", channels=" + faceImage.channels());
+            System.out.println("Input face: " + faceImage.cols() + "x" + faceImage.rows() + ", channels=" + faceImage.channels());
 
             try {
+                // --- RECOGNITION PRE-PROCESSING ---
+                // 1. Convert input face to grayscale (must match training input format)
                 Mat grayFace = new Mat();
                 if (faceImage.channels() > 1) {
-                    opencv_imgproc.cvtColor(faceImage, grayFace, 6);
+                    opencv_imgproc.cvtColor(faceImage, grayFace, 6); // 6 is COLOR_BGR2GRAY
                     System.out.println("✓ Converted to grayscale");
                 } else {
                     grayFace = faceImage.clone();
                     System.out.println("Already grayscale");
                 }
 
+                // 2. Resize face to the expected size (100x100)
                 Mat resizedFace = new Mat();
                 opencv_imgproc.resize(grayFace, resizedFace, new Size(100, 100));
                 System.out.println("✓ Resized to 100x100");
-                int[] predictedLabel = new int[1];
-                double[] confidence = new double[1];
+
+                // --- PREDICTION ---
+                int[] predictedLabel = new int[1]; // Output array for the predicted label (index into trainedPersons)
+                double[] confidence = new double[1]; // Output array for the confidence score (lower is better match)
+
                 System.out.println("Calling recognizer.predict()...");
                 this.recognizer.predict(resizedFace, predictedLabel, confidence);
                 System.out.println("✓ Prediction complete");
+
                 System.out.println("\n--- PREDICTION RESULT ---");
                 System.out.println("Predicted label: " + predictedLabel[0]);
                 System.out.println("Confidence: " + confidence[0]);
                 System.out.println("Threshold: 100.0");
                 System.out.println("-------------------------");
+
+                // 3. Evaluate Result
                 String confidenceLevel = this.getConfidenceLevel(confidence[0]);
-                if (confidence[0] > (double)100.0F) {
+
+                if (confidence[0] > (double)CONFIDENCE_THRESHOLD) {
+                    // Fail: Confidence score (distance) is too high.
                     System.out.println("✗ Confidence " + confidence[0] + " > 100.0");
                     System.out.println("Match not good enough → UNKNOWN");
                     System.out.println("===== RECOGNITION END (UNKNOWN) =====\n");
                     return new RecognitionResult((Person)null, confidence[0], confidenceLevel);
                 } else if (predictedLabel[0] >= 0 && predictedLabel[0] < this.trainedPersons.size()) {
+                    // Success: Confidence is acceptable and label is valid.
                     Person matched = (Person)this.trainedPersons.get(predictedLabel[0]);
                     System.out.println("✓ Confidence acceptable!");
                     System.out.println("*** MATCH: " + matched.getName() + " ***");
                     System.out.println("===== RECOGNITION END (MATCHED) =====\n");
                     return new RecognitionResult(matched, confidence[0], confidenceLevel);
                 } else {
+                    // Fail: Label is out of bounds (should not happen if trainedPersons is consistent).
                     System.out.println("✗ Label " + predictedLabel[0] + " out of range");
                     System.out.println("===== RECOGNITION END (UNKNOWN) =====\n");
                     return new RecognitionResult((Person)null, confidence[0], confidenceLevel);
@@ -432,6 +469,8 @@ public class FaceRecognitionService {
     }
 
     private String getConfidenceLevel(double confidence) {
+        // Map confidence score (distance) to a user-friendly string.
+        // Lower confidence value means closer match.
         if (confidence < (double)0.0F) {
             return "Error";
         } else if (confidence < (double)40.0F) {
@@ -440,7 +479,7 @@ public class FaceRecognitionService {
             return "Very Good Match";
         } else if (confidence < (double)80.0F) {
             return "Good Match";
-        } else if (confidence < (double)100.0F) {
+        } else if (confidence < (double)100.0F) { // Matches CONFIDENCE_THRESHOLD
             return "Fair Match";
         } else {
             return confidence < (double)120.0F ? "Poor Match" : "Very Poor Match";
@@ -479,26 +518,16 @@ public class FaceRecognitionService {
         }
     }
 }
-```
 
----
 
-File: `ui/CameraPanel.java`
-Description: Placeholder for a camera display panel (empty).
-
-```java
+// >>> FILE: src/main/java/ui/CameraPanel.java
 package ui;
 
 public class CameraPanel {
 }
-```
 
----
 
-File: `ui/MainWindow.java`
-Description: Swing UI: opens camera, runs detection, draws rectangles, allows capture and adding new persons.
-
-```java
+// >>> FILE: src/main/java/ui/MainWindow.java
 package ui;
 
 import people.Person;
@@ -509,6 +538,7 @@ import service.FaceRecognitionService;
 import util.FileHandler;
 import util.ImageUtils;
 
+// Static imports for OpenCV functions
 import static org.bytedeco.opencv.global.opencv_imgproc.*;
 import static org.bytedeco.opencv.global.opencv_core.*;
 
@@ -518,6 +548,13 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.util.List;
 
+/**
+ * Main application window responsible for:
+ * 1. Initializing services (FileHandler, FaceRecognitionService).
+ * 2. Loading saved person data and training the recognizer.
+ * 3. Setting up the Swing UI.
+ * 4. Starting the camera and the main video processing loop.
+ */
 public class MainWindow extends JFrame {
     private JLabel cameraLabel;
     private JButton captureButton;
@@ -529,9 +566,9 @@ public class MainWindow extends JFrame {
     private FileHandler fileHandler;
     private List<Person> persons;
 
-    private Mat currentFrame;
-    private Rect currentFaceRect;
-    private boolean running = true;
+    private Mat currentFrame; // Holds the last captured raw frame
+    private Rect currentFaceRect; // Holds the bounding box of the biggest detected face
+    private boolean running = true; // Control flag for the camera thread
 
     public MainWindow(CascadeClassifier faceDetector) {
         System.out.println("=== MainWindow Constructor START ===");
@@ -540,6 +577,7 @@ public class MainWindow extends JFrame {
         this.fileHandler = new FileHandler();
         this.recognitionService = new FaceRecognitionService();
 
+        // 1. Data Loading & Initial Training
         System.out.println("Loading persons from file...");
         this.persons = fileHandler.loadPersons();
         System.out.println("Loaded " + persons.size() + " persons");
@@ -554,6 +592,7 @@ public class MainWindow extends JFrame {
         recognitionService.train(persons);
         System.out.println("Training complete. Trained: " + recognitionService.isTrained());
 
+        // 2. UI Setup and Camera Start
         setupUI();
         startCamera();
 
@@ -581,7 +620,7 @@ public class MainWindow extends JFrame {
         captureButton.setPreferredSize(new Dimension(250, 60));
         captureButton.addActionListener(e -> {
             System.out.println("\n*** CAPTURE BUTTON CLICKED ***");
-            captureFace();
+            captureFace(); // Triggers face extraction and recognition
         });
 
         infoLabel = new JLabel("Loaded " + persons.size() + " saved person(s). Point camera at a face.");
@@ -596,11 +635,15 @@ public class MainWindow extends JFrame {
         System.out.println("UI setup complete");
     }
 
+    /**
+     * Starts a dedicated thread for continuous camera capture and processing.
+     */
     private void startCamera() {
         System.out.println("Starting camera...");
-        camera = new VideoCapture(0);
+        camera = new VideoCapture(0); // 0 is typically the default webcam
 
         if (!camera.isOpened()) {
+            // Handle camera open failure
             System.out.println("ERROR: Cannot open camera!");
             JOptionPane.showMessageDialog(this, "Cannot open camera!");
             return;
@@ -613,58 +656,65 @@ public class MainWindow extends JFrame {
             Mat frame = new Mat();
             Mat grayFrame = new Mat();
 
+            // --- MAIN VIDEO PROCESSING LOOP ---
             while (running) {
-                if (!camera.read(frame)) {
+                if (!camera.read(frame)) { // Read next frame from camera
                     continue;
                 }
 
-                currentFrame = frame.clone();
+                currentFrame = frame.clone(); // Store a copy of the original frame for potential capture
 
+                // 1. Pre-process: Convert frame to grayscale for faster detection
                 cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
 
+                // 2. Face Detection
                 RectVector detections = new RectVector();
+                // detectMultiScale applies the Haar Cascade to find faces
                 faceDetector.detectMultiScale(grayFrame, detections);
 
                 long numFaces = detections.size();
                 if (numFaces > 0) {
+                    // Find the largest face to focus on
                     Rect[] faces = new Rect[(int)numFaces];
                     for (int i = 0; i < numFaces; i++) {
                         faces[i] = detections.get(i);
                     }
-
                     currentFaceRect = getBiggestFace(faces);
 
+                    // 3. Draw Bounding Box (Green rectangle) on the color frame
                     rectangle(
                             frame,
                             new Point(currentFaceRect.x(), currentFaceRect.y()),
                             new Point(currentFaceRect.x() + currentFaceRect.width(),
                                     currentFaceRect.y() + currentFaceRect.height()),
-                            new Scalar(0, 255, 0, 0),
+                            new Scalar(0, 255, 0, 0), // BGR color: Green
                             3, LINE_8, 0
                     );
                 } else {
-                    currentFaceRect = null;
+                    currentFaceRect = null; // No face detected
                 }
 
+                // 4. Display: Convert OpenCV Mat to Swing Icon and update the JLabel
                 ImageIcon icon = new ImageIcon(ImageUtils.matToBufferedImage(frame));
-                SwingUtilities.invokeLater(() -> cameraLabel.setIcon(icon));
+                SwingUtilities.invokeLater(() -> cameraLabel.setIcon(icon)); // Update UI on EDT
 
                 try {
-                    Thread.sleep(30);
+                    Thread.sleep(30); // Control frame rate (~33 FPS)
                 } catch (InterruptedException e) {
                     break;
                 }
             }
 
-            camera.release();
+            camera.release(); // Release camera resources on exit
             System.out.println("Camera thread stopped");
         });
 
-        cameraThread.setDaemon(true);
+        cameraThread.setDaemon(true); // Allow application to exit even if this thread is running
         cameraThread.start();
     }
 
     private Rect getBiggestFace(Rect[] faces) {
+        // Simple helper to find the detection rectangle with the largest area
         Rect biggest = faces[0];
         int maxArea = biggest.width() * biggest.height();
 
@@ -675,19 +725,18 @@ public class MainWindow extends JFrame {
                 biggest = faces[i];
             }
         }
-
         return biggest;
     }
 
+    /**
+     * Executes the face recognition sequence when the CAPTURE button is pressed.
+     */
     private void captureFace() {
         System.out.println("=== captureFace() called ===");
 
         if (currentFrame == null || currentFaceRect == null) {
             System.out.println("No face detected in current frame");
-            JOptionPane.showMessageDialog(this,
-                    "No face detected! Please look at the camera.",
-                    "No Face",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "No face detected! Please look at the camera.", "No Face", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -697,11 +746,13 @@ public class MainWindow extends JFrame {
                 ", w=" + currentFaceRect.width() +
                 ", h=" + currentFaceRect.height());
 
+        // 1. Extract the detected face region from the current frame
         Mat faceImage = new Mat(currentFrame, currentFaceRect);
         System.out.println("Face image extracted: " +
                 faceImage.cols() + "x" + faceImage.rows() +
                 ", channels=" + faceImage.channels());
 
+        // 2. Call the recognition service
         System.out.println("Calling recognitionService.recognize()...");
         FaceRecognitionService.RecognitionResult result = recognitionService.recognize(faceImage);
         System.out.println("Recognition completed");
@@ -709,9 +760,11 @@ public class MainWindow extends JFrame {
                 ", confidence: " + result.getConfidence());
 
         if (result.isRecognized()) {
+            // 3. Recognized: Show information about the known person
             System.out.println("*** PERSON RECOGNIZED: " + result.getPerson().getName() + " ***");
             showRecognizedPerson(result.getPerson(), result.getConfidence());
         } else {
+            // 4. Unknown: Prompt user to add the new person
             System.out.println("*** PERSON NOT RECOGNIZED ***");
             int choice = JOptionPane.showConfirmDialog(this,
                     "Person not recognized. Would you like to add them?",
@@ -731,6 +784,7 @@ public class MainWindow extends JFrame {
         System.out.println("Showing recognized person dialog for: " + person.getName());
 
         String confidenceLevel = getConfidenceDescription(confidence);
+        infoLabel.setText("Recognized: " + person.getName() + " - " + confidenceLevel);
 
         String message = String.format(
                 "<html><center>" +
@@ -748,8 +802,6 @@ public class MainWindow extends JFrame {
                 confidence
         );
 
-        infoLabel.setText("Recognized: " + person.getName() + " - " + confidenceLevel);
-
         JOptionPane.showMessageDialog(this,
                 message,
                 "Person Recognized!",
@@ -757,6 +809,7 @@ public class MainWindow extends JFrame {
     }
 
     private String getConfidenceDescription(double confidence) {
+        // Mirrors the logic in FaceRecognitionService
         if (confidence < 40) return "Excellent Match";
         else if (confidence < 60) return "Very Good Match";
         else if (confidence < 80) return "Good Match";
@@ -773,6 +826,9 @@ public class MainWindow extends JFrame {
         else return "#f8d7da";
     }
 
+    /**
+     * Handles the process of adding a new person to the system.
+     */
     private void showAddPersonDialog(Mat faceImage) {
         System.out.println("Opening add person dialog...");
         PersonFormDialog dialog = new PersonFormDialog(this, faceImage);
@@ -781,11 +837,15 @@ public class MainWindow extends JFrame {
         if (dialog.isConfirmed()) {
             Person newPerson = dialog.getPerson();
             System.out.println("New person confirmed: " + newPerson.getName());
+
+            // 1. Add the new Person to the in-memory list
             persons.add(newPerson);
 
+            // 2. Persist the updated list of persons to disk
             System.out.println("Saving persons to file...");
             fileHandler.savePersons(persons);
 
+            // 3. The face model must be **retrained** with the new person's face data
             System.out.println("Retraining recognizer...");
             recognitionService.train(persons);
 
@@ -798,18 +858,13 @@ public class MainWindow extends JFrame {
     @Override
     public void dispose() {
         System.out.println("Disposing window...");
-        running = false;
+        running = false; // Stop the camera thread
         super.dispose();
     }
 }
-```
 
----
 
-File: `ui/PersonFormDialog.java`
-Description: Dialog used to create a new `Person` from a captured face image.
-
-```java
+// >>> FILE: src/main/java/ui/PersonFormDialog.java
 package ui;
 
 import java.awt.BorderLayout;
@@ -842,7 +897,7 @@ public class PersonFormDialog extends JDialog {
 
     public PersonFormDialog(JFrame parent, Mat faceImage) {
         super(parent, "Add New Person", true);
-        this.faceImage = faceImage;
+        this.faceImage = faceImage; // The extracted face image Mat
         this.setupUI();
     }
 
@@ -881,18 +936,29 @@ public class PersonFormDialog extends JDialog {
         this.add(buttonPanel, "South");
     }
 
+    /**
+     * Handles the SAVE button click: validates input, creates the Person object,
+     * adds the captured face as FaceData, and sets the confirmed flag.
+     */
     private void save() {
         String name = this.nameField.getText().trim();
         String relationship = this.relationshipField.getText().trim();
+
         if (name.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please enter a name!");
         } else {
             String id = UUID.randomUUID().toString();
+            // 1. Create the new Person object
             this.person = new Person(id, name, relationship);
+
+            // 2. Convert the captured face Mat into serializable FaceData
             FaceData faceData = ImageUtils.matToFaceData(this.faceImage, (byte[])null);
+
+            // 3. Add the FaceData to the Person's face list
             this.person.addFace(faceData);
+
             this.confirmed = true;
-            this.dispose();
+            this.dispose(); // Close the dialog
         }
     }
 
@@ -909,14 +975,9 @@ public class PersonFormDialog extends JDialog {
         return this.person;
     }
 }
-```
 
----
 
-File: `util/FileHandler.java`
-Description: Persists and loads `List<Person>` to disk using simple Java serialization. Stores data under `imentia_data/persons.dat`.
-
-```java
+// >>> FILE: src/main/java/util/FileHandler.java
 package util;
 
 import people.Person;
@@ -925,12 +986,17 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Utility class for handling file-based persistence of the application's Person data
+ * using standard Java serialization.
+ */
 public class FileHandler {
     private static final String DATA_FOLDER = "imentia_data";
     private static final String PERSONS_FILE = "persons.dat";
 
     public FileHandler() {
         System.out.println("FileHandler created");
+        // Ensure the data directory exists
         File folder = new File(DATA_FOLDER);
         if (!folder.exists()) {
             System.out.println("Creating data folder: " + DATA_FOLDER);
@@ -938,11 +1004,16 @@ public class FileHandler {
         }
     }
 
+    /**
+     * Saves the current list of Person objects to the persons.dat file.
+     * @param persons The list of Person objects to serialize.
+     */
     public void savePersons(List<Person> persons) {
         try {
             File file = new File(DATA_FOLDER, PERSONS_FILE);
             System.out.println("Saving " + persons.size() + " person(s) to " + file.getAbsolutePath());
 
+            // Use ObjectOutputStream to serialize the List<Person>
             ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
             oos.writeObject(persons);
             oos.close();
@@ -954,6 +1025,10 @@ public class FileHandler {
         }
     }
 
+    /**
+     * Loads the list of Person objects from the persons.dat file.
+     * @return The deserialized list of Person objects, or an empty list if loading fails.
+     */
     @SuppressWarnings("unchecked")
     public List<Person> loadPersons() {
         File file = new File(DATA_FOLDER, PERSONS_FILE);
@@ -965,26 +1040,23 @@ public class FileHandler {
         }
 
         try {
+            // Use ObjectInputStream to deserialize the List<Person>
             ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file));
             List<Person> persons = (List<Person>) ois.readObject();
             ois.close();
             System.out.println("✓ Loaded " + persons.size() + " person(s)");
             return persons;
         } catch (IOException | ClassNotFoundException e) {
+            // Handle file errors or class version mismatch errors
             System.out.println("✗ Error loading persons:");
             e.printStackTrace();
             return new ArrayList<>();
         }
     }
 }
-```
 
----
 
-File: `util/ImageUtils.java`
-Description: Utility conversions between `Mat` and `BufferedImage` and between `Mat` and `FaceData`.
-
-```java
+// >>> FILE: src/main/java/util/ImageUtils.java
 package util;
 
 import people.FaceData;
@@ -993,8 +1065,21 @@ import org.bytedeco.javacpp.indexer.UByteIndexer;
 
 import java.awt.image.BufferedImage;
 
+/**
+ * Utility class for managing conversions between different image formats used
+ * in the application:
+ * 1. OpenCV's Mat (for processing)
+ * 2. Java's BufferedImage (for display in Swing)
+ * 3. Custom FaceData (for persistence)
+ */
 public class ImageUtils {
 
+    /**
+     * Converts an OpenCV Mat object into a Java BufferedImage for display.
+     * This method manually copies pixel data using an Indexer.
+     * @param mat The source Mat.
+     * @return The resulting BufferedImage.
+     */
     public static BufferedImage matToBufferedImage(Mat mat) {
         int width = mat.cols();
         int height = mat.rows();
@@ -1003,23 +1088,27 @@ public class ImageUtils {
         int type = (channels > 1) ? BufferedImage.TYPE_3BYTE_BGR : BufferedImage.TYPE_BYTE_GRAY;
         BufferedImage image = new BufferedImage(width, height, type);
 
+        // UByteIndexer provides fast, direct access to the Mat's underlying pixel data
         UByteIndexer indexer = mat.createIndexer();
 
-        if (channels == 3) {
+        if (channels == 3) { // 3-channel (BGR/Color) image
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
+                    // OpenCV Mat stores pixels in BGR order
                     int b = indexer.get(y, x, 0);
                     int g = indexer.get(y, x, 1);
                     int r = indexer.get(y, x, 2);
 
+                    // Java BufferedImage stores pixels in ARGB/RGB order
                     int rgb = ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
                     image.setRGB(x, y, rgb);
                 }
             }
-        } else {
+        } else { // 1-channel (Grayscale) image
             for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
                     int gray = indexer.get(y, x, 0);
+                    // Set all R, G, B components to the same gray value
                     int rgb = ((gray & 0xFF) << 16) | ((gray & 0xFF) << 8) | (gray & 0xFF);
                     image.setRGB(x, y, rgb);
                 }
@@ -1030,6 +1119,12 @@ public class ImageUtils {
         return image;
     }
 
+    /**
+     * Converts an OpenCV Mat object (a face image) into a serializable FaceData object.
+     * @param mat The source face Mat.
+     * @param encoding Optional face encoding bytes (unused in this prototype).
+     * @return The resulting FaceData object.
+     */
     public static FaceData matToFaceData(Mat mat, byte[] encoding) {
         System.out.println("Converting Mat to FaceData:");
         System.out.println("  Size: " + mat.cols() + "x" + mat.rows());
@@ -1040,12 +1135,15 @@ public class ImageUtils {
         int channels = mat.channels();
 
         UByteIndexer indexer = mat.createIndexer();
+        // Calculate required size for the raw pixel byte array: Width * Height * Channels
         byte[] bytes = new byte[width * height * channels];
 
+        // Linearize the Mat's pixel data into a single byte array
         int idx = 0;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 for (int c = 0; c < channels; c++) {
+                    // Cast unsigned byte from Mat to signed byte for the array
                     bytes[idx++] = (byte) indexer.get(y, x, c);
                 }
             }
@@ -1058,6 +1156,12 @@ public class ImageUtils {
         return new FaceData(bytes, width, height, channels, encoding);
     }
 
+    /**
+     * Reconstructs an OpenCV Mat object from the raw data stored in a FaceData object.
+     * This is used to load faces from disk for model retraining/recognition.
+     * @param faceData The source FaceData object.
+     * @return The reconstructed Mat.
+     */
     public static Mat faceDataToMat(FaceData faceData) {
         System.out.println("Converting FaceData to Mat:");
         System.out.println("  Stored size: " + faceData.getImageWidth() + "x" + faceData.getImageHeight());
@@ -1067,18 +1171,22 @@ public class ImageUtils {
         int height = faceData.getImageHeight();
         int channels = faceData.getImageType();
 
-        int cvType = (channels > 1) ? org.bytedeco.opencv.global.opencv_core.CV_8UC3 :
-                org.bytedeco.opencv.global.opencv_core.CV_8UC1;
+        // Determine the OpenCV Mat type based on the channel count
+        int cvType = (channels > 1) ? org.bytedeco.opencv.global.opencv_core.CV_8UC3 : // 3-channel, 8-bit, unsigned
+                org.bytedeco.opencv.global.opencv_core.CV_8UC1; // 1-channel, 8-bit, unsigned
 
+        // Create an empty Mat with the stored dimensions and type
         Mat mat = new Mat(height, width, cvType);
 
         UByteIndexer indexer = mat.createIndexer();
         byte[] bytes = faceData.getImageBytes();
 
+        // Copy the linear byte array back into the 3D structure of the Mat via the Indexer
         int idx = 0;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 for (int c = 0; c < channels; c++) {
+                    // Use & 0xFF to convert signed byte back to unsigned integer for Mat indexer
                     indexer.put(y, x, c, bytes[idx++] & 0xFF);
                 }
             }
@@ -1091,10 +1199,6 @@ public class ImageUtils {
         return mat;
     }
 }
-```
-
----
-
 Notes & Next Steps
 - To run: ensure the Haar cascade is on the classpath (e.g., `src/main/resources/haarcascade_frontalface_default.xml`) and the Bytedeco/OpenCV dependency is configured in `pom.xml`.
 - If the camera fails to open, check macOS camera permissions and that no other app is using the camera.
