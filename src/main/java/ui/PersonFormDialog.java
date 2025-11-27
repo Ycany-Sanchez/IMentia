@@ -1,9 +1,8 @@
 package ui;
 
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.GridLayout;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.util.Set;
 import java.util.UUID;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -35,12 +34,19 @@ public class PersonFormDialog extends JDialog {
     }
 
     private void setupUI() {
-        this.setSize(400, 300);
+        this.setSize(400, 500);
+        this.setResizable(false);
         this.setLocationRelativeTo(this.getParent());
         this.setLayout(new BorderLayout(10, 10));
         JLabel facePreview = new JLabel();
-        facePreview.setIcon(new ImageIcon(ImageUtils.matToBufferedImage(this.faceImage)));
-        facePreview.setHorizontalAlignment(0);
+        BufferedImage original = ImageUtils.matToBufferedImage(this.faceImage);
+        int width = 300;
+        int height = 300;
+        Image scaled = original.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+        facePreview.setIcon(new ImageIcon(scaled));
+        facePreview.setPreferredSize(new Dimension(width, height));
+        facePreview.setHorizontalAlignment(JLabel.CENTER);
+        this.add(facePreview, BorderLayout.NORTH);
         this.add(facePreview, "North");
         JPanel formPanel = new JPanel(new GridLayout(2, 2, 10, 10));
         formPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
