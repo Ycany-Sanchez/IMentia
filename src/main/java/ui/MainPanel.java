@@ -30,6 +30,10 @@ public class MainPanel {
         DisplayPanel.setLayout(cardLayout);
         DisplayPanel.add(ContactsPanel, "1");
         DisplayPanel.add(CameraPanel, "2");
+        EditContactButton.setText(String.format(
+                "<html><center>" +
+                        "<h4 style='font-size: 24px; margin: 10px;'><b>EDIT LIST</b></h1>" +
+                        "</center></html>"));
 
         cardLayout.show(DisplayPanel, "2");
 
@@ -49,6 +53,16 @@ public class MainPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 isEditing = !isEditing;
+
+                if(isEditing) EditContactButton.setText(String.format(
+                        "<html><center>" +
+                        "<h4 style='font-size: 24px; margin: 10px;'>CANCEL EDIT</h1>" +
+                        "</center></html>"));
+
+                else EditContactButton.setText(
+                        "<html><center>" +
+                                "<h4 style='font-size: 24px; margin: 10px;'><b>EDIT LIST</b></h1>" +
+                        "</center></html>");
 
                 for (Component c : PersonPanel.getComponents())
                 {

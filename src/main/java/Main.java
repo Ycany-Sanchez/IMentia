@@ -17,6 +17,7 @@ public class Main {
         myFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         myFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         myFrame.setVisible(true);
+        myFrame.setResizable(false);
 
 //        System.setOut(new PrintStream(System.out, true));
 //        System.setErr(new PrintStream(System.err, true));
