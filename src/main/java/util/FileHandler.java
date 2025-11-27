@@ -1,3 +1,4 @@
+// >>> FILE: src/main/java/util/FileHandler.java
 package util;
 
 import people.Person;
@@ -6,12 +7,17 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Utility class for handling file-based persistence of the application's Person data
+ * using standard Java serialization.
+ */
 public class FileHandler {
     private static final String DATA_FOLDER = "imentia_data";
     private static final String PERSONS_FILE = "persons.dat";
 
     public FileHandler() {
         System.out.println("FileHandler created");
+        // Ensure the data directory exists
         File folder = new File(DATA_FOLDER);
         if (!folder.exists()) {
             System.out.println("Creating data folder: " + DATA_FOLDER);
@@ -19,11 +25,16 @@ public class FileHandler {
         }
     }
 
+    /**
+     * Saves the current list of Person objects to the persons.dat file.
+     * @param persons The list of Person objects to serialize.
+     */
     public void savePersons(List<Person> persons) {
         try {
             File file = new File(DATA_FOLDER, PERSONS_FILE);
             System.out.println("Saving " + persons.size() + " person(s) to " + file.getAbsolutePath());
 
+            // Use ObjectOutputStream to serialize the List<Person>
             ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
             oos.writeObject(persons);
             oos.close();
@@ -35,6 +46,10 @@ public class FileHandler {
         }
     }
 
+    /**
+     * Loads the list of Person objects from the persons.dat file.
+     * @return The deserialized list of Person objects, or an empty list if loading fails.
+     */
     @SuppressWarnings("unchecked")
     public List<Person> loadPersons() {
         File file = new File(DATA_FOLDER, PERSONS_FILE);
@@ -46,12 +61,14 @@ public class FileHandler {
         }
 
         try {
+            // Use ObjectInputStream to deserialize the List<Person>
             ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file));
             List<Person> persons = (List<Person>) ois.readObject();
             ois.close();
             System.out.println("✓ Loaded " + persons.size() + " person(s)");
             return persons;
         } catch (IOException | ClassNotFoundException e) {
+            // Handle file errors or class version mismatch errors
             System.out.println("✗ Error loading persons:");
             e.printStackTrace();
             return new ArrayList<>();

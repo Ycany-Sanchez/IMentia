@@ -1,16 +1,21 @@
+// >>> FILE: src/main/java/people/FaceData.java
 package people;
 
 import java.io.Serializable;
 import java.util.Date;
 
+/**
+ * FaceData is a serializable container for a captured face image, designed for
+ * persistence and transport within the application.
+ */
 public class FaceData implements Serializable {
     private static final long serialVersionUID = 1L;
-    private byte[] imageBytes;
-    private int imageWidth;
-    private int imageHeight;
-    private int imageType;
-    private byte[] encoding;
-    private Date capturedAt;
+    private byte[] imageBytes; // Raw pixel data of the face image
+    private int imageWidth;    // Width of the face image
+    private int imageHeight;   // Height of the face image
+    private int imageType;     // Number of channels (e.g., 3 for BGR, 1 for GRAY)
+    private byte[] encoding;   // Placeholder for a potential face vector/encoding
+    private Date capturedAt;   // Timestamp of capture
 
     public FaceData(byte[] imageBytes, int width, int height, int type, byte[] encoding) {
         this.imageBytes = imageBytes;

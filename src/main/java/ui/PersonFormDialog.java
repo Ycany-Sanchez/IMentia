@@ -1,3 +1,4 @@
+// >>> FILE: src/main/java/ui/PersonFormDialog.java
 package ui;
 
 import java.awt.BorderLayout;
@@ -30,7 +31,7 @@ public class PersonFormDialog extends JDialog {
 
     public PersonFormDialog(JFrame parent, Mat faceImage) {
         super(parent, "Add New Person", true);
-        this.faceImage = faceImage;
+        this.faceImage = faceImage; // The extracted face image Mat
         this.setupUI();
     }
 
@@ -69,18 +70,29 @@ public class PersonFormDialog extends JDialog {
         this.add(buttonPanel, "South");
     }
 
+    /**
+     * Handles the SAVE button click: validates input, creates the Person object,
+     * adds the captured face as FaceData, and sets the confirmed flag.
+     */
     private void save() {
         String name = this.nameField.getText().trim();
         String relationship = this.relationshipField.getText().trim();
+
         if (name.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please enter a name!");
         } else {
             String id = UUID.randomUUID().toString();
+            // 1. Create the new Person object
             this.person = new Person(id, name, relationship);
+
+            // 2. Convert the captured face Mat into serializable FaceData
             FaceData faceData = ImageUtils.matToFaceData(this.faceImage, (byte[])null);
+
+            // 3. Add the FaceData to the Person's face list
             this.person.addFace(faceData);
+
             this.confirmed = true;
-            this.dispose();
+            this.dispose(); // Close the dialog
         }
     }
 
