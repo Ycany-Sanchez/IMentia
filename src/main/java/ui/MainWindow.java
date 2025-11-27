@@ -21,13 +21,11 @@ public class MainWindow extends JFrame {
     private JLabel cameraLabel;
     private JButton captureButton;
     private JLabel infoLabel;
-
     private VideoCapture camera;
     private CascadeClassifier faceDetector;
     private FaceRecognitionService recognitionService;
     private FileHandler fileHandler;
     private List<Person> persons;
-
     private Mat currentFrame;
     private Rect currentFaceRect;
     private boolean running = true;
