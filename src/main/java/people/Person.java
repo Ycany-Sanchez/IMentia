@@ -14,13 +14,13 @@ public class Person implements Serializable {
     private String id;
     private String name;
     private String relationship;
-    private List<FaceData> faces; // List of face samples for this person
+    private FaceData face; // List of face samples for this person
 
     public Person(String id, String name, String relationship) {
         this.id = id;
         this.name = name;
         this.relationship = relationship;
-        this.faces = new ArrayList();
+        this.face = null;
     }
 
     /**
@@ -28,7 +28,7 @@ public class Person implements Serializable {
      * @param face The FaceData object to add.
      */
     public void addFace(FaceData face) {
-        this.faces.add(face);
+        this.face = face;
     }
 
     public String getId() {
@@ -43,8 +43,8 @@ public class Person implements Serializable {
         return this.relationship;
     }
 
-    public List<FaceData> getFaces() {
-        return this.faces;
+    public FaceData getFace() {
+        return face;
     }
 
     public void setName(String name) {

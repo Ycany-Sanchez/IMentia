@@ -54,18 +54,16 @@ public class FaceRecognitionService {
             for(Person person : persons) {
                 System.out.println("\nProcessing person: " + person.getName());
                 System.out.println("  Relationship: " + person.getRelationship());
-                System.out.println("  Face count: " + person.getFaces().size());
+
 
                 // --- TRAINING PRE-PROCESSING FOR EACH FACE ---
                 // Each person gets a unique label 'label'
-                if (person.getFaces().isEmpty()) {
+                if (person.getFace()==null) {
                     // Skip if no face samples available
                     System.out.println("  ⚠ Skipping - no faces");
                 } else {
                     int faceIndex = 0;
-                    for(FaceData faceData : person.getFaces()) {
-                        ++faceIndex;
-                        System.out.println("  Face " + faceIndex + ":");
+                    FaceData faceData = person.getFace();
                         System.out.println("    Stored size: " + faceData.getImageWidth() + "x" + faceData.getImageHeight());
 
                         try {
@@ -98,7 +96,7 @@ public class FaceRecognitionService {
                             System.out.println("    ✗ ERROR processing face:");
                             e.printStackTrace();
                         }
-                    }
+
 
                     // Add the person to the list of trained persons and increment label
                     this.trainedPersons.add(person);

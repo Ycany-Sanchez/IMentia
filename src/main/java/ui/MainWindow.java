@@ -56,7 +56,7 @@ public class MainWindow extends JFrame {
         for (Person p : persons) {
             System.out.println("  - Person: " + p.getName() +
                     " (" + p.getRelationship() + ") " +
-                    "with " + p.getFaces().size() + " face(s)");
+                    "with " + p.getFace() + " face(s)");
         }
 
         System.out.println("Training face recognizer...");
