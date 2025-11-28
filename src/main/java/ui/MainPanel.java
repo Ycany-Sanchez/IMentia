@@ -1,11 +1,24 @@
 package ui;
 
+import people.Person;
+import org.bytedeco.opencv.opencv_core.*;
+import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
+import org.bytedeco.opencv.opencv_videoio.VideoCapture;
+import service.FaceRecognitionService;
+import util.FileHandler;
+import util.ImageUtils;
+
+import static org.bytedeco.opencv.global.opencv_imgproc.*;
+import static org.bytedeco.opencv.global.opencv_core.*;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
 
 public class MainPanel {
+    //UI Components
     private JPanel mainPanel;
     private JButton CAPTUREPHOTOButton;
     private JButton VIEWCONTACTSButton;
@@ -21,13 +34,23 @@ public class MainPanel {
     private JPanel ButtonPanel;
     private JPanel PersonPanel;
     private JButton BACKTOCAMERAButton;
-
     private CardLayout cardLayout = new CardLayout();
     private boolean isEditing = false;
     private JFrame tempFrame = new JFrame();
 
+    //Face Components
+    private VideoCapture camera;
+    private CascadeClassifier faceDetector;
+    private FaceRecognitionService recognitionService;
+    private FileHandler fileHandler;
+    private List<Person> persons; //careful with conflicts on java.util and java.awt for List
 
-    public MainPanel() {
+
+    public MainPanel(CascadeClassifier faceDetector) {
+        setUpUI();
+    }
+
+    private void setUpUI(){
         mainPanel.removeAll();
         mainPanel.setLayout(new GridBagLayout());
 
@@ -44,6 +67,15 @@ public class MainPanel {
         gbc.weighty = 0.2;
         mainPanel.add(ButtonPanel, gbc);
 
+        for (Component c : mainPanel.getComponents()) {
+            if (c instanceof JPanel panel) {
+                for (Component c2 : panel.getComponents()) {
+                    if (c2 instanceof JButton b) {
+                        b.setFont(new Font("", Font.BOLD, 24));
+                    }
+                }
+            }
+        }
 
         DisplayPanel.setLayout(cardLayout);
 
@@ -57,7 +89,6 @@ public class MainPanel {
         DisplayPanel.setMaximumSize(new Dimension(0, 0));
         DisplayPanel.setMaximumSize(new Dimension(tempFrame.getWidth(), tempFrame.getHeight()));
         ButtonPanel.setMaximumSize(new Dimension(tempFrame.getWidth(), 1));
-
 
 
         cardLayout.show(DisplayPanel, "1");
@@ -80,19 +111,15 @@ public class MainPanel {
             public void actionPerformed(ActionEvent e) {
                 isEditing = !isEditing;
 
-                if(isEditing){
+                if (isEditing) {
                     EditContactButton.setText("CANCEL EDIT");
                     EditContactButton.setFont(new Font("", Font.BOLD, 24));
-                }
-
-
-                else{
+                } else {
                     EditContactButton.setText("EDIT LIST");
                     EditContactButton.setFont(new Font("", Font.BOLD, 24));
                 }
 
-                for (Component c : PersonPanel.getComponents())
-                {
+                for (Component c : PersonPanel.getComponents()) {
                     if (c instanceof JPanel itemPanel) {
                         for (Component inner : itemPanel.getComponents()) {
                             if (inner instanceof JButton deleteButton) {
@@ -114,6 +141,8 @@ public class MainPanel {
             }
         });
     }
+
+
 
     public JPanel getPanel(){
         return mainPanel;
