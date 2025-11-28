@@ -106,9 +106,7 @@ public class MainWindow extends JFrame {
         System.out.println("UI setup complete");
     }
 
-    /**
-     * Starts a dedicated thread for continuous camera capture and processing.
-     */
+    //Starts a dedicated thread for continuous camera capture and processing, separate from main thread for performance
     private void startCamera() {
         System.out.println("Starting camera...");
         camera = new VideoCapture(0); // 0 is typically the default webcam
@@ -143,7 +141,7 @@ public class MainWindow extends JFrame {
                 // detectMultiScale applies the Haar Cascade to find faces
                 faceDetector.detectMultiScale(grayFrame, detections);
 
-                long numFaces = detections.size();
+                int numFaces = (int)detections.size(); //cast to int because for some reason, this method returns a long
                 if (numFaces > 0) {
                     // Find the largest face to focus on
                     Rect[] faces = new Rect[(int)numFaces];
@@ -152,7 +150,7 @@ public class MainWindow extends JFrame {
                     }
                     currentFaceRect = getBiggestFace(faces);
 
-                    // 3. Draw Bounding Box (Green rectangle) on the color frame
+                    // 3. Draw green rectangle on the color frame
                     rectangle(
                             frame,
                             new Point(currentFaceRect.x(), currentFaceRect.y()),
@@ -165,12 +163,13 @@ public class MainWindow extends JFrame {
                     currentFaceRect = null; // No face detected
                 }
 
-                // 4. Display: Convert OpenCV Mat to Swing Icon and update the JLabel
+                // 4. Display: Convert OpenCV Mat to Swing Icon and update the JLabel cameraLabel
                 ImageIcon icon = new ImageIcon(ImageUtils.matToBufferedImage(frame));
                 SwingUtilities.invokeLater(() -> cameraLabel.setIcon(icon)); // Update UI on EDT
 
+                // Important code below to control CPU usage
                 try {
-                    Thread.sleep(30); // Control frame rate (~33 FPS)
+                    Thread.sleep(30); // Control frame rate (~60 FPS) ----16 for 60fps, 30 for 30fps
                 } catch (InterruptedException e) {
                     break;
                 }
@@ -180,7 +179,7 @@ public class MainWindow extends JFrame {
             System.out.println("Camera thread stopped");
         });
 
-        cameraThread.setDaemon(true); // Allow application to exit even if this thread is running
+        cameraThread.setDaemon(true); // Daemon threads allow application to exit even if this thread is running
         cameraThread.start();
     }
 
