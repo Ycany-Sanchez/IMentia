@@ -31,7 +31,7 @@ public class MainPanel {
     private JPanel CameraPanel;
     private JPanel ContactsPanel;
     private JPanel TutorialPanel;
-    private JPanel PersonForm;
+    private JPanel PersonFormPanel;
     private JPanel RecognizedForm;
     private JButton EditContactButton;
     private JButton DeleteButton;
@@ -40,9 +40,24 @@ public class MainPanel {
     private JPanel PersonPanel;
     private JButton BackToCameraButton;
     private JLabel CameraLabel;
+    private JLabel PersonImageLabel;
+    private JTextField PersonNameField;
+    private JTextField PersonRelationshipField;
+    private JButton SavePersonInfoButton;
+    private JLabel PersonNameLabel;
+    private JLabel PersonRelationshipLabel;
+    private JPanel NamePanel;
+    private JPanel RelationshipPanel;
+
+    private JLabel personInfoLabel;
+
     private CardLayout cardLayout = new CardLayout();
     private boolean isEditing = false;
     private JFrame tempFrame = new JFrame();
+
+    private Font buttonFont = new Font("", Font.BOLD, 24);
+    private Font HLabelFont = new Font("", Font.BOLD, 20);
+    private Font PLabelFont = new Font("", Font.PLAIN, 20);
 
     //Face Components
     private VideoCapture camera;
@@ -73,24 +88,18 @@ public class MainPanel {
     }
 
     private void setUpUI(){     // this method sets up swing components
-        for (Component c : mainPanel.getComponents()) {
-            if (c instanceof JPanel panel) {
-                for (Component c2 : panel.getComponents()) {
-                    if (c2 instanceof JButton b) {
-                        b.setFont(new Font("", Font.BOLD, 24));
-                    }
-                }
-            }
-        }
-
         DisplayPanel.setLayout(cardLayout);
 
         DisplayPanel.add(CameraPanel, "1");
         DisplayPanel.add(ContactsPanel, "2");
+        DisplayPanel.add(PersonFormPanel, "3");
 
 
         tempFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         System.out.println(tempFrame.getWidth() + " " + tempFrame.getHeight());
+
+        setButtonFont(mainPanel);
+        setPLabelFont(mainPanel);
 
         cardLayout.show(DisplayPanel, "1");
         EditContactButton.setFont(new Font("", Font.BOLD, 24));
@@ -114,7 +123,6 @@ public class MainPanel {
 
                 if (isEditing) {
                     EditContactButton.setText("DONE EDIT");
-                    //EditContactButton.setFont(new Font("", Font.BOLD, 24));
                 } else {
                     EditContactButton.setText("EDIT LIST");
                     EditContactButton.setFont(new Font("", Font.BOLD, 24));
@@ -139,6 +147,14 @@ public class MainPanel {
                 TutorialButton.setVisible(true);
                 ViewContactsButton.setVisible(true);
             }
+        });
+
+        CapturePhotoButton.addActionListener(e ->{
+            cardLayout.show(DisplayPanel, "3");
+            BackToCameraButton.setVisible(true);
+            CapturePhotoButton.setVisible(false);
+            TutorialButton.setVisible(false);
+            ViewContactsButton.setVisible(false);
         });
 
 
@@ -179,9 +195,39 @@ public class MainPanel {
         return mainPanel;
     }
 
+    void setButtonFont(Container container){
+        for(Component c1 : container.getComponents()){
+            if(c1 instanceof JButton b){
+                b.setFont(buttonFont);
+            }
+
+            if(c1 instanceof Container c2){
+                setButtonFont(c2);
+            }
+        }
+    }
+
+    void setPLabelFont(Container container){
+        for(Component c1 : container.getComponents()){
+            if(c1 instanceof JLabel l){
+                l.setFont(PLabelFont);
+            }
+
+            if(c1 instanceof JTextField t){
+                t.setFont(PLabelFont);
+            }
+
+            if(c1 instanceof Container c2){
+                setPLabelFont(c2);
+            }
+        }
+    }
+
 
     // face helpers
-    private static CascadeClassifier loadFaceDetector() {   // this method is for loading the haarcascade file. Transferred it here from main
+
+    // this method is for loading the haarcascade file. Transferred it here from main
+    private static CascadeClassifier loadFaceDetector() {
         try {
             System.out.println("Loading face detector from resources...");
             // STEP 1: Get the resource as an InputStream (from JAR/classpath)
@@ -224,7 +270,8 @@ public class MainPanel {
         }
     }
 
-    private void startCamera() {    // this method is for the camera feed
+    // this method is for the camera feed
+    private void startCamera() {
         System.out.println("Starting camera...");
         camera = new VideoCapture(0); // 0 is typically the default webcam
 
@@ -314,8 +361,8 @@ public class MainPanel {
         cameraThread.start();
     }
 
+    // helper to find the detection rectangle with the largest area
     private Rect getBiggestFace(Rect[] faces) {
-        // helper to find the detection rectangle with the largest area
         Rect biggest = faces[0];
         int maxArea = biggest.width() * biggest.height();
 
@@ -327,6 +374,133 @@ public class MainPanel {
             }
         }
         return biggest;
+    }
+
+    private void captureFace() {
+        System.out.println("=== captureFace() called ===");
+
+        if (currentFrame == null || currentFaceRect == null) {
+            System.out.println("No face detected in current frame");
+            JOptionPane.showMessageDialog(mainPanel, "No face detected! Please look at the camera.", "No Face", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        System.out.println("Extracting face from frame...");
+        System.out.println("Face rect: x=" + currentFaceRect.x() +
+                ", y=" + currentFaceRect.y() +
+                ", w=" + currentFaceRect.width() +
+                ", h=" + currentFaceRect.height());
+
+        // 1. Extract the detected face region from the current frame
+        Mat faceImage = new Mat(currentFrame, currentFaceRect);
+        System.out.println("Face image extracted: " +
+                faceImage.cols() + "x" + faceImage.rows() +
+                ", channels=" + faceImage.channels());
+
+        // 2. Call the recognition service
+        System.out.println("Calling recognitionService.recognize()...");
+        FaceRecognitionService.RecognitionResult result = recognitionService.recognize(faceImage);
+        System.out.println("Recognition completed");
+        System.out.println("Result - isRecognized: " + result.isRecognized() +
+                ", confidence: " + result.getConfidence());
+
+        if (result.isRecognized()) {
+            // 3. Recognized: Show information about the known person
+            System.out.println("*** PERSON RECOGNIZED: " + result.getPerson().getName() + " ***");
+            showRecognizedPerson(result.getPerson(), result.getConfidence());
+        } else {
+            // 4. Unknown: Prompt user to add the new person
+            System.out.println("*** PERSON NOT RECOGNIZED ***");
+            int choice = JOptionPane.showConfirmDialog(mainPanel,
+                    "Person not recognized. Would you like to add them?",
+                    "Unknown Person",
+                    JOptionPane.YES_NO_OPTION);
+
+            if (choice == JOptionPane.YES_OPTION) {
+                System.out.println("User chose to add new person");
+                showAddPersonDialog(faceImage);
+            } else {
+                System.out.println("User chose not to add person");
+            }
+        }
+    }
+
+    private void showRecognizedPerson(Person person, double confidence) {
+        System.out.println("Showing recognized person dialog for: " + person.getName());
+
+        String confidenceLevel = getConfidenceDescription(confidence);
+        personInfoLabel.setText("Recognized: " + person.getName() + " - " + confidenceLevel);
+
+        String message = String.format(
+                "<html><center>" +
+                        "<h1 style='font-size: 32px; margin: 10px;'>%s</h1>" +
+                        "<h2 style='font-size: 24px; color: #666; margin: 10px;'>%s</h2>" +
+                        "<div style='margin-top: 20px; padding: 10px; background-color: %s; border-radius: 5px;'>" +
+                        "<p style='font-size: 18px; margin: 5px;'><b>Match Quality:</b> %s</p>" +
+                        "<p style='font-size: 14px; color: #666; margin: 5px;'>Confidence Score: %.1f</p>" +
+                        "</div>" +
+                        "</center></html>",
+                person.getName(),
+                person.getRelationship(),
+                getConfidenceColor(confidence),
+                confidenceLevel,
+                confidence
+        );
+
+        JOptionPane.showMessageDialog(mainPanel, message,"Person Recognized!", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private String getConfidenceDescription(double confidence) {
+        // Mirrors the logic in FaceRecognitionService
+        if (confidence < 40) return "Excellent Match";
+        else if (confidence < 60) return "Very Good Match";
+        else if (confidence < 80) return "Good Match";
+        else if (confidence < 100) return "Fair Match";
+        else if (confidence < 120) return "Poor Match";
+        else return "Very Poor Match";
+    }
+
+    private String getConfidenceColor(double confidence) {
+        if (confidence < 40) return "#d4edda";
+        else if (confidence < 60) return "#d1ecf1";
+        else if (confidence < 80) return "#fff3cd";
+        else if (confidence < 100) return "#f8d7da";
+        else return "#f8d7da";
+    }
+
+
+//    private void showAddPersonDialog(Mat faceImage) {
+//        System.out.println("Opening add person dialog...");
+//        PersonFormDialog dialog = new PersonFormDialog(this, faceImage);
+//        dialog.setVisible(true);
+//
+//        if (dialog.isConfirmed()) {
+//            Person newPerson = dialog.getPerson();
+//            System.out.println("New person confirmed: " + newPerson.getName());
+//
+//            // 1. Add the new Person to the in-memory list
+//            persons.add(newPerson);
+//
+//            // 2. Persist the updated list of persons to disk
+//            System.out.println("Saving persons to file...");
+//            fileHandler.savePersons(persons);
+//
+//            // 3. The face model must be **retrained** with the new person's face data
+//            System.out.println("Retraining recognizer...");
+//            recognitionService.train(persons);
+//
+//            infoLabel.setText("Saved: " + newPerson.getName() + " (" + newPerson.getRelationship() + ")");
+//        } else {
+//            System.out.println("Add person dialog cancelled");
+//        }
+//    }
+
+    private void showAddPersonDialog(Mat faceImage){
+        System.out.println("Opening add person dialog...");
+//        PersonFormDialog dialog = new PersonFormDialog(this, faceImage);
+//        dialog.setVisible(true);
+
+
     }
 
 }
