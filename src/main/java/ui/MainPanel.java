@@ -42,12 +42,12 @@ public class MainPanel {
     private JLabel CameraLabel;
     private JLabel PersonImageLabel;
     private JTextField PersonNameField;
-    private JTextField PersonRelationshipField;
     private JButton SavePersonInfoButton;
     private JLabel PersonNameLabel;
-    private JLabel PersonRelationshipLabel;
     private JPanel NamePanel;
     private JPanel RelationshipPanel;
+    private JLabel PersonRelationshipLabel;
+    private JTextField PersonRelationshipField;
 
     private JLabel personInfoLabel;
 
@@ -61,6 +61,7 @@ public class MainPanel {
 
     //Face Components
     private VideoCapture camera;
+    private Mat faceImage;
     private CascadeClassifier faceDetector;
     private FaceRecognitionService recognitionService;
     private FileHandler fileHandler;
@@ -150,7 +151,10 @@ public class MainPanel {
         });
 
         CapturePhotoButton.addActionListener(e ->{
+            captureFace();
             cardLayout.show(DisplayPanel, "3");
+
+            PersonImageLabel.setIcon(new ImageIcon(ImageUtils.matToBufferedImage(faceImage)));
             BackToCameraButton.setVisible(true);
             CapturePhotoButton.setVisible(false);
             TutorialButton.setVisible(false);
@@ -159,6 +163,8 @@ public class MainPanel {
 
 
     }
+
+    //showAddPersonDialog(faceImage);
 
     // ui helpers
     private void updatePanelSizes() {
@@ -392,23 +398,24 @@ public class MainPanel {
                 ", h=" + currentFaceRect.height());
 
         // 1. Extract the detected face region from the current frame
-        Mat faceImage = new Mat(currentFrame, currentFaceRect);
+        faceImage = new Mat(currentFrame, currentFaceRect);
         System.out.println("Face image extracted: " +
                 faceImage.cols() + "x" + faceImage.rows() +
                 ", channels=" + faceImage.channels());
 
         // 2. Call the recognition service
-        System.out.println("Calling recognitionService.recognize()...");
-        FaceRecognitionService.RecognitionResult result = recognitionService.recognize(faceImage);
-        System.out.println("Recognition completed");
-        System.out.println("Result - isRecognized: " + result.isRecognized() +
-                ", confidence: " + result.getConfidence());
-
-        if (result.isRecognized()) {
-            // 3. Recognized: Show information about the known person
-            System.out.println("*** PERSON RECOGNIZED: " + result.getPerson().getName() + " ***");
-            showRecognizedPerson(result.getPerson(), result.getConfidence());
-        } else {
+//        System.out.println("Calling recognitionService.recognize()...");
+//        FaceRecognitionService.RecognitionResult result = recognitionService.recognize(faceImage);
+//        System.out.println("Recognition completed");
+//        System.out.println("Result - isRecognized: " + result.isRecognized() +
+//                ", confidence: " + result.getConfidence());
+//
+//        if (result.isRecognized()) {
+//            // 3. Recognized: Show information about the known person
+//            System.out.println("*** PERSON RECOGNIZED: " + result.getPerson().getName() + " ***");
+//            showRecognizedPerson(result.getPerson(), result.getConfidence());
+//        }
+        //else {
             // 4. Unknown: Prompt user to add the new person
             System.out.println("*** PERSON NOT RECOGNIZED ***");
             int choice = JOptionPane.showConfirmDialog(mainPanel,
@@ -422,7 +429,7 @@ public class MainPanel {
             } else {
                 System.out.println("User chose not to add person");
             }
-        }
+        //}
     }
 
     private void showRecognizedPerson(Person person, double confidence) {
