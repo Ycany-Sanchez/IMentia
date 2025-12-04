@@ -16,6 +16,7 @@ public class Person implements Serializable {
     private String relationship;
     private FaceData face; // List of face samples for this person
 
+    private MeetingRecord lastestConv;
     public Person(String name, String relationship) {
        // this.id = id;
         this.name = name;

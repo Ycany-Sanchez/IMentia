@@ -78,6 +78,8 @@ public class MainPanel {
 
 
     public MainPanel(){
+        //this.fileHandler = new FileHandler();
+       // persons = fileHandler.loadPersonFile("Person_File.csv");
         this.faceDetector = loadFaceDetector();
 
         // took me 3 hours to size the CameraLabel and scale the image properly. Please avoid modifying if possible.
@@ -93,6 +95,7 @@ public class MainPanel {
         setUpUI();
         startCamera();
     }
+
 
     private void setUpUI(){     // this method sets up swing components
         DisplayPanel.setLayout(cardLayout);
@@ -200,6 +203,7 @@ public class MainPanel {
             String curID = person.getId();
             System.out.println("ID: " + curID);
             saveFaceImage(curID, faceImage);
+            fileHandler.savePersons(persons);
 
         });
 

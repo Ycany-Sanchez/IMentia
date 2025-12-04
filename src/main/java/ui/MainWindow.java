@@ -50,7 +50,7 @@ public class MainWindow extends JFrame {
 
         // 1. Data Loading & Initial Training
         System.out.println("Loading persons from file...");
-        this.persons = fileHandler.loadPersons();
+        this.persons = fileHandler.loadPersonFile("Person_File.csv");
         System.out.println("Loaded " + persons.size() + " persons");
 
         for (Person p : persons) {
@@ -105,6 +105,8 @@ public class MainWindow extends JFrame {
 
         System.out.println("UI setup complete");
     }
+
+
 
     //Starts a dedicated thread for continuous camera capture and processing, separate from main thread for performance
     private void startCamera() {
