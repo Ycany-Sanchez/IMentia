@@ -14,6 +14,7 @@ import java.util.List;
 public class FileHandler {
     private static final String DATA_FOLDER = "imentia_data";
     private static final String PERSONS_FILE = "persons.dat";
+    private static final String ID_GENERATOR = "IDGen";
 
     public FileHandler() {
         System.out.println("FileHandler created");
@@ -45,18 +46,15 @@ public class FileHandler {
         }
     }
 //
-    public String generateId(List<Person> persons){
-        int maxID = 0;
-        for (Person p : persons){
-            String curID = p.getId();
-            String IDNumber = curID.substring(6);
-            maxID = Integer.parseInt(IDNumber);
+    public static <bw> String generateId(){
+        try(BufferedReader br = new BufferedReader(new FileReader(ID_GENERATOR + ".csv"));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(ID_GENERATOR + ".csv"))){
+
+        }catch(FileNotFoundException e){
+            System.out.println("Murag Siyag uyab nimo, dont exist");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-
-        int newIDNumber = maxID++;
-        return "Person" + newIDNumber;
-
-
     }
 
     /**

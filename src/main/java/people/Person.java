@@ -16,8 +16,8 @@ public class Person implements Serializable {
     private String relationship;
     private FaceData face; // List of face samples for this person
 
-    public Person(String id, String name, String relationship) {
-        this.id = id;
+    public Person(String name, String relationship) {
+       // this.id = id;
         this.name = name;
         this.relationship = relationship;
         this.face = null;
@@ -54,6 +54,11 @@ public class Person implements Serializable {
     public void setRelationship(String relationship) {
         this.relationship = relationship;
     }
+
+    public void setId(String id){
+        this.id = id;
+    }
+
 
 
 }

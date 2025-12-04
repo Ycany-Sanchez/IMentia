@@ -17,6 +17,7 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
@@ -68,6 +69,7 @@ public class MainPanel {
     private FileHandler fileHandler;
     private List<Person> persons;   //careful with conflicts on java.util and java.awt for List keyword
     private String PersonName;
+    private String PersonRelationship;
 
     // Camera
     private Mat currentFrame; // Holds the last captured raw frame
@@ -85,6 +87,8 @@ public class MainPanel {
                 updatePanelSizes();
             }
         });
+
+        persons = new ArrayList<>();
 
         setUpUI();
         startCamera();
@@ -169,20 +173,27 @@ public class MainPanel {
 
         SavePersonInfoButton.addActionListener(e->{
             PersonName = PersonNameField.getText();
-            saveFaceImage(PersonName, faceImage);
+            PersonRelationship = PersonRelationshipField.getText();
+            Person person = new Person(PersonName, PersonRelationship);
+
+            person.setId(FileHandler.generateId(persons));
+            persons.add(person);
+            String curID = person.getId();
+            System.out.println("ID: " + curID);
+            saveFaceImage(curID, faceImage);
 
         });
 
     }
 
-    private void saveFaceImage(String personName, Mat imageToSave) {
+    private void saveFaceImage(String personID, Mat imageToSave) {
         // 1. Clean the name to make it filename-safe (remove spaces, etc.)
-        String cleanName = personName.replaceAll("\\s+", "_");
+       // String cleanName = personName.replaceAll("\\s+", "_");
 
         // 2. Define the directory and filename
         String directoryPath = "saved_faces/";
         // You can change ".png" to ".jpg" if you prefer
-        String filePath = directoryPath + cleanName + ".png";
+        String filePath = directoryPath + personID + ".png";
 
         // 3. Create the directory if it doesn't exist
         File directory = new File(directoryPath);

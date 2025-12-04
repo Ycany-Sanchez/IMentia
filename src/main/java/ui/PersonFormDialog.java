@@ -61,7 +61,7 @@ public class PersonFormDialog extends JDialog {
         JPanel buttonPanel = new JPanel(new FlowLayout(1, 20, 10));
         this.saveButton = new JButton("SAVE");
         this.saveButton.setFont(new Font("Arial", 1, 18));
-        this.saveButton.addActionListener((e) -> this.save());
+      //  this.saveButton.addActionListener((e) -> this.save());
         this.cancelButton = new JButton("CANCEL");
         this.cancelButton.setFont(new Font("Arial", 1, 18));
         this.cancelButton.addActionListener((e) -> this.cancel());
@@ -74,7 +74,7 @@ public class PersonFormDialog extends JDialog {
      * Handles the SAVE button click: validates input, creates the Person object,
      * adds the captured face as FaceData, and sets the confirmed flag.
      */
-    private void save() {
+   /* private void save() {
         String name = this.nameField.getText().trim();
         String relationship = this.relationshipField.getText().trim();
 
@@ -95,6 +95,8 @@ public class PersonFormDialog extends JDialog {
             this.dispose(); // Close the dialog
         }
     }
+
+    */
 
     private void cancel() {
         this.confirmed = false;
