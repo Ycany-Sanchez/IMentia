@@ -88,12 +88,16 @@ public class MainPanel {
         startCamera();
     }
 
-    private void setUpUI(){     // this method sets up swing components
+    private void setUpUI(){
+        // 1. Initialize the Tutorial Panel first
+        setupTutorialPanel(); // NEW CODE: Call the helper method
+
         DisplayPanel.setLayout(cardLayout);
 
         DisplayPanel.add(CameraPanel, "1");
         DisplayPanel.add(ContactsPanel, "2");
         DisplayPanel.add(PersonFormPanel, "3");
+        DisplayPanel.add(TutorialPanel, "4"); // NEW CODE: Add tutorial to card layout
 
 
         tempFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -116,6 +120,23 @@ public class MainPanel {
             }
         });
 
+        // NEW CODE: Tutorial Button Logic
+        TutorialButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                cardLayout.show(DisplayPanel, "4"); // Switch to Tutorial Card
+
+                // Hide main menu buttons
+                CapturePhotoButton.setVisible(false);
+                ViewContactsButton.setVisible(false);
+                TutorialButton.setVisible(false);
+
+                // Show the Back button
+                BackToCameraButton.setVisible(true);
+                BackToCameraButton.setText("BACK TO CAMERA"); // Optional: Make text clear
+            }
+        });
+
 
         EditContactButton.addActionListener(new ActionListener() {
             @Override
@@ -132,17 +153,18 @@ public class MainPanel {
                 toggleDeleteButton();
             }
         });
+
         BackToCameraButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if(isEditing){
-                    //int editChoice = JOptionPane.showConfirmDialog(null, "You are currently editing your contacts. Are you done editing?")\
                     isEditing = false;
                     EditContactButton.setText("EDIT LIST");
                     toggleDeleteButton();
-
                 }
-                cardLayout.show(DisplayPanel, "1");
+                cardLayout.show(DisplayPanel, "1"); // Go back to Camera
+
+                // Restore buttons
                 BackToCameraButton.setVisible(false);
                 CapturePhotoButton.setVisible(true);
                 TutorialButton.setVisible(true);
@@ -160,8 +182,6 @@ public class MainPanel {
             TutorialButton.setVisible(false);
             ViewContactsButton.setVisible(false);
         });
-
-
     }
 
     //showAddPersonDialog(faceImage);
@@ -509,5 +529,64 @@ public class MainPanel {
 
 
     }
+
+    private void setupTutorialPanel() {
+        TutorialPanel = new JPanel();
+        TutorialPanel.setLayout(new BorderLayout());
+        TutorialPanel.setBackground(Color.WHITE);
+
+        // --- 1. Header Section (Title) ---
+        JPanel headerPanel = new JPanel();
+        headerPanel.setBackground(Color.WHITE);
+        // We remove the bottom border so the text padding below controls the spacing
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 0, 20));
+
+        JLabel titleLabel = new JLabel("Welcome to IMentia");
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 36));
+        headerPanel.add(titleLabel);
+
+        TutorialPanel.add(headerPanel, BorderLayout.NORTH);
+
+        // --- 2. Main Content ---
+        // padding: TOP RIGHT BOTTOM LEFT
+        // We set Top (60px) and Left/Right (60px) to be the same size.
+        String htmlContent = "<html><body style='width: 100%; font-family: sans-serif;'>" +
+                "<div style='padding: 60px 60px 60px 60px;'>" +
+
+                // Description
+                "<p style='font-size: 18px; color: #444; line-height: 1.5; margin-top: 0;'>" +
+                "<b>IMentia</b> is a supportive memory assistant designed to help you recognize loved ones and daily companions.<br/>" +
+                "By storing photos and details of important people, the application provides gentle, real-time reminders <br/>" +
+                "of who someone is and how they are connected to you. With the help of caregivers to manage these memories,<br/> " +
+                "<b>IMentia</b> aims to reduce confusion and strengthen your emotional connections with the people around you.<br/>" +
+                "</p>" +
+
+                // Separator
+                "<hr style='margin-top: 30px; margin-bottom: 30px;'>" +
+
+                // Instructions
+                "<h3>How to use:</h3>" +
+                "<p><b>1. Position yourself:</b><br/>" +
+                "Sit comfortably in front of the camera so the face is clearly visible.</p><br/>" +
+                "<p><b>2. Automatic Recognition:</b><br/>" +
+                "Just look at the screen. If the system knows the person, their name will appear.</p><br/>" +
+                "<p><b>3. Saving a New Person:</b><br/>" +
+                "If the system doesn't know the person, press the <b>'Capture Photo'</b> button to save them.</p><br/>" +
+                "<p><b>4. View List:</b><br/>" +
+                "Press <b>'View Contacts'</b> to see all your saved family and friends.</p>" +
+                "</div></body></html>";
+
+        JLabel textLabel = new JLabel(htmlContent);
+
+        // CRITICAL: This ensures the text starts at the TOP, not centered vertically
+        textLabel.setVerticalAlignment(SwingConstants.TOP);
+
+        JScrollPane scrollPane = new JScrollPane(textLabel);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        TutorialPanel.add(scrollPane, BorderLayout.CENTER);
+    }
+
 
 }
