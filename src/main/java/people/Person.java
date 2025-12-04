@@ -21,6 +21,7 @@ public class Person implements Serializable {
         this.name = name;
         this.relationship = relationship;
         this.face = null;
+        this.lastestConv = null;
     }
 
     /**
@@ -57,5 +58,23 @@ public class Person implements Serializable {
 
     public void setId(String id){
         this.id = id;
+    }
+
+    public MeetingRecord newConversation(String conv){
+
+        MeetingRecord information = new MeetingRecord(this, conv);
+        this.lastestConv = information;
+        return information;
+
+    }
+
+    public MeetingRecord getMeetingRecord(){
+        return lastestConv;
+
+    }
+
+
+    public String toString(){
+        return this.id + "," + this.id + ".png" + "," + this.name + "," + this.relationship;
     }
 }
