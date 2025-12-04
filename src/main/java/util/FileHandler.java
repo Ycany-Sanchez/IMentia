@@ -47,8 +47,8 @@ public class FileHandler {
     }
 //
     public static <bw> String generateId(){
-        try(BufferedReader br = new BufferedReader(new FileReader(ID_GENERATOR + ".csv"));
-        BufferedWriter bw = new BufferedWriter(new FileWriter(ID_GENERATOR + ".csv"))){
+        try(BufferedReader br = new BufferedReader(new FileReader("PersonDetails.csv"));
+        BufferedWriter bw = new BufferedWriter(new FileWriter("PersonDetails.csv", true))){
 
         }catch(FileNotFoundException e){
             System.out.println("Murag Siyag uyab nimo, dont exist");
