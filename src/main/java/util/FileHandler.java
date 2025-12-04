@@ -38,12 +38,25 @@ public class FileHandler {
             ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
             oos.writeObject(persons);
             oos.close();
-
             System.out.println("✓ Save successful");
         } catch (IOException e) {
             System.out.println("✗ Error saving persons:");
             e.printStackTrace();
         }
+    }
+//
+    public String generateId(List<Person> persons){
+        int maxID = 0;
+        for (Person p : persons){
+            String curID = p.getId();
+            String IDNumber = curID.substring(6);
+            maxID = Integer.parseInt(IDNumber);
+        }
+
+        int newIDNumber = maxID++;
+        return "Person" + newIDNumber;
+
+
     }
 
     /**

@@ -19,6 +19,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.List;
 
+import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
 import static org.bytedeco.opencv.global.opencv_imgproc.*;
 import static org.bytedeco.opencv.global.opencv_imgproc.LINE_8;
 
@@ -66,6 +67,7 @@ public class MainPanel {
     private FaceRecognitionService recognitionService;
     private FileHandler fileHandler;
     private List<Person> persons;   //careful with conflicts on java.util and java.awt for List keyword
+    private String PersonName;
 
     // Camera
     private Mat currentFrame; // Holds the last captured raw frame
@@ -153,15 +155,51 @@ public class MainPanel {
         CapturePhotoButton.addActionListener(e ->{
             captureFace();
             cardLayout.show(DisplayPanel, "3");
+            BufferedImage bufferedImage = ImageUtils.matToBufferedImage(faceImage);
+            Image scaledImage = bufferedImage.getScaledInstance(200, 200, Image.SCALE_FAST);
+            ImageIcon imageIcon = new ImageIcon(scaledImage);
 
-            PersonImageLabel.setIcon(new ImageIcon(ImageUtils.matToBufferedImage(faceImage)));
+
+            PersonImageLabel.setIcon(imageIcon);
             BackToCameraButton.setVisible(true);
             CapturePhotoButton.setVisible(false);
             TutorialButton.setVisible(false);
             ViewContactsButton.setVisible(false);
         });
 
+        SavePersonInfoButton.addActionListener(e->{
+            PersonName = PersonNameField.getText();
+            saveFaceImage(PersonName, faceImage);
 
+        });
+
+    }
+
+    private void saveFaceImage(String personName, Mat imageToSave) {
+        // 1. Clean the name to make it filename-safe (remove spaces, etc.)
+        String cleanName = personName.replaceAll("\\s+", "_");
+
+        // 2. Define the directory and filename
+        String directoryPath = "saved_faces/";
+        // You can change ".png" to ".jpg" if you prefer
+        String filePath = directoryPath + cleanName + ".png";
+
+        // 3. Create the directory if it doesn't exist
+        File directory = new File(directoryPath);
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+
+        // 4. Save the image using OpenCV's imwrite
+        // imwrite returns true if successful, false otherwise
+        boolean isSaved = imwrite(filePath, imageToSave);
+
+        if (isSaved) {
+            System.out.println("Image successfully saved to: " + filePath);
+        } else {
+            System.out.println("Failed to save image.");
+            JOptionPane.showMessageDialog(mainPanel, "Error saving image to disk.");
+        }
     }
 
     //showAddPersonDialog(faceImage);
