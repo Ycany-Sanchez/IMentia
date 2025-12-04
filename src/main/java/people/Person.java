@@ -4,11 +4,8 @@ package people;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
-/**
- * Person is the model for a recognized individual, storing their metadata
- * and a list of captured face samples (FaceData) used for training.
- */
 public class Person implements Serializable {
     private static final long serialVersionUID = 1L;
     private String id;
@@ -16,11 +13,15 @@ public class Person implements Serializable {
     private String relationship;
     private FaceData face; // List of face samples for this person
 
+    private MeetingRecord lastestConv;
+
+
     public Person(String id, String name, String relationship) {
         this.id = id;
         this.name = name;
         this.relationship = relationship;
         this.face = null;
+        this.lastestConv = null;
     }
 
     /**
@@ -53,5 +54,23 @@ public class Person implements Serializable {
 
     public void setRelationship(String relationship) {
         this.relationship = relationship;
+    }
+
+    public MeetingRecord newConversation(String conv){
+
+        MeetingRecord information = new MeetingRecord(this, conv);
+        this.lastestConv = information;
+        return information;
+
+    }
+
+    public MeetingRecord getMeetingRecord(){
+        return lastestConv;
+
+    }
+
+
+    public String toString(){
+        return this.id + "," + this.id + ".png" + "," + this.name + "," + this.relationship;
     }
 }
