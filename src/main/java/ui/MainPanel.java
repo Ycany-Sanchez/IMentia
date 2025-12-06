@@ -10,6 +10,7 @@ import util.FileHandler;
 import util.ImageUtils;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -41,7 +42,6 @@ public class MainPanel {
     private JPanel ButtonPanel;
     private JPanel PersonPanel;
     private JButton BackToCameraButton;
-    private JLabel CameraLabel;
     private JLabel PersonImageLabel;
     private JTextField PersonNameField;
     private JButton SavePersonInfoButton;
@@ -61,6 +61,8 @@ public class MainPanel {
     private Font HLabelFont = new Font("", Font.BOLD, 20);
     private Font PLabelFont = new Font("", Font.PLAIN, 20);
 
+    private boolean hasSaved = false;
+
     //Face Components
     private VideoCapture camera;
     private Mat faceImage;
@@ -72,14 +74,15 @@ public class MainPanel {
     private String PersonRelationship;
 
     // Camera
+    private VideoPanel videoPanel;
     private Mat currentFrame; // Holds the last captured raw frame
     private Rect currentFaceRect; // Holds the bounding box of the biggest detected face
     private boolean running = true; // Control flag for the camera thread
 
 
     public MainPanel(){
-        //this.fileHandler = new FileHandler();
-       // persons = fileHandler.loadPersonFile("Person_File.csv");
+        this.fileHandler = new FileHandler();
+        persons = fileHandler.loadPersonFile();
         this.faceDetector = loadFaceDetector();
 
         // took me 3 hours to size the CameraLabel and scale the image properly. Please avoid modifying if possible.
@@ -90,16 +93,15 @@ public class MainPanel {
             }
         });
 
-        persons = new ArrayList<>();
-
         setUpUI();
         startCamera();
     }
 
-
     private void setUpUI(){     // this method sets up swing components
-        DisplayPanel.setLayout(cardLayout);
+        videoPanel = new VideoPanel();
+        CameraPanel.add(videoPanel, BorderLayout.CENTER);
 
+        DisplayPanel.setLayout(cardLayout);
         DisplayPanel.add(CameraPanel, "1");
         DisplayPanel.add(ContactsPanel, "2");
         DisplayPanel.add(PersonFormPanel, "3");
@@ -168,6 +170,7 @@ public class MainPanel {
                     toggleDeleteButton();
 
                 }
+                hasSaved = false;
                 cardLayout.show(DisplayPanel, "1"); // Go back to Camera
 
                 // Restore buttons
@@ -194,17 +197,39 @@ public class MainPanel {
         });
 
         SavePersonInfoButton.addActionListener(e->{
-            PersonName = PersonNameField.getText();
-            PersonRelationship = PersonRelationshipField.getText();
-            Person person = new Person(PersonName, PersonRelationship);
+            String htmlMessage =
+                    "<html><body style='width: 300px'>" +
+                        "Do you want to save this person with these information?<br><br>" +
+                        "<b>Name:</b> " + PersonNameField.getText() + "<br>" +
+                        "<b>Relationship:</b> " + PersonRelationshipField.getText() +
+                    "</body></html>";
 
-            person.setId(FileHandler.generateId(persons));
-            persons.add(person);
-            String curID = person.getId();
-            System.out.println("ID: " + curID);
-            saveFaceImage(curID, faceImage);
-            fileHandler.savePersons(persons);
+            // 2. Create a JLabel to hold the HTML
+            JLabel messageLabel = new JLabel(htmlMessage);
 
+            // 3. Apply your custom font (HTML labels usually respect the size/font family)
+            messageLabel.setFont(PLabelFont);
+            int op = JOptionPane.showConfirmDialog(mainPanel, messageLabel,
+                    "Confirm Person Information", JOptionPane.YES_NO_OPTION);
+            if (op == JOptionPane.YES_OPTION) {
+                PersonName = PersonNameField.getText();
+                PersonRelationship = PersonRelationshipField.getText();
+                Person person = new Person(PersonName, PersonRelationship);
+
+                person.setId(FileHandler.generateId(persons));
+                persons.add(person);
+                String curID = person.getId();
+                System.out.println("ID: " + curID);
+                saveFaceImage(curID, faceImage);
+                fileHandler.savePersons(persons);
+
+                cardLayout.show(DisplayPanel, "1"); // Go back to Camera
+                // Restore buttons
+                BackToCameraButton.setVisible(false);
+                CapturePhotoButton.setVisible(true);
+                TutorialButton.setVisible(true);
+                ViewContactsButton.setVisible(true);
+            }
         });
 
     }
@@ -236,7 +261,6 @@ public class MainPanel {
         }
     }
 
-    //showAddPersonDialog(faceImage);
 
     // ui helpers
     private void updatePanelSizes() {
@@ -349,12 +373,12 @@ public class MainPanel {
     }
 
     // this method is for the camera feed
+
     private void startCamera() {
         System.out.println("Starting camera...");
-        camera = new VideoCapture(0); // 0 is typically the default webcam
+        camera = new VideoCapture(0);
 
         if (!camera.isOpened()) {
-            // Handle camera open failure
             System.out.println("ERROR: Cannot open camera!");
             JOptionPane.showMessageDialog(this.getPanel(), "Cannot open camera!");
             return;
@@ -367,75 +391,83 @@ public class MainPanel {
             Mat frame = new Mat();
             Mat grayFrame = new Mat();
 
+            int frameCount = 0;
+
+            // --- NEW: Persistence variables to stop blinking ---
+            int missedDetectionCount = 0;
+            int maxMissedDetections = 60; // Keeps box for ~20 frames (approx 0.5s) if face is lost
+
             // --- MAIN VIDEO PROCESSING LOOP ---
             while (running) {
-                if (!camera.read(frame)) { // Read next frame from camera
+                if (!camera.read(frame)) {
                     continue;
                 }
 
-                currentFrame = frame.clone(); // Store a copy of the original frame for potential capture
+                currentFrame = frame.clone();
 
-                // 1. Pre-process: Convert frame to grayscale for faster detection
-                cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
+                // 1. Detection Logic (Runs every 5 frames)
+                if(frameCount % 4 == 0){
+                    cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
 
-                // 2. Face Detection
-                RectVector detections = new RectVector();
-                // detectMultiScale applies the Haar Cascade to find faces
-                faceDetector.detectMultiScale(grayFrame, detections);
+                    RectVector detections = new RectVector();
+                    faceDetector.detectMultiScale(grayFrame, detections);
 
-                int numFaces = (int)detections.size(); //cast to int because for some reason, this method returns a long
-                if (numFaces > 0) {
-                    // Find the largest face to focus on
-                    Rect[] faces = new Rect[(int)numFaces];
-                    for (int i = 0; i < numFaces; i++) {
-                        faces[i] = detections.get(i);
+                    int numFaces = (int)detections.size();
+
+                    if (numFaces > 0) {
+                        // FACE FOUND: Update position and reset missed counter
+                        Rect[] faces = new Rect[(int)numFaces];
+                        for (int i = 0; i < numFaces; i++) {
+                            Rect temp = detections.get(i);
+                            faces[i] = new Rect(temp.x(), temp.y(), temp.height(), temp.width());
+                        }
+                        currentFaceRect = getBiggestFace(faces);
+                        missedDetectionCount = 0; // Reset because we found the face
+                    } else {
+                        // NO FACE: Don't delete immediately!
+                        missedDetectionCount++;
+                        if (missedDetectionCount > maxMissedDetections) {
+                            currentFaceRect = null; // Only delete if missing for a long time
+                        }
                     }
-                    currentFaceRect = getBiggestFace(faces);
+                }
+                frameCount++;
 
-                    // 3. Draw green rectangle on the color frame
+                // 2. DRAWING Logic (Runs EVERY frame)
+                // I moved this OUT of the if(frameCount%5) block.
+                // This ensures the box is drawn on frames 1, 2, 3, 4, not just 0.
+                if (currentFaceRect != null) {
                     rectangle(
                             frame,
                             new Point(currentFaceRect.x(), currentFaceRect.y()),
                             new Point(currentFaceRect.x() + currentFaceRect.width(),
                                     currentFaceRect.y() + currentFaceRect.height()),
-                            new Scalar(0, 255, 0, 0), // BGR color: Green
+                            new Scalar(0, 255, 0, 0), // Green
                             3, LINE_8, 0
                     );
-                } else {
-                    currentFaceRect = null; // No face detected
                 }
 
-                // 4. Display: Convert OpenCV Mat to Swing Icon and update the JLabel cameraLabel
+                // 3. Display
                 BufferedImage bufferedImage = ImageUtils.matToBufferedImage(frame);
 
-                SwingUtilities.invokeLater(() -> {  //scale the image
-                    int panelWidth = CameraPanel.getWidth();
-                    int panelHeight = CameraPanel.getHeight();
-
-                    if (panelWidth > 0 && panelHeight > 0) {
-                        // Scale image to panel dimensions
-                        Image scaledImage = bufferedImage.getScaledInstance(panelWidth, panelHeight, Image.SCALE_FAST);
-                        ImageIcon icon = new ImageIcon(bufferedImage);
-                        CameraLabel.setIcon(new ImageIcon(scaledImage));
-                    } else {
-                        CameraLabel.setIcon(new ImageIcon(bufferedImage));
+                SwingUtilities.invokeLater(() -> {
+                    if (videoPanel != null) {
+                        videoPanel.updateImage(bufferedImage);
                     }
                 });
 
-
-                // Important code below to control CPU usage
                 try {
-                    Thread.sleep(30); // Control frame rate (~60 FPS) ----16 for 60fps, 30 for 30fps
+                    Thread.sleep(30);
                 } catch (InterruptedException e) {
                     break;
                 }
             }
 
-            camera.release(); // Release camera resources on exit
+            camera.release();
             System.out.println("Camera thread stopped");
         });
 
-        cameraThread.setDaemon(true); // Daemon threads allow application to exit even if this thread is running
+        cameraThread.setDaemon(true);
         cameraThread.start();
     }
 

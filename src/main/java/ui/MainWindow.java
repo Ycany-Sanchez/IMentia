@@ -50,7 +50,7 @@ public class MainWindow extends JFrame {
 
         // 1. Data Loading & Initial Training
         System.out.println("Loading persons from file...");
-        this.persons = fileHandler.loadPersonFile("Person_File.csv");
+        this.persons = fileHandler.loadPersonFile();
         System.out.println("Loaded " + persons.size() + " persons");
 
         for (Person p : persons) {

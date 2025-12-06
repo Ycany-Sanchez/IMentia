@@ -13,8 +13,9 @@ import java.util.List;
  */
 public class FileHandler {
     private static final String DATA_FOLDER = "imentia_data";
-    private static final String PERSONS_FILE = "persons.dat";
-    private static final String ID_GENERATOR = "IDGen";
+    //private static final String PERSONS_FILE = "persons.dat";
+    //private static final String ID_GENERATOR = "IDGen";
+    private static final String PERSON_FILE = "Person_File.csv";
 
     public FileHandler() {
         System.out.println("FileHandler created");
@@ -26,30 +27,9 @@ public class FileHandler {
         }
     }
 
-    /**
-     * Saves the current list of Person objects to the persons.dat file.
-     * @param persons The list of Person objects to serialize.
-     */
     public void savePersons(List<Person> persons) {
-//        try {
-//            File file = new File(DATA_FOLDER, PERSONS_FILE);
-//            System.out.println("Saving " + persons.size() + " person(s) to " + file.getAbsolutePath());
-//
-//            // Use ObjectOutputStream to serialize the List<Person>
-//            ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
-//            oos.writeObject(persons);
-//            oos.close();
-//            System.out.println("✓ Save successful");
-//        } catch (IOException e) {
-//            System.out.println("✗ Error saving persons:");
-//            e.printStackTrace();
-//        }
-//
-
-        File file = new File("Person_File.csv");
-
-
-        try(BufferedWriter bw = new BufferedWriter(new FileWriter("Person_File.csv", false))){
+        File file = new File(DATA_FOLDER, PERSON_FILE);
+        try(BufferedWriter bw = new BufferedWriter(new FileWriter(file, true))){
             for (Person p : persons){
                 bw.write(p.getId() + "," + p.getName() +  "," +  p.getRelationship() + "\n");
             }
@@ -72,50 +52,20 @@ public class FileHandler {
     }
 
 
-    public List<Person> loadPersonFile(String fileName){
+    public List<Person> loadPersonFile(){
         List<Person> personList = new ArrayList<>();
-        try(BufferedReader br = new BufferedReader(new FileReader(fileName))){
+        File file = new File(DATA_FOLDER, PERSON_FILE);
+        try(BufferedReader br = new BufferedReader(new FileReader(file))){
             String temp;
-
             while((temp = br.readLine())!=null){
                 String[] arr = temp.split(",");
                 Person p = new Person(arr[1], arr[2]);
+                p.setId(arr[0]);
                 personList.add(p);
             }
         } catch (IOException e){
-            e.printStackTrace();
+            System.out.println("Empty file.");
         }
         return personList;
     }
-
-
-
-    /**
-     * Loads the list of Person objects from the persons.dat file.
-     * @return The deserialized list of Person objects, or an empty list if loading fails.
-     */
-        ;
-//    public List<Person> loadPersons() {
-//        File file = new File(DATA_FOLDER, PERSONS_FILE);
-//        System.out.println("Loading persons from: " + file.getAbsolutePath());
-//
-//        if (!file.exists()) {
-//            System.out.println("File does not exist - returning empty list");
-//            return new ArrayList<>();
-//        }
-//
-//        try {
-//            // Use ObjectInputStream to deserialize the List<Person>
-//            ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file));
-//            List<Person> persons = (List<Person>) ois.readObject();
-//            ois.close();
-//            System.out.println("✓ Loaded " + persons.size() + " person(s)");
-//            return persons;
-//        } catch (IOException | ClassNotFoundException e) {
-//            // Handle file errors or class version mismatch errors
-//            System.out.println("✗ Error loading persons:");
-//            e.printStackTrace();
-//            return new ArrayList<>();
-//        }
-//    }
 }
