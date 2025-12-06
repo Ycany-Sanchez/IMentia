@@ -26,7 +26,6 @@ import static org.bytedeco.opencv.global.opencv_imgproc.*;
 import static org.bytedeco.opencv.global.opencv_imgproc.LINE_8;
 
 public class MainPanel {
-    //UI Components
     private JPanel mainPanel;
     private JButton CapturePhotoButton;
     private JButton ViewContactsButton;
@@ -63,21 +62,19 @@ public class MainPanel {
 
     private boolean hasSaved = false;
 
-    //Face Components
     private VideoCapture camera;
     private Mat faceImage;
     private CascadeClassifier faceDetector;
     private FaceRecognitionService recognitionService;
     private FileHandler fileHandler;
-    private List<Person> persons;   //careful with conflicts on java.util and java.awt for List keyword
+    private List<Person> persons;
     private String PersonName;
     private String PersonRelationship;
 
-    // Camera
     private VideoPanel videoPanel;
-    private Mat currentFrame; // Holds the last captured raw frame
-    private Rect currentFaceRect; // Holds the bounding box of the biggest detected face
-    private boolean running = true; // Control flag for the camera thread
+    private Mat currentFrame;
+    private Rect currentFaceRect;
+    private boolean running = true;
 
 
     public MainPanel(){
@@ -85,7 +82,8 @@ public class MainPanel {
         persons = fileHandler.loadPersonFile();
         this.faceDetector = loadFaceDetector();
 
-        // took me 3 hours to size the CameraLabel and scale the image properly. Please avoid modifying if possible.
+        setupTutorialPanel();
+
         mainPanel.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
@@ -97,7 +95,7 @@ public class MainPanel {
         startCamera();
     }
 
-    private void setUpUI(){     // this method sets up swing components
+    private void setUpUI(){
         videoPanel = new VideoPanel();
         CameraPanel.add(videoPanel, BorderLayout.CENTER);
 
@@ -105,6 +103,7 @@ public class MainPanel {
         DisplayPanel.add(CameraPanel, "1");
         DisplayPanel.add(ContactsPanel, "2");
         DisplayPanel.add(PersonFormPanel, "3");
+        DisplayPanel.add(TutorialPanel, "4");
 
 
         tempFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -119,6 +118,8 @@ public class MainPanel {
         ViewContactsButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                refreshContactsPanel();
+
                 cardLayout.show(DisplayPanel, "2");
                 BackToCameraButton.setVisible(true);
                 CapturePhotoButton.setVisible(false);
@@ -127,20 +128,17 @@ public class MainPanel {
             }
         });
 
-        // NEW CODE: Tutorial Button Logic
         TutorialButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                cardLayout.show(DisplayPanel, "4"); // Switch to Tutorial Card
+                cardLayout.show(DisplayPanel, "4");
 
-                // Hide main menu buttons
                 CapturePhotoButton.setVisible(false);
                 ViewContactsButton.setVisible(false);
                 TutorialButton.setVisible(false);
 
-                // Show the Back button
                 BackToCameraButton.setVisible(true);
-                BackToCameraButton.setText("BACK TO CAMERA"); // Optional: Make text clear
+                BackToCameraButton.setText("BACK TO CAMERA");
             }
         });
 
@@ -164,16 +162,14 @@ public class MainPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if(isEditing){
-                    //int editChoice = JOptionPane.showConfirmDialog(null, "You are currently editing your contacts. Are you done editing?")\
                     isEditing = false;
                     EditContactButton.setText("EDIT LIST");
                     toggleDeleteButton();
 
                 }
                 hasSaved = false;
-                cardLayout.show(DisplayPanel, "1"); // Go back to Camera
+                cardLayout.show(DisplayPanel, "1");
 
-                // Restore buttons
                 BackToCameraButton.setVisible(false);
                 CapturePhotoButton.setVisible(true);
                 TutorialButton.setVisible(true);
@@ -199,15 +195,13 @@ public class MainPanel {
         SavePersonInfoButton.addActionListener(e->{
             String htmlMessage =
                     "<html><body style='width: 300px'>" +
-                        "Do you want to save this person with these information?<br><br>" +
-                        "<b>Name:</b> " + PersonNameField.getText() + "<br>" +
-                        "<b>Relationship:</b> " + PersonRelationshipField.getText() +
-                    "</body></html>";
+                            "Do you want to save this person with these information?<br><br>" +
+                            "<b>Name:</b> " + PersonNameField.getText() + "<br>" +
+                            "<b>Relationship:</b> " + PersonRelationshipField.getText() +
+                            "</body></html>";
 
-            // 2. Create a JLabel to hold the HTML
             JLabel messageLabel = new JLabel(htmlMessage);
 
-            // 3. Apply your custom font (HTML labels usually respect the size/font family)
             messageLabel.setFont(PLabelFont);
             int op = JOptionPane.showConfirmDialog(mainPanel, messageLabel,
                     "Confirm Person Information", JOptionPane.YES_NO_OPTION);
@@ -223,8 +217,7 @@ public class MainPanel {
                 saveFaceImage(curID, faceImage);
                 fileHandler.savePersons(persons);
 
-                cardLayout.show(DisplayPanel, "1"); // Go back to Camera
-                // Restore buttons
+                cardLayout.show(DisplayPanel, "1");
                 BackToCameraButton.setVisible(false);
                 CapturePhotoButton.setVisible(true);
                 TutorialButton.setVisible(true);
@@ -235,22 +228,15 @@ public class MainPanel {
     }
 
     private void saveFaceImage(String personID, Mat imageToSave) {
-        // 1. Clean the name to make it filename-safe (remove spaces, etc.)
-       // String cleanName = personName.replaceAll("\\s+", "_");
 
-        // 2. Define the directory and filename
         String directoryPath = "saved_faces/";
-        // You can change ".png" to ".jpg" if you prefer
         String filePath = directoryPath + personID + ".png";
 
-        // 3. Create the directory if it doesn't exist
         File directory = new File(directoryPath);
         if (!directory.exists()) {
             directory.mkdirs();
         }
 
-        // 4. Save the image using OpenCV's imwrite
-        // imwrite returns true if successful, false otherwise
         boolean isSaved = imwrite(filePath, imageToSave);
 
         if (isSaved) {
@@ -262,7 +248,6 @@ public class MainPanel {
     }
 
 
-    // ui helpers
     private void updatePanelSizes() {
         int totalHeight = mainPanel.getHeight();
         if (totalHeight > 0) {
@@ -282,15 +267,7 @@ public class MainPanel {
     }
 
     private void toggleDeleteButton(){
-        for (Component c : PersonPanel.getComponents()) {
-            if (c instanceof JPanel itemPanel) {
-                for (Component inner : itemPanel.getComponents()) {
-                    if (inner instanceof JButton DeleteButton) {
-                        DeleteButton.setVisible(isEditing);
-                    }
-                }
-            }
-        }
+        refreshContactsPanel();
     }
 
     public JPanel getPanel(){
@@ -325,27 +302,137 @@ public class MainPanel {
         }
     }
 
+    private void refreshContactsPanel() {
+        ContactsPanel.removeAll();
+        ContactsPanel.setLayout(new BorderLayout());
 
-    // face helpers
+        JPanel contactsContentPanel = new JPanel();
+        contactsContentPanel.setLayout(new BoxLayout(contactsContentPanel, BoxLayout.Y_AXIS));
+        contactsContentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-    // this method is for loading the haarcascade file. Transferred it here from main
+        int numPersons = persons.size();
+
+        for (int i = 0; i < numPersons; i += 2) {
+
+            Box rowBox = Box.createHorizontalBox();
+            rowBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            JPanel card1 = createPersonEntryPanel(persons.get(i));
+            rowBox.add(card1);
+
+            rowBox.add(Box.createHorizontalStrut(20));
+
+            if (i + 1 < numPersons) {
+                JPanel card2 = createPersonEntryPanel(persons.get(i + 1));
+                rowBox.add(card2);
+                rowBox.add(Box.createHorizontalGlue());
+            } else {
+                rowBox.add(Box.createHorizontalGlue());
+            }
+
+            contactsContentPanel.add(rowBox);
+
+            contactsContentPanel.add(Box.createVerticalStrut(20));
+        }
+
+        contactsContentPanel.add(Box.createVerticalGlue());
+
+        JScrollPane scrollPane = new JScrollPane(contactsContentPanel);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setBorder(null);
+
+        ContactsPanel.add(scrollPane, BorderLayout.CENTER);
+
+        ContactsPanel.revalidate();
+        ContactsPanel.repaint();
+    }
+
+    private JPanel createPersonEntryPanel(Person person) {
+
+        final int FIXED_HEIGHT = 200;
+        final int MIN_WIDTH = 1000;
+
+        JPanel panel = new JPanel(new BorderLayout(10, 0));
+        panel.setOpaque(false);
+
+        Dimension fixedSize = new Dimension(MIN_WIDTH, FIXED_HEIGHT);
+
+        panel.setMinimumSize(fixedSize);
+        panel.setPreferredSize(fixedSize);
+        panel.setMaximumSize(fixedSize);
+
+        JLabel imageLabel = new JLabel((String) null, SwingConstants.CENTER);
+        imageLabel.setPreferredSize(new Dimension(160, 160));
+        imageLabel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+
+        try {
+            String filePath = "saved_faces/" + person.getId() + ".png";
+            File imageFile = new File(filePath);
+
+            if (imageFile.exists()) {
+                Mat faceMat = ImageUtils.loadMatFromFile(filePath);
+
+                if (faceMat != null && !faceMat.empty()) {
+                    BufferedImage bufferedImage = ImageUtils.matToBufferedImage(faceMat);
+                    Image scaledImage = bufferedImage.getScaledInstance(160, 160, Image.SCALE_SMOOTH);
+
+                    imageLabel.setIcon(new ImageIcon(scaledImage));
+                    imageLabel.setText("");
+                } else {
+                    imageLabel.setText("Load Fail");
+                }
+            } else {
+                imageLabel.setText("No Image");
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading image for ID: " + person.getId());
+            e.printStackTrace();
+            imageLabel.setText("Error");
+        }
+
+
+        JPanel infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+        infoPanel.setOpaque(false);
+
+        infoPanel.add(Box.createVerticalStrut(5));
+
+        JLabel nameLabel = new JLabel(person.getName());
+        nameLabel.setFont(HLabelFont);
+        nameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel relationshipLabel = new JLabel("Relationship: " + person.getRelationship());
+        relationshipLabel.setFont(PLabelFont);
+        relationshipLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        infoPanel.add(nameLabel);
+        infoPanel.add(relationshipLabel);
+
+        infoPanel.add(Box.createVerticalGlue());
+
+        panel.add(imageLabel, BorderLayout.WEST);
+        panel.add(infoPanel, BorderLayout.CENTER);
+
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
+
+        return panel;
+    }
+
+
     private static CascadeClassifier loadFaceDetector() {
         try {
             System.out.println("Loading face detector from resources...");
-            // STEP 1: Get the resource as an InputStream (from JAR/classpath)
             InputStream is = MainPanel.class.getResourceAsStream("/haarcascade_frontalface_default.xml");
 
             if (is == null) {
                 System.out.println("Could not find haarcascade file in resources!");
                 return null;
             } else {
-                // STEP 2: Create a temporary file on the filesystem
                 File tempFile = File.createTempFile("haarcascade", ".xml");
-                tempFile.deleteOnExit(); // Ensure the temp file is deleted on exit
+                tempFile.deleteOnExit();
                 FileOutputStream os = new FileOutputStream(tempFile);
                 byte[] buffer = new byte[4096];
 
-                // STEP 3: Copy data from resource stream to the temporary file
                 int bytesRead;
                 while ((bytesRead = is.read(buffer)) != -1) {
                     os.write(buffer, 0, bytesRead);
@@ -355,7 +442,6 @@ public class MainPanel {
                 os.close();
                 System.out.println("Temp file created at: " + tempFile.getAbsolutePath());
 
-                // STEP 4: Initialize the CascadeClassifier using the temp file's path
                 CascadeClassifier classifier = new CascadeClassifier(tempFile.getAbsolutePath());
 
                 if (classifier.empty()) {
@@ -371,8 +457,6 @@ public class MainPanel {
             return null;
         }
     }
-
-    // this method is for the camera feed
 
     private void startCamera() {
         System.out.println("Starting camera...");
@@ -393,11 +477,9 @@ public class MainPanel {
 
             int frameCount = 0;
 
-            // --- NEW: Persistence variables to stop blinking ---
             int missedDetectionCount = 0;
-            int maxMissedDetections = 60; // Keeps box for ~20 frames (approx 0.5s) if face is lost
+            int maxMissedDetections = 60;
 
-            // --- MAIN VIDEO PROCESSING LOOP ---
             while (running) {
                 if (!camera.read(frame)) {
                     continue;
@@ -405,7 +487,6 @@ public class MainPanel {
 
                 currentFrame = frame.clone();
 
-                // 1. Detection Logic (Runs every 5 frames)
                 if(frameCount % 4 == 0){
                     cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
 
@@ -415,39 +496,33 @@ public class MainPanel {
                     int numFaces = (int)detections.size();
 
                     if (numFaces > 0) {
-                        // FACE FOUND: Update position and reset missed counter
                         Rect[] faces = new Rect[(int)numFaces];
                         for (int i = 0; i < numFaces; i++) {
                             Rect temp = detections.get(i);
                             faces[i] = new Rect(temp.x(), temp.y(), temp.height(), temp.width());
                         }
                         currentFaceRect = getBiggestFace(faces);
-                        missedDetectionCount = 0; // Reset because we found the face
+                        missedDetectionCount = 0;
                     } else {
-                        // NO FACE: Don't delete immediately!
                         missedDetectionCount++;
                         if (missedDetectionCount > maxMissedDetections) {
-                            currentFaceRect = null; // Only delete if missing for a long time
+                            currentFaceRect = null;
                         }
                     }
                 }
                 frameCount++;
 
-                // 2. DRAWING Logic (Runs EVERY frame)
-                // I moved this OUT of the if(frameCount%5) block.
-                // This ensures the box is drawn on frames 1, 2, 3, 4, not just 0.
                 if (currentFaceRect != null) {
                     rectangle(
                             frame,
                             new Point(currentFaceRect.x(), currentFaceRect.y()),
                             new Point(currentFaceRect.x() + currentFaceRect.width(),
                                     currentFaceRect.y() + currentFaceRect.height()),
-                            new Scalar(0, 255, 0, 0), // Green
+                            new Scalar(0, 255, 0, 0),
                             3, LINE_8, 0
                     );
                 }
 
-                // 3. Display
                 BufferedImage bufferedImage = ImageUtils.matToBufferedImage(frame);
 
                 SwingUtilities.invokeLater(() -> {
@@ -471,7 +546,6 @@ public class MainPanel {
         cameraThread.start();
     }
 
-    // helper to find the detection rectangle with the largest area
     private Rect getBiggestFace(Rect[] faces) {
         Rect biggest = faces[0];
         int maxArea = biggest.width() * biggest.height();
@@ -496,44 +570,21 @@ public class MainPanel {
         }
 
         System.out.println("Extracting face from frame...");
-        System.out.println("Face rect: x=" + currentFaceRect.x() +
-                ", y=" + currentFaceRect.y() +
-                ", w=" + currentFaceRect.width() +
-                ", h=" + currentFaceRect.height());
 
-        // 1. Extract the detected face region from the current frame
         faceImage = new Mat(currentFrame, currentFaceRect);
-        System.out.println("Face image extracted: " +
-                faceImage.cols() + "x" + faceImage.rows() +
-                ", channels=" + faceImage.channels());
 
-        // 2. Call the recognition service
-//        System.out.println("Calling recognitionService.recognize()...");
-//        FaceRecognitionService.RecognitionResult result = recognitionService.recognize(faceImage);
-//        System.out.println("Recognition completed");
-//        System.out.println("Result - isRecognized: " + result.isRecognized() +
-//                ", confidence: " + result.getConfidence());
-//
-//        if (result.isRecognized()) {
-//            // 3. Recognized: Show information about the known person
-//            System.out.println("*** PERSON RECOGNIZED: " + result.getPerson().getName() + " ***");
-//            showRecognizedPerson(result.getPerson(), result.getConfidence());
-//        }
-        //else {
-            // 4. Unknown: Prompt user to add the new person
-            System.out.println("*** PERSON NOT RECOGNIZED ***");
-            int choice = JOptionPane.showConfirmDialog(mainPanel,
-                    "Person not recognized. Would you like to add them?",
-                    "Unknown Person",
-                    JOptionPane.YES_NO_OPTION);
+        System.out.println("*** PERSON NOT RECOGNIZED ***");
+        int choice = JOptionPane.showConfirmDialog(mainPanel,
+                "Person not recognized. Would you like to add them?",
+                "Unknown Person",
+                JOptionPane.YES_NO_OPTION);
 
-            if (choice == JOptionPane.YES_OPTION) {
-                System.out.println("User chose to add new person");
-                showAddPersonDialog(faceImage);
-            } else {
-                System.out.println("User chose not to add person");
-            }
-        //}
+        if (choice == JOptionPane.YES_OPTION) {
+            System.out.println("User chose to add new person");
+            showAddPersonDialog(faceImage);
+        } else {
+            System.out.println("User chose not to add person");
+        }
     }
 
     private void showRecognizedPerson(Person person, double confidence) {
@@ -562,7 +613,6 @@ public class MainPanel {
     }
 
     private String getConfidenceDescription(double confidence) {
-        // Mirrors the logic in FaceRecognitionService
         if (confidence < 40) return "Excellent Match";
         else if (confidence < 60) return "Very Good Match";
         else if (confidence < 80) return "Good Match";
@@ -579,39 +629,8 @@ public class MainPanel {
         else return "#f8d7da";
     }
 
-
-//    private void showAddPersonDialog(Mat faceImage) {
-//        System.out.println("Opening add person dialog...");
-//        PersonFormDialog dialog = new PersonFormDialog(this, faceImage);
-//        dialog.setVisible(true);
-//
-//        if (dialog.isConfirmed()) {
-//            Person newPerson = dialog.getPerson();
-//            System.out.println("New person confirmed: " + newPerson.getName());
-//
-//            // 1. Add the new Person to the in-memory list
-//            persons.add(newPerson);
-//
-//            // 2. Persist the updated list of persons to disk
-//            System.out.println("Saving persons to file...");
-//            fileHandler.savePersons(persons);
-//
-//            // 3. The face model must be **retrained** with the new person's face data
-//            System.out.println("Retraining recognizer...");
-//            recognitionService.train(persons);
-//
-//            infoLabel.setText("Saved: " + newPerson.getName() + " (" + newPerson.getRelationship() + ")");
-//        } else {
-//            System.out.println("Add person dialog cancelled");
-//        }
-//    }
-
     private void showAddPersonDialog(Mat faceImage){
         System.out.println("Opening add person dialog...");
-//        PersonFormDialog dialog = new PersonFormDialog(this, faceImage);
-//        dialog.setVisible(true);
-
-
     }
 
     private void setupTutorialPanel() {
@@ -619,10 +638,8 @@ public class MainPanel {
         TutorialPanel.setLayout(new BorderLayout());
         TutorialPanel.setBackground(Color.WHITE);
 
-        // --- 1. Header Section (Title) ---
         JPanel headerPanel = new JPanel();
         headerPanel.setBackground(Color.WHITE);
-        // We remove the bottom border so the text padding below controls the spacing
         headerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 0, 20));
 
         JLabel titleLabel = new JLabel("Welcome to IMentia");
@@ -631,13 +648,9 @@ public class MainPanel {
 
         TutorialPanel.add(headerPanel, BorderLayout.NORTH);
 
-        // --- 2. Main Content ---
-        // padding: TOP RIGHT BOTTOM LEFT
-        // We set Top (60px) and Left/Right (60px) to be the same size.
         String htmlContent = "<html><body style='width: 100%; font-family: sans-serif;'>" +
                 "<div style='padding: 60px 60px 60px 60px;'>" +
 
-                // Description
                 "<p style='font-size: 18px; color: #444; line-height: 1.5; margin-top: 0;'>" +
                 "<b>IMentia</b> is a supportive memory assistant designed to help you recognize loved ones and daily companions.<br/>" +
                 "By storing photos and details of important people, the application provides gentle, real-time reminders <br/>" +
@@ -645,10 +658,8 @@ public class MainPanel {
                 "<b>IMentia</b> aims to reduce confusion and strengthen your emotional connections with the people around you.<br/>" +
                 "</p>" +
 
-                // Separator
                 "<hr style='margin-top: 30px; margin-bottom: 30px;'>" +
 
-                // Instructions
                 "<h3>How to use:</h3>" +
                 "<p><b>1. Position yourself:</b><br/>" +
                 "Sit comfortably in front of the camera so the face is clearly visible.</p><br/>" +
@@ -662,7 +673,6 @@ public class MainPanel {
 
         JLabel textLabel = new JLabel(htmlContent);
 
-        // CRITICAL: This ensures the text starts at the TOP, not centered vertically
         textLabel.setVerticalAlignment(SwingConstants.TOP);
 
         JScrollPane scrollPane = new JScrollPane(textLabel);
@@ -671,6 +681,4 @@ public class MainPanel {
 
         TutorialPanel.add(scrollPane, BorderLayout.CENTER);
     }
-
-
 }

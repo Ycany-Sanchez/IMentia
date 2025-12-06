@@ -1,9 +1,10 @@
-// >>> FILE: src/main/java/util/ImageUtils.java
 package util;
 
 import people.FaceData;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.javacpp.indexer.UByteIndexer;
+// *** NEW IMPORT ***
+import static org.bytedeco.opencv.global.opencv_imgcodecs.imread;
 
 import java.awt.image.BufferedImage;
 
@@ -138,6 +139,22 @@ public class ImageUtils {
 
         System.out.println("  Reconstructed: " + mat.cols() + "x" + mat.rows() + ", channels=" + mat.channels());
 
+        return mat;
+    }
+
+    /**
+     * Loads an image directly from the file system into an OpenCV Mat object.
+     * This is required by MainPanel.createPersonEntryPanel to display saved photos.
+     * @param filePath The path to the image file (e.g., "saved_faces/ID.png").
+     * @return The loaded Mat, or null if loading fails.
+     */
+    public static Mat loadMatFromFile(String filePath) {
+        Mat mat = imread(filePath);
+        // Check if the Mat object is empty (meaning the file was not found or failed to load)
+        if (mat.empty()) {
+            System.err.println("ImageUtils: Failed to load Mat from file: " + filePath);
+            return null;
+        }
         return mat;
     }
 }
