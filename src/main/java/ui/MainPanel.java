@@ -1,5 +1,5 @@
 package ui;
-
+//this shi ass bro
 import org.bytedeco.opencv.opencv_core.*;
 import org.bytedeco.opencv.opencv_core.Point;
 import people.Person;
