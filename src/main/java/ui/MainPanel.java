@@ -123,6 +123,7 @@ public class MainPanel {
         ViewContactsButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                persons = fileHandler.loadPersonFile();
                 refreshContactsPanel();
 
                 cardLayout.show(DisplayPanel, "2");
@@ -219,9 +220,10 @@ public class MainPanel {
                 persons.add(person);
                 String curID = person.getId();
                 System.out.println("ID: " + curID);
-                saveFaceImage(curID, faceImage);
-                fileHandler.savePersons(persons);
+                if(fileHandler.savePersons(persons)){
+                    saveFaceImage(curID, faceImage);
 
+                }
                 cardLayout.show(DisplayPanel, "1");
                 BackToCameraButton.setVisible(false);
                 CapturePhotoButton.setVisible(true);

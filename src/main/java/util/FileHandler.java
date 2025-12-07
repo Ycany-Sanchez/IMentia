@@ -30,21 +30,21 @@ public class FileHandler {
         }
     }
 
-    public void savePersons(List<Person> persons) {
+    public boolean savePersons(List<Person> persons) {
         File file = new File(DATA_FOLDER, PERSON_FILE);
+        boolean savedNewPerson = false;
         try(BufferedWriter bw = new BufferedWriter(new FileWriter(file, true))){
-
-
             for (Person p : persons){
                 if(!personMap.containsKey(capitalizeLabel(p.getName()))){
                     bw.write(p.getId() + "," + capitalizeLabel(p.getName()) +  "," +  capitalizeLabel(p.getRelationship()) + "\n");
-                    personMap.put(p.getName().toUpperCase(), true);
+                    personMap.put(capitalizeLabel(p.getName()), true);
+                    savedNewPerson = true;
                 }
-
             }
         } catch(IOException e){
             e.printStackTrace();
         }
+        return savedNewPerson;
     }
 
     public static String generateId(List<Person> persons){
