@@ -33,8 +33,10 @@ public class FileHandler {
     public void savePersons(List<Person> persons) {
         File file = new File(DATA_FOLDER, PERSON_FILE);
         try(BufferedWriter bw = new BufferedWriter(new FileWriter(file, true))){
+
+
             for (Person p : persons){
-                if(!personMap.containsKey(p.getName().toUpperCase())){
+                if(!personMap.containsKey(capitalizeLabel(p.getName()))){
                     bw.write(p.getId() + "," + capitalizeLabel(p.getName()) +  "," +  capitalizeLabel(p.getRelationship()) + "\n");
                     personMap.put(p.getName().toUpperCase(), true);
                 }
@@ -73,9 +75,7 @@ public class FileHandler {
             while((temp = br.readLine())!=null){
                 String[] arr = temp.split(",");
 
-                if(personMap.containsKey(arr[1])){
-                    continue;
-                }
+                personMap.put(capitalizeLabel(arr[1]), true);
                 Person p = new Person(capitalizeLabel(arr[1]), capitalizeLabel(arr[2]));
                 p.setId(arr[0]);
                 personList.add(p);
