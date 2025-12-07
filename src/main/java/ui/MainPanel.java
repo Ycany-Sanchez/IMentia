@@ -11,7 +11,6 @@ import util.FileHandler;
 import util.ImageUtils;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
@@ -32,7 +31,7 @@ public class MainPanel {
     private JPanel ContactsPanel;
     private JPanel TutorialPanel;
     private JPanel PersonFormPanel;
-    private JPanel RecognizedForm;
+    private JPanel PersonDetailsForm;
     private JButton EditContactButton;
     private JButton DeleteButton;
     private JPanel DisplayPanel;
@@ -48,6 +47,17 @@ public class MainPanel {
     private JLabel PersonRelationshipLabel;
     private JTextField PersonRelationshipField;
     private JScrollPane ContactsScrollPane;
+    private JLabel PersonDetailsImageLabel;
+    private JPanel PersonDetailsTopSection;
+    private JPanel PersonDetailsBottomSection;
+    private JButton ADDMEETINGNOTESButton;
+    private JButton EDITCONTACTButton;
+    private JScrollPane MeetingNotesScrollPane;
+    private JLabel MeetingNotesLabel;
+    private JLabel PersonDetailPersonName;
+    private JLabel PersonDetailPersonRel;
+    private JLabel PersonDetailNameLabel;
+    private JLabel PersonDetailRelLabel;
 
     private List<JPanel> contactListPanels = new ArrayList<>();
 
@@ -95,7 +105,7 @@ public class MainPanel {
         setupTutorialPanel();
 
         // Initialize the new Details UI
-        setupPersonDetailsPanel();
+//        setupPersonDetailsPanel();
 
         mainPanel.addComponentListener(new ComponentAdapter() {
             @Override
@@ -125,8 +135,8 @@ public class MainPanel {
         DisplayPanel.add(PersonFormPanel, "3");
         DisplayPanel.add(TutorialPanel, "4");
         // Add the new Details Panel as card "5"
-        DisplayPanel.add(PersonDetailsPanel, "5");
-        DisplayPanel.add(RecognizedForm, "6");
+      //  DisplayPanel.add(PersonDetailsPanel, "5");
+        DisplayPanel.add(PersonDetailsForm, "5");
 
 
         tempFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -204,18 +214,19 @@ public class MainPanel {
         });
 
         CapturePhotoButton.addActionListener(e ->{
-            captureFace();
-            cardLayout.show(DisplayPanel, "3");
-            BufferedImage bufferedImage = ImageUtils.matToBufferedImage(faceImage);
-            Image scaledImage = bufferedImage.getScaledInstance(200, 200, Image.SCALE_FAST);
-            ImageIcon imageIcon = new ImageIcon(scaledImage);
+            if(captureFace()){
+                cardLayout.show(DisplayPanel, "3");
+                BufferedImage bufferedImage = ImageUtils.matToBufferedImage(faceImage);
+                Image scaledImage = bufferedImage.getScaledInstance(200, 200, Image.SCALE_FAST);
+                ImageIcon imageIcon = new ImageIcon(scaledImage);
 
 
-            PersonImageLabel.setIcon(imageIcon);
-            BackToCameraButton.setVisible(true);
-            CapturePhotoButton.setVisible(false);
-            TutorialButton.setVisible(false);
-            ViewContactsButton.setVisible(false);
+                PersonImageLabel.setIcon(imageIcon);
+                BackToCameraButton.setVisible(true);
+                CapturePhotoButton.setVisible(false);
+                TutorialButton.setVisible(false);
+                ViewContactsButton.setVisible(false);
+            }
         });
 
         SavePersonInfoButton.addActionListener(e->{
@@ -237,20 +248,23 @@ public class MainPanel {
                 Person person = new Person(PersonName, PersonRelationship);
 
                 person.setId(FileHandler.generateId(persons));
+                person.setPersonImage(ImageUtils.matToBufferedImage(faceImage));
                 persons.add(person);
                 String curID = person.getId();
                 System.out.println("ID: " + curID);
 
-                // Attempt to save file
-                fileHandler.savePersons(persons);
-                // Attempt to save image
-                saveFaceImage(curID, faceImage);
-
-                // Show Details Panel using the MEMORY image directly
-                // (This fixes the "No Image" issue if disk write is slow or fails)
-                showPersonDetails(person, faceImage);
-
-                // Reset form fields
+                if(fileHandler.savePersons(persons)){
+                    saveFaceImage(curID, faceImage);
+                    //showPersonDetails(person, faceImage);
+                    setupPersonDetailsForm(person);
+                    cardLayout.show(DisplayPanel, "5");
+                } else {
+                    BackToCameraButton.setVisible(false);
+                    CapturePhotoButton.setVisible(true);
+                    TutorialButton.setVisible(true);
+                    ViewContactsButton.setVisible(true);
+                    cardLayout.show(DisplayPanel, "1");
+                }
                 PersonNameField.setText("");
                 PersonRelationshipField.setText("");
             }
@@ -258,188 +272,196 @@ public class MainPanel {
 
     }
 
-    private void setupPersonDetailsPanel() {
-        PersonDetailsPanel = new JPanel(new BorderLayout());
-        PersonDetailsPanel.setBackground(new Color(230, 230, 230));
+    private void setupPersonDetailsForm(Person p){
+        Image scaledImage = p.getPersonImage().getScaledInstance(200, 200, Image.SCALE_FAST);
+        PersonDetailsImageLabel.setIcon(new ImageIcon(scaledImage));
 
-        // 1. Top Section (Image + Info) -> Goes to NORTH
-        JPanel topSection = new JPanel(new BorderLayout(20, 0));
-        topSection.setOpaque(false);
-        topSection.setBorder(BorderFactory.createEmptyBorder(30, 40, 20, 40));
+        PersonDetailPersonName.setText(p.getName());
+        PersonDetailPersonRel.setText(p.getRelationship());
+        PersonDetailNameLabel.setFont(HLabelFont);
+        PersonDetailRelLabel.setFont(HLabelFont);
+        MeetingNotesLabel.setFont(HLabelFont);
 
-        // Image Label - Fixed Size to prevent stretching
-        detailsImageLabel = new JLabel();
-        Dimension imageSize = new Dimension(200, 200);
-        detailsImageLabel.setPreferredSize(imageSize);
-        detailsImageLabel.setMinimumSize(imageSize);
-        detailsImageLabel.setMaximumSize(imageSize);
-        detailsImageLabel.setSize(imageSize);
-        detailsImageLabel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
-        detailsImageLabel.setOpaque(true);
-        detailsImageLabel.setBackground(Color.LIGHT_GRAY);
-        detailsImageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        detailsImageLabel.setVerticalAlignment(SwingConstants.CENTER);
-
-        // Text Info Panel
-        JPanel infoTextPanel = new JPanel();
-        infoTextPanel.setLayout(new BoxLayout(infoTextPanel, BoxLayout.Y_AXIS));
-        infoTextPanel.setOpaque(false);
-
-        detailsNameLabel = new JLabel("Name Placeholder");
-        detailsNameLabel.setFont(new Font("SansSerif", Font.BOLD, 28));
-
-        detailsRelationLabel = new JLabel("Relation Placeholder");
-        detailsRelationLabel.setFont(new Font("SansSerif", Font.BOLD, 22));
-        detailsRelationLabel.setForeground(Color.DARK_GRAY);
-
-        infoTextPanel.add(Box.createVerticalStrut(40));
-        infoTextPanel.add(detailsNameLabel);
-        infoTextPanel.add(Box.createVerticalStrut(15));
-        infoTextPanel.add(detailsRelationLabel);
-
-        // Edit Button (Top Right)
-        JPanel editButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        editButtonPanel.setOpaque(false);
-        JButton editDetailsButton = new JButton("EDIT CONTACT");
-        editDetailsButton.setFont(buttonFont);
-        editButtonPanel.add(editDetailsButton);
-
-        topSection.add(detailsImageLabel, BorderLayout.WEST);
-        topSection.add(infoTextPanel, BorderLayout.CENTER);
-        topSection.add(editButtonPanel, BorderLayout.EAST);
-
-        // 2. Middle Section (Notes) -> Goes to CENTER (Fills remaining space)
-        JPanel notesSection = new JPanel(new BorderLayout(0, 5));
-        notesSection.setOpaque(false);
-        notesSection.setBorder(BorderFactory.createEmptyBorder(10, 40, 40, 40));
-
-        // Header
-        JPanel notesHeader = new JPanel(new BorderLayout());
-        notesHeader.setOpaque(false);
-
-        JLabel notesTitle = new JLabel("Notes From Your Meetings");
-        notesTitle.setFont(new Font("SansSerif", Font.PLAIN, 20));
-
-        JButton addNoteButton = new JButton("ADD MEETING NOTES");
-        addNoteButton.setFont(buttonFont);
-
-        notesHeader.add(notesTitle, BorderLayout.WEST);
-        notesHeader.add(addNoteButton, BorderLayout.EAST);
-
-        // Notes List
-        notesListPanel = new JPanel();
-        notesListPanel.setLayout(new BoxLayout(notesListPanel, BoxLayout.Y_AXIS));
-        notesListPanel.setBackground(Color.WHITE);
-
-        // Wrapper
-        JPanel notesWrapper = new JPanel(new BorderLayout());
-        notesWrapper.setBackground(Color.WHITE);
-        notesWrapper.add(notesListPanel, BorderLayout.NORTH);
-
-        JScrollPane notesScroll = new JScrollPane(notesWrapper);
-        notesScroll.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
-
-        notesSection.add(notesHeader, BorderLayout.NORTH);
-        notesSection.add(notesScroll, BorderLayout.CENTER);
-
-        // 3. Assemble
-        PersonDetailsPanel.add(topSection, BorderLayout.NORTH);
-        PersonDetailsPanel.add(notesSection, BorderLayout.CENTER);
-
-        // --- BUTTON ACTIONS ---
-        addNoteButton.addActionListener(e -> {
-            if(currentDisplayedPerson != null) {
-                JOptionPane.showMessageDialog(mainPanel, "Add note feature coming soon for " + currentDisplayedPerson.getName());
-            }
-        });
-
-        editDetailsButton.addActionListener(e -> {
-            if(currentDisplayedPerson != null) {
-                JOptionPane.showMessageDialog(mainPanel, "Edit feature coming soon.");
-            }
-        });
-    }
-
-    // --- UPDATED METHOD: Accepts an optional directImage for immediate display ---
-    private void showPersonDetails(Person person, Mat directImage) {
-        this.currentDisplayedPerson = person;
-
-        // Populate Text
-        detailsNameLabel.setText("<html>Person's Name: &nbsp;&nbsp; " + person.getName() + "</html>");
-        detailsRelationLabel.setText("<html>Your Relation: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; " + person.getRelationship() + "</html>");
-
-        BufferedImage buff = null;
-
-        try {
-            // 1. Priority: Use the image passed directly (from Save action)
-            if (directImage != null && !directImage.empty()) {
-                buff = ImageUtils.matToBufferedImage(directImage);
-            }
-            // 2. Fallback: Load from disk (from Contact List action)
-            else {
-                String filePath = "saved_faces/" + person.getId() + ".png";
-                File imgFile = new File(filePath);
-                if (imgFile.exists()) {
-                    Mat faceMat = ImageUtils.loadMatFromFile(filePath);
-                    if (faceMat != null && !faceMat.empty()) {
-                        buff = ImageUtils.matToBufferedImage(faceMat);
-                    }
-                }
-            }
-
-            // 3. Render the image if found
-            if (buff != null) {
-                // Logic to Fit Image within 200x200 maintaining aspect ratio
-                int originalW = buff.getWidth();
-                int originalH = buff.getHeight();
-                int targetW = 200;
-                int targetH = 200;
-
-                int newW = targetW;
-                int newH = (originalH * targetW) / originalW;
-
-                if (newH > targetH) {
-                    newH = targetH;
-                    newW = (originalW * targetH) / originalH;
-                }
-
-                Image scaled = buff.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
-                detailsImageLabel.setIcon(new ImageIcon(scaled));
-                detailsImageLabel.setText("");
-            } else {
-                detailsImageLabel.setIcon(null);
-                detailsImageLabel.setText("No Image");
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            detailsImageLabel.setIcon(null);
-            detailsImageLabel.setText("Error");
-        }
-
-        // Clear Notes
-        notesListPanel.removeAll();
-        notesListPanel.revalidate();
-        notesListPanel.repaint();
-
-        // Switch View to Details
-        cardLayout.show(DisplayPanel, "5");
-
-        // Manage Footer
-        CapturePhotoButton.setVisible(false);
-        TutorialButton.setVisible(false);
-
-        BackToCameraButton.setVisible(true);
         ViewContactsButton.setVisible(true);
     }
 
+//    private void setupPersonDetailsPanel() {
+//        PersonDetailsPanel = new JPanel(new BorderLayout());
+//        PersonDetailsPanel.setBackground(new Color(230, 230, 230));
+//
+//        // 1. Top Section (Image + Info) -> Goes to NORTH
+//        JPanel topSection = new JPanel(new BorderLayout(20, 0));
+//        topSection.setOpaque(false);
+//        topSection.setBorder(BorderFactory.createEmptyBorder(30, 40, 20, 40));
+//
+//        // Image Label - Fixed Size to prevent stretching
+//        detailsImageLabel = new JLabel();
+//        Dimension imageSize = new Dimension(200, 200);
+//        detailsImageLabel.setPreferredSize(imageSize);
+//        detailsImageLabel.setMinimumSize(imageSize);
+//        detailsImageLabel.setMaximumSize(imageSize);
+//        detailsImageLabel.setSize(imageSize);
+//        detailsImageLabel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+//        detailsImageLabel.setOpaque(true);
+//        detailsImageLabel.setBackground(Color.LIGHT_GRAY);
+//        detailsImageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+//        detailsImageLabel.setVerticalAlignment(SwingConstants.CENTER);
+//
+//        // Text Info Panel
+//        JPanel infoTextPanel = new JPanel();
+//        infoTextPanel.setLayout(new BoxLayout(infoTextPanel, BoxLayout.Y_AXIS));
+//        infoTextPanel.setOpaque(false);
+//
+//        detailsNameLabel = new JLabel("Name Placeholder");
+//        detailsNameLabel.setFont(new Font("SansSerif", Font.BOLD, 28));
+//
+//        detailsRelationLabel = new JLabel("Relation Placeholder");
+//        detailsRelationLabel.setFont(new Font("SansSerif", Font.BOLD, 22));
+//        detailsRelationLabel.setForeground(Color.DARK_GRAY);
+//
+//        infoTextPanel.add(Box.createVerticalStrut(40));
+//        infoTextPanel.add(detailsNameLabel);
+//        infoTextPanel.add(Box.createVerticalStrut(15));
+//        infoTextPanel.add(detailsRelationLabel);
+//
+//        // Edit Button (Top Right)
+//        JPanel editButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+//        editButtonPanel.setOpaque(false);
+//        JButton editDetailsButton = new JButton("EDIT CONTACT");
+//        editDetailsButton.setFont(buttonFont);
+//        editButtonPanel.add(editDetailsButton);
+//
+//        topSection.add(detailsImageLabel, BorderLayout.WEST);
+//        topSection.add(infoTextPanel, BorderLayout.CENTER);
+//        topSection.add(editButtonPanel, BorderLayout.EAST);
+//
+//        // 2. Middle Section (Notes) -> Goes to CENTER (Fills remaining space)
+//        JPanel notesSection = new JPanel(new BorderLayout(0, 5));
+//        notesSection.setOpaque(false);
+//        notesSection.setBorder(BorderFactory.createEmptyBorder(10, 40, 40, 40));
+//
+//        // Header
+//        JPanel notesHeader = new JPanel(new BorderLayout());
+//        notesHeader.setOpaque(false);
+//
+//        JLabel notesTitle = new JLabel("Notes From Your Meetings");
+//        notesTitle.setFont(new Font("SansSerif", Font.PLAIN, 20));
+//
+//        JButton addNoteButton = new JButton("ADD MEETING NOTES");
+//        addNoteButton.setFont(buttonFont);
+//
+//        notesHeader.add(notesTitle, BorderLayout.WEST);
+//        notesHeader.add(addNoteButton, BorderLayout.EAST);
+//
+//        // Notes List
+//        notesListPanel = new JPanel();
+//        notesListPanel.setLayout(new BoxLayout(notesListPanel, BoxLayout.Y_AXIS));
+//        notesListPanel.setBackground(Color.WHITE);
+//
+//        // Wrapper
+//        JPanel notesWrapper = new JPanel(new BorderLayout());
+//        notesWrapper.setBackground(Color.WHITE);
+//        notesWrapper.add(notesListPanel, BorderLayout.NORTH);
+//
+//        JScrollPane notesScroll = new JScrollPane(notesWrapper);
+//        notesScroll.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+//
+//        notesSection.add(notesHeader, BorderLayout.NORTH);
+//        notesSection.add(notesScroll, BorderLayout.CENTER);
+//
+//        // 3. Assemble
+//        PersonDetailsPanel.add(topSection, BorderLayout.NORTH);
+//        PersonDetailsPanel.add(notesSection, BorderLayout.CENTER);
+//
+//        // --- BUTTON ACTIONS ---
+//        addNoteButton.addActionListener(e -> {
+//            if(currentDisplayedPerson != null) {
+//                JOptionPane.showMessageDialog(mainPanel, "Add note feature coming soon for " + currentDisplayedPerson.getName());
+//            }
+//        });
+//
+//        editDetailsButton.addActionListener(e -> {
+//            if(currentDisplayedPerson != null) {
+//                JOptionPane.showMessageDialog(mainPanel, "Edit feature coming soon.");
+//            }
+//        });
+//    }
+//
+//    // --- UPDATED METHOD: Accepts an optional directImage for immediate display ---
+//    private void showPersonDetails(Person person, Mat directImage) {
+//        this.currentDisplayedPerson = person;
+//
+//        // Populate Text
+//        detailsNameLabel.setText("<html>Person's Name: &nbsp;&nbsp; " + person.getName() + "</html>");
+//        detailsRelationLabel.setText("<html>Your Relation: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; " + person.getRelationship() + "</html>");
+//
+//        BufferedImage buff = null;
+//
+//        try {
+//            // 1. Priority: Use the image passed directly (from Save action)
+//            if (directImage != null && !directImage.empty()) {
+//                buff = ImageUtils.matToBufferedImage(directImage);
+//            }
+//            // 2. Fallback: Load from disk (from Contact List action)
+//            else {
+//                String filePath = "saved_faces/" + person.getId() + ".png";
+//                File imgFile = new File(filePath);
+//                if (imgFile.exists()) {
+//                    Mat faceMat = ImageUtils.loadMatFromFile(filePath);
+//                    if (faceMat != null && !faceMat.empty()) {
+//                        buff = ImageUtils.matToBufferedImage(faceMat);
+//                    }
+//                }
+//            }
+//
+//            // 3. Render the image if found
+//            if (buff != null) {
+//                // Logic to Fit Image within 200x200 maintaining aspect ratio
+//                int originalW = buff.getWidth();
+//                int originalH = buff.getHeight();
+//                int targetW = 200;
+//                int targetH = 200;
+//
+//                int newW = targetW;
+//                int newH = (originalH * targetW) / originalW;
+//
+//                if (newH > targetH) {
+//                    newH = targetH;
+//                    newW = (originalW * targetH) / originalH;
+//                }
+//
+//                Image scaled = buff.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
+//                detailsImageLabel.setIcon(new ImageIcon(scaled));
+//                detailsImageLabel.setText("");
+//            } else {
+//                detailsImageLabel.setIcon(null);
+//                detailsImageLabel.setText("No Image");
+//            }
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            detailsImageLabel.setIcon(null);
+//            detailsImageLabel.setText("Error");
+//        }
+//
+//        // Clear Notes
+//        notesListPanel.removeAll();
+//        notesListPanel.revalidate();
+//        notesListPanel.repaint();
+//
+//        // Switch View to Details
+//        cardLayout.show(DisplayPanel, "5");
+//
+//        // Manage Footer
+//        CapturePhotoButton.setVisible(false);
+//        TutorialButton.setVisible(false);
+//
+//        BackToCameraButton.setVisible(true);
+//        ViewContactsButton.setVisible(true);
+//    }
+
 
     private void saveFaceImage(String personID, Mat imageToSave) {
-        if (imageToSave == null || imageToSave.empty()) {
-            System.out.println("Error: No face image to save.");
-            return;
-        }
-
         String directoryPath = "saved_faces/";
         String filePath = directoryPath + personID + ".png";
 
@@ -604,14 +626,15 @@ public class MainPanel {
 
         deleteButton.addActionListener(e -> {
             // delete logic
-            deleteContact();
+            deleteContact(person);
         });
 
-        imageLabel.addMouseListener(new MouseAdapter() {
+        panel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 // Pass NULL so it loads from disk (since we don't have the memory image here)
-                showPersonDetails(person, null);
+                setupPersonDetailsForm(person);
+                cardLayout.show(DisplayPanel, "5");
             }
         });
 
@@ -643,7 +666,7 @@ public class MainPanel {
         return panel;
     }
 
-    private void deleteContact(){
+    private void deleteContact(Person personToDelete){
         String htmlMessage =
                 "<html><body style='width: 300px'>" +
                         "Are you sure you want to delete this person from your contact list?" +
@@ -652,12 +675,29 @@ public class MainPanel {
         JLabel messageLabel = new JLabel(htmlMessage);
         messageLabel.setFont(PLabelFont);
 
-        JOptionPane.showConfirmDialog(
+        int choice = JOptionPane.showConfirmDialog(
                 mainPanel,
                 messageLabel,
                 "Confirm Delete Person",
                 JOptionPane.YES_NO_OPTION
         );
+
+        if (choice == JOptionPane.YES_OPTION) {
+            persons.remove(personToDelete);
+            fileHandler.updatePersonFile(persons);
+
+            try {
+                File imageFile = new File("saved_faces", personToDelete.getId() + ".png");
+                if (imageFile.exists()) {
+                    imageFile.delete();
+                }
+            } catch (Exception e) {
+                System.out.println("Could not delete image file.");
+            }
+            refreshContactsPanel();
+
+            JOptionPane.showMessageDialog(mainPanel, "Contact Deleted.");
+        }
     }
 
     private static CascadeClassifier loadFaceDetector() {
@@ -801,13 +841,13 @@ public class MainPanel {
         return biggest;
     }
 
-    private void captureFace() {
+    private boolean captureFace() {
         System.out.println("=== captureFace() called ===");
 
         if (currentFrame == null || currentFaceRect == null) {
             System.out.println("No face detected in current frame");
             JOptionPane.showMessageDialog(mainPanel, "No face detected! Please look at the camera.", "No Face", JOptionPane.WARNING_MESSAGE);
-            return;
+            return false;
         }
 
         System.out.println("Extracting face from frame...");
@@ -822,9 +862,10 @@ public class MainPanel {
 
         if (choice == JOptionPane.YES_OPTION) {
             System.out.println("User chose to add new person");
-            showAddPersonDialog(faceImage);
+            return true;
         } else {
             System.out.println("User chose not to add person");
+            return false;
         }
     }
 

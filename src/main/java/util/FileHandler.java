@@ -3,6 +3,8 @@ package util;
 
 import people.Person;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,13 +78,42 @@ public class FileHandler {
                 String[] arr = temp.split(",");
 
                 personMap.put(capitalizeLabel(arr[1]), true);
+                String id = arr[0];
                 Person p = new Person(capitalizeLabel(arr[1]), capitalizeLabel(arr[2]));
-                p.setId(arr[0]);
+                p.setId(id);
+                try {
+                    File imgFile = new File("saved_faces/", id + ".png");
+                    if(imgFile.exists()){
+                        BufferedImage img = ImageIO.read(imgFile);
+                        p.setPersonImage(img);
+                    }
+                } catch (IOException e){
+                    System.out.println("Could not find image");
+                }
                 personList.add(p);
             }
         } catch (IOException e){
             System.out.println("Empty file.");
         }
         return personList;
+    }
+
+    // In util/FileHandler.java
+
+    public void updatePersonFile(List<Person> persons) {
+        File file = new File(DATA_FOLDER, PERSON_FILE);
+
+        personMap.clear();
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file, false))) {
+            for (Person p : persons) {
+                String key = capitalizeLabel(p.getName());
+
+                bw.write(p.getId() + "," + capitalizeLabel(p.getName()) + "," + capitalizeLabel(p.getRelationship()) + "\n");
+
+                personMap.put(key, true);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

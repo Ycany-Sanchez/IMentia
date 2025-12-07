@@ -1,6 +1,7 @@
 // >>> FILE: src/main/java/people/Person.java
 package people;
 
+import java.awt.image.BufferedImage;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +16,7 @@ public class Person implements Serializable {
     private String name;
     private String relationship;
     private FaceData face; // List of face samples for this person
-
+    private BufferedImage personImage;
     private MeetingRecord lastestConv;
     public Person(String name, String relationship) {
         this.name = capitalizeLabel(name);
@@ -58,6 +59,10 @@ public class Person implements Serializable {
         return face;
     }
 
+    public BufferedImage getPersonImage(){
+        return personImage;
+    }
+
     public void setName(String name) {
         this.name = name;
     }
@@ -68,6 +73,10 @@ public class Person implements Serializable {
 
     public void setId(String id){
         this.id = id;
+    }
+
+    public void setPersonImage(BufferedImage image){
+        personImage = image;
     }
 
     public MeetingRecord newConversation(String conv){
