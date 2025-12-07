@@ -6,17 +6,19 @@ import people.Person;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+
 
 /**
  * Utility class for handling file-based persistence of the application's Person data
  * using standard Java serialization.
  */
 public class FileHandler {
-    private static int countOfPersons = 0;
     private static final String DATA_FOLDER = "imentia_data";
     //private static final String PERSONS_FILE = "persons.dat";
     //private static final String ID_GENERATOR = "IDGen";
     private static final String PERSON_FILE = "Person_File.csv";
+    private final HashMap<String, Boolean> personMap = new HashMap<String, Boolean>();
 
     public FileHandler() {
         System.out.println("FileHandler created");
@@ -30,9 +32,15 @@ public class FileHandler {
 
     public void savePersons(List<Person> persons) {
         File file = new File(DATA_FOLDER, PERSON_FILE);
-        try(BufferedWriter bw = new BufferedWriter(new FileWriter(file))){
+        try(BufferedWriter bw = new BufferedWriter(new FileWriter(file, true))){
+
+
             for (Person p : persons){
-                bw.write(p.getId() + "," + p.getName() +  "," +  p.getRelationship() + "\n");
+                if(!personMap.containsKey(capitalizeLabel(p.getName()))){
+                    bw.write(p.getId() + "," + capitalizeLabel(p.getName()) +  "," +  capitalizeLabel(p.getRelationship()) + "\n");
+                    personMap.put(p.getName().toUpperCase(), true);
+                }
+
             }
         } catch(IOException e){
             e.printStackTrace();
@@ -53,6 +61,12 @@ public class FileHandler {
     }
 
 
+    public String capitalizeLabel(String s){
+        if (s == null || s.isEmpty()) return s;
+        s = s.toLowerCase();
+        return s.substring(0, 1).toUpperCase() + s.substring(1);
+    }
+
     public List<Person> loadPersonFile(){
         List<Person> personList = new ArrayList<>();
         File file = new File(DATA_FOLDER, PERSON_FILE);
@@ -60,7 +74,9 @@ public class FileHandler {
             String temp;
             while((temp = br.readLine())!=null){
                 String[] arr = temp.split(",");
-                Person p = new Person(arr[1], arr[2]);
+
+                personMap.put(capitalizeLabel(arr[1]), true);
+                Person p = new Person(capitalizeLabel(arr[1]), capitalizeLabel(arr[2]));
                 p.setId(arr[0]);
                 personList.add(p);
             }
