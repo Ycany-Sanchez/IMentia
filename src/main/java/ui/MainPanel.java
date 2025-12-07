@@ -12,10 +12,7 @@ import util.ImageUtils;
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.ArrayList;
@@ -109,6 +106,7 @@ public class MainPanel {
         DisplayPanel.add(ContactsPanel, "2");
         DisplayPanel.add(PersonFormPanel, "3");
         DisplayPanel.add(TutorialPanel, "4");
+        DisplayPanel.add(RecognizedForm, "5");
 
 
         tempFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -403,6 +401,14 @@ public class MainPanel {
 
         deleteButton.addActionListener(e -> {
             // delete logic
+        });
+
+        imageLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                //JOptionPane.showMessageDialog(null, "You clicked on " + person.getName());
+                cardLayout.show(DisplayPanel,"5");
+            }
         });
 
         GridBagConstraints gbc = new GridBagConstraints();
