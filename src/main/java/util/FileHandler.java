@@ -6,6 +6,8 @@ import people.Person;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+
 
 /**
  * Utility class for handling file-based persistence of the application's Person data
@@ -16,6 +18,7 @@ public class FileHandler {
     //private static final String PERSONS_FILE = "persons.dat";
     //private static final String ID_GENERATOR = "IDGen";
     private static final String PERSON_FILE = "Person_File.csv";
+    private final HashMap<String, Boolean> personMap = new HashMap<String, Boolean>();
 
     public FileHandler() {
         System.out.println("FileHandler created");
@@ -31,7 +34,11 @@ public class FileHandler {
         File file = new File(DATA_FOLDER, PERSON_FILE);
         try(BufferedWriter bw = new BufferedWriter(new FileWriter(file, true))){
             for (Person p : persons){
-                bw.write(p.getId() + "," + p.getName() +  "," +  p.getRelationship() + "\n");
+                if(!personMap.containsKey(p.getName().toUpperCase())){
+                    bw.write(p.getId() + "," + capitalizeLabel(p.getName()) +  "," +  capitalizeLabel(p.getRelationship()) + "\n");
+                    personMap.put(p.getName().toUpperCase(), true);
+                }
+
             }
         } catch(IOException e){
             e.printStackTrace();
@@ -52,6 +59,12 @@ public class FileHandler {
     }
 
 
+    public String capitalizeLabel(String s){
+        if (s == null || s.isEmpty()) return s;
+        s = s.toLowerCase();
+        return s.substring(0, 1).toUpperCase() + s.substring(1);
+    }
+
     public List<Person> loadPersonFile(){
         List<Person> personList = new ArrayList<>();
         File file = new File(DATA_FOLDER, PERSON_FILE);
@@ -59,7 +72,11 @@ public class FileHandler {
             String temp;
             while((temp = br.readLine())!=null){
                 String[] arr = temp.split(",");
-                Person p = new Person(arr[1], arr[2]);
+
+                if(personMap.containsKey(arr[1])){
+                    continue;
+                }
+                Person p = new Person(capitalizeLabel(arr[1]), capitalizeLabel(arr[2]));
                 p.setId(arr[0]);
                 personList.add(p);
             }

@@ -18,12 +18,21 @@ public class Person implements Serializable {
 
     private MeetingRecord lastestConv;
     public Person(String name, String relationship) {
-       // this.id = id;
-        this.name = name;
-        this.relationship = relationship;
+        this.name = capitalizeLabel(name);
+        this.relationship = capitalizeLabel(relationship);
         this.face = null;
         this.lastestConv = null;
     }
+
+
+
+    public String capitalizeLabel(String s){
+        if (s == null || s.isEmpty()) return s;
+
+        s = s.toLowerCase();
+        return s.substring(0, 1).toUpperCase() + s.substring(1);
+    }
+
 
     /**
      * Adds a new FaceData sample to this person's training set.
