@@ -33,6 +33,7 @@ public class MainPanel {
     private JPanel PersonFormPanel;
     private JPanel RecognizedForm;
     private JButton EditContactButton;
+    private JButton DeleteButton;
     private JPanel DisplayPanel;
     private JPanel ButtonPanel;
     private JPanel PersonPanel;
@@ -50,6 +51,15 @@ public class MainPanel {
     private List<JPanel> contactListPanels = new ArrayList<>();
 
     private JLabel personInfoLabel;
+
+    // --- NEW VARIABLES FOR DETAILS PANEL ---
+    private JPanel PersonDetailsPanel;
+    private JLabel detailsImageLabel;
+    private JLabel detailsNameLabel;
+    private JLabel detailsRelationLabel;
+    private JPanel notesListPanel;
+    private Person currentDisplayedPerson;
+    // ---------------------------------------
 
     private CardLayout cardLayout = new CardLayout();
     private boolean isEditing = false;
@@ -83,6 +93,9 @@ public class MainPanel {
 
         setupTutorialPanel();
 
+        // Initialize the new Details UI
+        setupPersonDetailsPanel();
+
         mainPanel.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
@@ -106,7 +119,9 @@ public class MainPanel {
         DisplayPanel.add(ContactsPanel, "2");
         DisplayPanel.add(PersonFormPanel, "3");
         DisplayPanel.add(TutorialPanel, "4");
-        DisplayPanel.add(RecognizedForm, "5");
+        // Add the new Details Panel as card "5"
+        DisplayPanel.add(PersonDetailsPanel, "5");
+        DisplayPanel.add(RecognizedForm, "6");
 
 
         tempFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -162,6 +177,7 @@ public class MainPanel {
                 toggleDeleteButton();
             }
         });
+
         BackToCameraButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -174,6 +190,7 @@ public class MainPanel {
                 hasSaved = false;
                 cardLayout.show(DisplayPanel, "1");
 
+                // Reset buttons for Camera view
                 BackToCameraButton.setVisible(false);
                 CapturePhotoButton.setVisible(true);
                 TutorialButton.setVisible(true);
@@ -231,6 +248,174 @@ public class MainPanel {
         });
 
     }
+
+    private void setupPersonDetailsPanel() {
+        PersonDetailsPanel = new JPanel(new BorderLayout());
+        PersonDetailsPanel.setBackground(new Color(230, 230, 230));
+
+        // 1. Top Section (Image + Info) -> Goes to NORTH
+        JPanel topSection = new JPanel(new BorderLayout(20, 0));
+        topSection.setOpaque(false);
+        topSection.setBorder(BorderFactory.createEmptyBorder(30, 40, 20, 40));
+
+        // Image Label - Fixed Size to prevent stretching
+        detailsImageLabel = new JLabel();
+        Dimension imageSize = new Dimension(200, 200);
+        detailsImageLabel.setPreferredSize(imageSize);
+        detailsImageLabel.setMinimumSize(imageSize);
+        detailsImageLabel.setMaximumSize(imageSize);
+        detailsImageLabel.setSize(imageSize);
+        detailsImageLabel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        detailsImageLabel.setOpaque(true);
+        detailsImageLabel.setBackground(Color.LIGHT_GRAY);
+        detailsImageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        detailsImageLabel.setVerticalAlignment(SwingConstants.CENTER);
+
+        // Text Info Panel
+        JPanel infoTextPanel = new JPanel();
+        infoTextPanel.setLayout(new BoxLayout(infoTextPanel, BoxLayout.Y_AXIS));
+        infoTextPanel.setOpaque(false);
+
+        detailsNameLabel = new JLabel("Name Placeholder");
+        detailsNameLabel.setFont(new Font("SansSerif", Font.BOLD, 28));
+
+        detailsRelationLabel = new JLabel("Relation Placeholder");
+        detailsRelationLabel.setFont(new Font("SansSerif", Font.BOLD, 22));
+        detailsRelationLabel.setForeground(Color.DARK_GRAY);
+
+        infoTextPanel.add(Box.createVerticalStrut(40));
+        infoTextPanel.add(detailsNameLabel);
+        infoTextPanel.add(Box.createVerticalStrut(15));
+        infoTextPanel.add(detailsRelationLabel);
+
+        // Edit Button (Top Right)
+        JPanel editButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        editButtonPanel.setOpaque(false);
+        JButton editDetailsButton = new JButton("EDIT CONTACT");
+        editDetailsButton.setFont(buttonFont);
+        editButtonPanel.add(editDetailsButton);
+
+        topSection.add(detailsImageLabel, BorderLayout.WEST);
+        topSection.add(infoTextPanel, BorderLayout.CENTER);
+        topSection.add(editButtonPanel, BorderLayout.EAST);
+
+        // 2. Middle Section (Notes) -> Goes to CENTER (Fills remaining space)
+        JPanel notesSection = new JPanel(new BorderLayout(0, 5));
+        notesSection.setOpaque(false);
+        notesSection.setBorder(BorderFactory.createEmptyBorder(10, 40, 40, 40));
+
+        // Header
+        JPanel notesHeader = new JPanel(new BorderLayout());
+        notesHeader.setOpaque(false);
+
+        JLabel notesTitle = new JLabel("Notes From Your Meetings");
+        notesTitle.setFont(new Font("SansSerif", Font.PLAIN, 20));
+
+        JButton addNoteButton = new JButton("ADD MEETING NOTES");
+        addNoteButton.setFont(buttonFont);
+
+        notesHeader.add(notesTitle, BorderLayout.WEST);
+        notesHeader.add(addNoteButton, BorderLayout.EAST);
+
+        // Notes List
+        notesListPanel = new JPanel();
+        notesListPanel.setLayout(new BoxLayout(notesListPanel, BoxLayout.Y_AXIS));
+        notesListPanel.setBackground(Color.WHITE);
+
+        // Wrapper
+        JPanel notesWrapper = new JPanel(new BorderLayout());
+        notesWrapper.setBackground(Color.WHITE);
+        notesWrapper.add(notesListPanel, BorderLayout.NORTH);
+
+        JScrollPane notesScroll = new JScrollPane(notesWrapper);
+        notesScroll.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+        // REMOVED fixed preferred size on scroll pane so it expands
+
+        notesSection.add(notesHeader, BorderLayout.NORTH);
+        notesSection.add(notesScroll, BorderLayout.CENTER);
+
+        // 3. Assemble
+        PersonDetailsPanel.add(topSection, BorderLayout.NORTH);
+        PersonDetailsPanel.add(notesSection, BorderLayout.CENTER);
+
+        // --- BUTTON ACTIONS ---
+        addNoteButton.addActionListener(e -> {
+            if(currentDisplayedPerson != null) {
+                JOptionPane.showMessageDialog(mainPanel, "Add note feature coming soon for " + currentDisplayedPerson.getName());
+            }
+        });
+
+        editDetailsButton.addActionListener(e -> {
+            if(currentDisplayedPerson != null) {
+                JOptionPane.showMessageDialog(mainPanel, "Edit feature coming soon.");
+            }
+        });
+    }
+
+    // --- NEW METHOD: Populate and Show the Details Panel ---
+    private void showPersonDetails(Person person) {
+        this.currentDisplayedPerson = person;
+
+        // Populate Text
+        detailsNameLabel.setText("<html>Person's Name: &nbsp;&nbsp; " + person.getName() + "</html>");
+        detailsRelationLabel.setText("<html>Your Relation: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; " + person.getRelationship() + "</html>");
+
+        // Populate Image with correct Aspect Ratio
+        try {
+            String filePath = "saved_faces/" + person.getId() + ".png";
+            File imgFile = new File(filePath);
+            if (imgFile.exists()) {
+                Mat faceMat = ImageUtils.loadMatFromFile(filePath);
+                if (faceMat != null && !faceMat.empty()) {
+                    BufferedImage buff = ImageUtils.matToBufferedImage(faceMat);
+
+                    // Logic to Fit Image within 200x200 maintaining aspect ratio
+                    int originalW = buff.getWidth();
+                    int originalH = buff.getHeight();
+                    int targetW = 200;
+                    int targetH = 200;
+
+                    int newW = targetW;
+                    int newH = (originalH * targetW) / originalW;
+
+                    if (newH > targetH) {
+                        newH = targetH;
+                        newW = (originalW * targetH) / originalH;
+                    }
+
+                    Image scaled = buff.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
+                    detailsImageLabel.setIcon(new ImageIcon(scaled));
+                    detailsImageLabel.setText("");
+                } else {
+                    detailsImageLabel.setIcon(null);
+                    detailsImageLabel.setText("Load Fail");
+                }
+            } else {
+                detailsImageLabel.setIcon(null);
+                detailsImageLabel.setText("No Image");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            detailsImageLabel.setIcon(null);
+            detailsImageLabel.setText("Error");
+        }
+
+        // Clear Notes
+        notesListPanel.removeAll();
+        notesListPanel.revalidate();
+        notesListPanel.repaint();
+
+        // Switch View to Details
+        cardLayout.show(DisplayPanel, "5");
+
+        // Manage Footer
+        CapturePhotoButton.setVisible(false);
+        TutorialButton.setVisible(false);
+
+        BackToCameraButton.setVisible(true);
+        ViewContactsButton.setVisible(true);
+    }
+
 
     private void saveFaceImage(String personID, Mat imageToSave) {
 
