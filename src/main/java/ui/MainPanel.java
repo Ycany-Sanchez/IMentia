@@ -401,6 +401,7 @@ public class MainPanel {
 
         deleteButton.addActionListener(e -> {
             // delete logic
+            deleteContact();
         });
 
         imageLabel.addMouseListener(new MouseAdapter() {
@@ -439,6 +440,22 @@ public class MainPanel {
         return panel;
     }
 
+    private void deleteContact(){
+        String htmlMessage =
+                "<html><body style='width: 300px'>" +
+                        "Are you sure you want to delete this person from your contact list?" +
+                "</body></html>";
+
+        JLabel messageLabel = new JLabel(htmlMessage);
+        messageLabel.setFont(PLabelFont);
+
+        JOptionPane.showConfirmDialog(
+                mainPanel,
+                messageLabel,
+                "Confirm Delete Person",
+                JOptionPane.YES_NO_OPTION
+        );
+    }
 
     private static CascadeClassifier loadFaceDetector() {
         try {
