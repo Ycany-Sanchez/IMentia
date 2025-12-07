@@ -1,3 +1,4 @@
+// >>> FILE: src/main/java/ui/MainPanel.java
 package ui;
 
 import org.bytedeco.opencv.opencv_core.*;
@@ -110,9 +111,13 @@ public class MainPanel {
     private void setUpUI(){
         videoPanel = new VideoPanel();
         CameraPanel.add(videoPanel, BorderLayout.CENTER);
+
+        // Ensure Contacts Scroll Logic is correct
         PersonPanel.setLayout(new BoxLayout(PersonPanel, BoxLayout.Y_AXIS));
-        ContactsScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        ContactsScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        if (ContactsScrollPane != null) {
+            ContactsScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+            ContactsScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        }
 
         DisplayPanel.setLayout(cardLayout);
         DisplayPanel.add(CameraPanel, "1");
@@ -235,15 +240,19 @@ public class MainPanel {
                 persons.add(person);
                 String curID = person.getId();
                 System.out.println("ID: " + curID);
-                if(fileHandler.savePersons(persons)){
-                    saveFaceImage(curID, faceImage);
 
-                }
-                cardLayout.show(DisplayPanel, "1");
-                BackToCameraButton.setVisible(false);
-                CapturePhotoButton.setVisible(true);
-                TutorialButton.setVisible(true);
-                ViewContactsButton.setVisible(true);
+                // Attempt to save file
+                fileHandler.savePersons(persons);
+                // Attempt to save image
+                saveFaceImage(curID, faceImage);
+
+                // Show Details Panel using the MEMORY image directly
+                // (This fixes the "No Image" issue if disk write is slow or fails)
+                showPersonDetails(person, faceImage);
+
+                // Reset form fields
+                PersonNameField.setText("");
+                PersonRelationshipField.setText("");
             }
         });
 
@@ -329,7 +338,6 @@ public class MainPanel {
 
         JScrollPane notesScroll = new JScrollPane(notesWrapper);
         notesScroll.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
-        // REMOVED fixed preferred size on scroll pane so it expands
 
         notesSection.add(notesHeader, BorderLayout.NORTH);
         notesSection.add(notesScroll, BorderLayout.CENTER);
@@ -352,48 +360,57 @@ public class MainPanel {
         });
     }
 
-    // --- NEW METHOD: Populate and Show the Details Panel ---
-    private void showPersonDetails(Person person) {
+    // --- UPDATED METHOD: Accepts an optional directImage for immediate display ---
+    private void showPersonDetails(Person person, Mat directImage) {
         this.currentDisplayedPerson = person;
 
         // Populate Text
         detailsNameLabel.setText("<html>Person's Name: &nbsp;&nbsp; " + person.getName() + "</html>");
         detailsRelationLabel.setText("<html>Your Relation: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; " + person.getRelationship() + "</html>");
 
-        // Populate Image with correct Aspect Ratio
+        BufferedImage buff = null;
+
         try {
-            String filePath = "saved_faces/" + person.getId() + ".png";
-            File imgFile = new File(filePath);
-            if (imgFile.exists()) {
-                Mat faceMat = ImageUtils.loadMatFromFile(filePath);
-                if (faceMat != null && !faceMat.empty()) {
-                    BufferedImage buff = ImageUtils.matToBufferedImage(faceMat);
-
-                    // Logic to Fit Image within 200x200 maintaining aspect ratio
-                    int originalW = buff.getWidth();
-                    int originalH = buff.getHeight();
-                    int targetW = 200;
-                    int targetH = 200;
-
-                    int newW = targetW;
-                    int newH = (originalH * targetW) / originalW;
-
-                    if (newH > targetH) {
-                        newH = targetH;
-                        newW = (originalW * targetH) / originalH;
+            // 1. Priority: Use the image passed directly (from Save action)
+            if (directImage != null && !directImage.empty()) {
+                buff = ImageUtils.matToBufferedImage(directImage);
+            }
+            // 2. Fallback: Load from disk (from Contact List action)
+            else {
+                String filePath = "saved_faces/" + person.getId() + ".png";
+                File imgFile = new File(filePath);
+                if (imgFile.exists()) {
+                    Mat faceMat = ImageUtils.loadMatFromFile(filePath);
+                    if (faceMat != null && !faceMat.empty()) {
+                        buff = ImageUtils.matToBufferedImage(faceMat);
                     }
-
-                    Image scaled = buff.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
-                    detailsImageLabel.setIcon(new ImageIcon(scaled));
-                    detailsImageLabel.setText("");
-                } else {
-                    detailsImageLabel.setIcon(null);
-                    detailsImageLabel.setText("Load Fail");
                 }
+            }
+
+            // 3. Render the image if found
+            if (buff != null) {
+                // Logic to Fit Image within 200x200 maintaining aspect ratio
+                int originalW = buff.getWidth();
+                int originalH = buff.getHeight();
+                int targetW = 200;
+                int targetH = 200;
+
+                int newW = targetW;
+                int newH = (originalH * targetW) / originalW;
+
+                if (newH > targetH) {
+                    newH = targetH;
+                    newW = (originalW * targetH) / originalH;
+                }
+
+                Image scaled = buff.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
+                detailsImageLabel.setIcon(new ImageIcon(scaled));
+                detailsImageLabel.setText("");
             } else {
                 detailsImageLabel.setIcon(null);
                 detailsImageLabel.setText("No Image");
             }
+
         } catch (Exception e) {
             e.printStackTrace();
             detailsImageLabel.setIcon(null);
@@ -418,6 +435,10 @@ public class MainPanel {
 
 
     private void saveFaceImage(String personID, Mat imageToSave) {
+        if (imageToSave == null || imageToSave.empty()) {
+            System.out.println("Error: No face image to save.");
+            return;
+        }
 
         String directoryPath = "saved_faces/";
         String filePath = directoryPath + personID + ".png";
@@ -433,7 +454,7 @@ public class MainPanel {
             System.out.println("Image successfully saved to: " + filePath);
         } else {
             System.out.println("Failed to save image.");
-            JOptionPane.showMessageDialog(mainPanel, "Error saving image to disk.");
+            // JOptionPane.showMessageDialog(mainPanel, "Error saving image to disk.");
         }
     }
 
@@ -500,9 +521,6 @@ public class MainPanel {
             }
         }
     }
-
-    //Very inefficient. We need global person counter to not remove everything. in the file handler, we rewrite everytime
-    //the csv file, and here, we recreate again and again the PersonPanel
 
     private void refreshContactsPanel() {
         PersonPanel.removeAll();
@@ -592,8 +610,8 @@ public class MainPanel {
         imageLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                //JOptionPane.showMessageDialog(null, "You clicked on " + person.getName());
-                cardLayout.show(DisplayPanel,"5");
+                // Pass NULL so it loads from disk (since we don't have the memory image here)
+                showPersonDetails(person, null);
             }
         });
 
@@ -629,7 +647,7 @@ public class MainPanel {
         String htmlMessage =
                 "<html><body style='width: 300px'>" +
                         "Are you sure you want to delete this person from your contact list?" +
-                "</body></html>";
+                        "</body></html>";
 
         JLabel messageLabel = new JLabel(htmlMessage);
         messageLabel.setFont(PLabelFont);
