@@ -12,6 +12,7 @@ import java.util.List;
  * using standard Java serialization.
  */
 public class FileHandler {
+    private static int countOfPersons = 0;
     private static final String DATA_FOLDER = "imentia_data";
     //private static final String PERSONS_FILE = "persons.dat";
     //private static final String ID_GENERATOR = "IDGen";
@@ -29,7 +30,7 @@ public class FileHandler {
 
     public void savePersons(List<Person> persons) {
         File file = new File(DATA_FOLDER, PERSON_FILE);
-        try(BufferedWriter bw = new BufferedWriter(new FileWriter(file, true))){
+        try(BufferedWriter bw = new BufferedWriter(new FileWriter(file))){
             for (Person p : persons){
                 bw.write(p.getId() + "," + p.getName() +  "," +  p.getRelationship() + "\n");
             }

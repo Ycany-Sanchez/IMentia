@@ -1,5 +1,5 @@
 package ui;
-//this shi ass bro
+
 import org.bytedeco.opencv.opencv_core.*;
 import org.bytedeco.opencv.opencv_core.Point;
 import people.Person;
@@ -36,7 +36,6 @@ public class MainPanel {
     private JPanel PersonFormPanel;
     private JPanel RecognizedForm;
     private JButton EditContactButton;
-    private JButton DeleteButton;
     private JPanel DisplayPanel;
     private JPanel ButtonPanel;
     private JPanel PersonPanel;
@@ -49,6 +48,9 @@ public class MainPanel {
     private JPanel RelationshipPanel;
     private JLabel PersonRelationshipLabel;
     private JTextField PersonRelationshipField;
+    private JScrollPane ContactsScrollPane;
+
+    private List<JPanel> contactListPanels = new ArrayList<>();
 
     private JLabel personInfoLabel;
 
@@ -98,6 +100,9 @@ public class MainPanel {
     private void setUpUI(){
         videoPanel = new VideoPanel();
         CameraPanel.add(videoPanel, BorderLayout.CENTER);
+        PersonPanel.setLayout(new BoxLayout(PersonPanel, BoxLayout.Y_AXIS));
+        ContactsScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        ContactsScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
 
         DisplayPanel.setLayout(cardLayout);
         DisplayPanel.add(CameraPanel, "1");
@@ -267,7 +272,16 @@ public class MainPanel {
     }
 
     private void toggleDeleteButton(){
-        refreshContactsPanel();
+        //refreshContactsPanel();
+        for(JPanel panel : contactListPanels){
+            for(Component c : panel.getComponents()){
+                if(c instanceof JButton b){
+                    if(!b.isVisible()) b.setVisible(true);
+                    else b.setVisible(false);
+                }
+            }
+        }
+
     }
 
     public JPanel getPanel(){
@@ -302,14 +316,11 @@ public class MainPanel {
         }
     }
 
+    //Very inefficient. We need global person counter to not remove everything. in the file handler, we rewrite everytime
+    //the csv file, and here, we recreate again and again the PersonPanel
+
     private void refreshContactsPanel() {
-        ContactsPanel.removeAll();
-        ContactsPanel.setLayout(new BorderLayout());
-
-        JPanel contactsContentPanel = new JPanel();
-        contactsContentPanel.setLayout(new BoxLayout(contactsContentPanel, BoxLayout.Y_AXIS));
-        contactsContentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
+        PersonPanel.removeAll();
         int numPersons = persons.size();
 
         for (int i = 0; i < numPersons; i += 2) {
@@ -329,73 +340,47 @@ public class MainPanel {
             } else {
                 rowBox.add(Box.createHorizontalGlue());
             }
-
-            contactsContentPanel.add(rowBox);
-
-            contactsContentPanel.add(Box.createVerticalStrut(20));
+            PersonPanel.add(rowBox);
         }
-
-        contactsContentPanel.add(Box.createVerticalGlue());
-
-        JScrollPane scrollPane = new JScrollPane(contactsContentPanel);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setBorder(null);
-
-        ContactsPanel.add(scrollPane, BorderLayout.CENTER);
-
-        ContactsPanel.revalidate();
-        ContactsPanel.repaint();
     }
 
     private JPanel createPersonEntryPanel(Person person) {
-
-        final int FIXED_HEIGHT = 200;
-        final int MIN_WIDTH = 1000;
-
-        JPanel panel = new JPanel(new BorderLayout(10, 0));
+        // 1. Setup Panel with GridBagLayout (The most flexible layout)
+        JPanel panel = new JPanel(new GridBagLayout());
         panel.setOpaque(false);
 
+        final int FIXED_HEIGHT = 200;
+        final int MIN_WIDTH = (mainPanel.getWidth()-60) / 2;
         Dimension fixedSize = new Dimension(MIN_WIDTH, FIXED_HEIGHT);
-
         panel.setMinimumSize(fixedSize);
         panel.setPreferredSize(fixedSize);
         panel.setMaximumSize(fixedSize);
+        panel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
 
-        JLabel imageLabel = new JLabel((String) null, SwingConstants.CENTER);
+
+        // -- Image Label --
+        JLabel imageLabel = new JLabel("img", SwingConstants.CENTER);
         imageLabel.setPreferredSize(new Dimension(160, 160));
-        imageLabel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+        imageLabel.setMinimumSize(new Dimension(160, 160));
 
         try {
             String filePath = "saved_faces/" + person.getId() + ".png";
             File imageFile = new File(filePath);
-
             if (imageFile.exists()) {
                 Mat faceMat = ImageUtils.loadMatFromFile(filePath);
-
                 if (faceMat != null && !faceMat.empty()) {
                     BufferedImage bufferedImage = ImageUtils.matToBufferedImage(faceMat);
                     Image scaledImage = bufferedImage.getScaledInstance(160, 160, Image.SCALE_SMOOTH);
-
                     imageLabel.setIcon(new ImageIcon(scaledImage));
                     imageLabel.setText("");
-                } else {
-                    imageLabel.setText("Load Fail");
-                }
-            } else {
-                imageLabel.setText("No Image");
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading image for ID: " + person.getId());
-            e.printStackTrace();
-            imageLabel.setText("Error");
-        }
+                } else { imageLabel.setText("Load Fail"); }
+            } else { imageLabel.setText("No Image"); }
+        } catch (Exception e) { imageLabel.setText("Error"); }
 
-
+        // -- Info Panel --
         JPanel infoPanel = new JPanel();
         infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
         infoPanel.setOpaque(false);
-
-        infoPanel.add(Box.createVerticalStrut(5));
 
         JLabel nameLabel = new JLabel(person.getName());
         nameLabel.setFont(HLabelFont);
@@ -405,16 +390,44 @@ public class MainPanel {
         relationshipLabel.setFont(PLabelFont);
         relationshipLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        infoPanel.add(Box.createVerticalStrut(10)); // Top spacing
         infoPanel.add(nameLabel);
         infoPanel.add(relationshipLabel);
 
-        infoPanel.add(Box.createVerticalGlue());
+        JButton deleteButton = new JButton("DELETE");
+        deleteButton.setVisible(false);
+        deleteButton.setForeground(Color.RED);
+        deleteButton.setFont(HLabelFont);
 
-        panel.add(imageLabel, BorderLayout.WEST);
-        panel.add(infoPanel, BorderLayout.CENTER);
+        deleteButton.addActionListener(e -> {
+            // delete logic
+        });
 
-        panel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
+        GridBagConstraints gbc = new GridBagConstraints();
 
+        gbc.gridx = 0; // Column 0
+        gbc.gridy = 0; // Row 0
+        gbc.weightx = 0; // Do not stretch width
+        gbc.fill = GridBagConstraints.VERTICAL; // Fill height if needed
+        gbc.insets = new Insets(0, 0, 0, 10); // Right padding
+        panel.add(imageLabel, gbc);
+
+        // B. Add Info Panel (Middle Column)
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.NONE; // Fill both width and height
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(0, 0, 0, 0); // Reset padding
+        panel.add(infoPanel, gbc);
+
+        // C. Add Delete Button (Right Column)
+        gbc.gridx = 2; // Column 2
+        gbc.weightx = 0; // Do not stretch width
+        gbc.fill = GridBagConstraints.NONE; // Do not resize the button
+        gbc.anchor = GridBagConstraints.EAST; // PIN TO TOP-RIGHT
+        panel.add(deleteButton, gbc);
+
+        contactListPanels.add(panel);
         return panel;
     }
 
