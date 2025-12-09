@@ -61,7 +61,7 @@ public class MainPanel {
 
     private List<JPanel> contactListPanels = new ArrayList<>();
 
-    private JLabel personInfoLabel;
+    private JLabel personInfoLabel = new JLabel();
 
     // --- NEW VARIABLES FOR DETAILS PANEL ---
     private JPanel PersonDetailsPanel;
@@ -101,6 +101,9 @@ public class MainPanel {
         this.fileHandler = new FileHandler();
         persons = fileHandler.loadPersonFile();
         this.faceDetector = loadFaceDetector();
+
+        this.recognitionService = new FaceRecognitionService();
+        this.recognitionService.train(persons);
 
         setupTutorialPanel();
 
@@ -243,18 +246,24 @@ public class MainPanel {
             int op = JOptionPane.showConfirmDialog(mainPanel, messageLabel,
                     "Confirm Person Information", JOptionPane.YES_NO_OPTION);
             if (op == JOptionPane.YES_OPTION) {
-                PersonName = PersonNameField.getText();
-                PersonRelationship = PersonRelationshipField.getText();
-                Person person = new Person(PersonName, PersonRelationship);
+                PersonName = PersonNameField.getText().trim();
+                PersonRelationship = PersonRelationshipField.getText().trim();
+                String PersonCapitalizedName = FileHandler.capitalizeLabel(PersonName);
 
-                person.setId(FileHandler.generateId(persons));
+                System.out.println("Cpaitalized name: " + PersonCapitalizedName);
+
+                Person person = new Person(PersonCapitalizedName, PersonRelationship);
+
+                person.setId(fileHandler.generateId(persons));
                 person.setPersonImage(ImageUtils.matToBufferedImage(faceImage));
                 persons.add(person);
                 String curID = person.getId();
                 System.out.println("ID: " + curID);
 
+
                 if(fileHandler.savePersons(persons)){
                     saveFaceImage(curID, faceImage);
+                    recognitionService.train(persons);
                     //showPersonDetails(person, faceImage);
                     setupPersonDetailsForm(person);
                     cardLayout.show(DisplayPanel, "5");
@@ -271,6 +280,8 @@ public class MainPanel {
         });
 
     }
+
+
 
     private void setupPersonDetailsForm(Person p){
         Image scaledImage = p.getPersonImage().getScaledInstance(200, 200, Image.SCALE_FAST);
@@ -854,6 +865,15 @@ public class MainPanel {
 
         faceImage = new Mat(currentFrame, currentFaceRect);
 
+        FaceRecognitionService.RecognitionResult result = recognitionService.recognize(faceImage);
+        if(result.isRecognized()){
+            System.out.println("Person recognized: " + result.getPerson().getId());
+            setupPersonDetailsForm(result.getPerson());
+            cardLayout.show(DisplayPanel, "5");
+
+            return false;
+        }
+
         System.out.println("*** PERSON NOT RECOGNIZED ***");
         int choice = JOptionPane.showConfirmDialog(mainPanel,
                 "Person not recognized. Would you like to add them?",
@@ -868,31 +888,31 @@ public class MainPanel {
             return false;
         }
     }
-
-    private void showRecognizedPerson(Person person, double confidence) {
-        System.out.println("Showing recognized person dialog for: " + person.getName());
-
-        String confidenceLevel = getConfidenceDescription(confidence);
-        personInfoLabel.setText("Recognized: " + person.getName() + " - " + confidenceLevel);
-
-        String message = String.format(
-                "<html><center>" +
-                        "<h1 style='font-size: 32px; margin: 10px;'>%s</h1>" +
-                        "<h2 style='font-size: 24px; color: #666; margin: 10px;'>%s</h2>" +
-                        "<div style='margin-top: 20px; padding: 10px; background-color: %s; border-radius: 5px;'>" +
-                        "<p style='font-size: 18px; margin: 5px;'><b>Match Quality:</b> %s</p>" +
-                        "<p style='font-size: 14px; color: #666; margin: 5px;'>Confidence Score: %.1f</p>" +
-                        "</div>" +
-                        "</center></html>",
-                person.getName(),
-                person.getRelationship(),
-                getConfidenceColor(confidence),
-                confidenceLevel,
-                confidence
-        );
-
-        JOptionPane.showMessageDialog(mainPanel, message,"Person Recognized!", JOptionPane.INFORMATION_MESSAGE);
-    }
+//
+//    private void showRecognizedPerson(Person person, double confidence) {
+//        System.out.println("Showing recognized person dialog for: " + person.getName());
+//
+//        String confidenceLevel = getConfidenceDescription(confidence);
+//        personInfoLabel.setText("Recognized: " + person.getName() + " - " + confidenceLevel);
+//
+//        String message = String.format(
+//                "<html><center>" +
+//                        "<h1 style='font-size: 32px; margin: 10px;'>%s</h1>" +
+//                        "<h2 style='font-size: 24px; color: #666; margin: 10px;'>%s</h2>" +
+//                        "<div style='margin-top: 20px; padding: 10px; background-color: %s; border-radius: 5px;'>" +
+//                        "<p style='font-size: 18px; margin: 5px;'><b>Match Quality:</b> %s</p>" +
+//                        "<p style='font-size: 14px; color: #666; margin: 5px;'>Confidence Score: %.1f</p>" +
+//                        "</div>" +
+//                        "</center></html>",
+//                person.getName(),
+//                person.getRelationship(),
+//                getConfidenceColor(confidence),
+//                confidenceLevel,
+//                confidence
+//        );
+//
+//        JOptionPane.showMessageDialog(mainPanel, message,"Person Recognized!", JOptionPane.INFORMATION_MESSAGE);
+//    }
 
     private String getConfidenceDescription(double confidence) {
         if (confidence < 40) return "Excellent Match";
@@ -909,10 +929,6 @@ public class MainPanel {
         else if (confidence < 80) return "#fff3cd";
         else if (confidence < 100) return "#f8d7da";
         else return "#f8d7da";
-    }
-
-    private void showAddPersonDialog(Mat faceImage){
-        System.out.println("Opening add person dialog...");
     }
 
     private void setupTutorialPanel() {

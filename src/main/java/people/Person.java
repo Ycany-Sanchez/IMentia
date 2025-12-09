@@ -18,21 +18,15 @@ public class Person implements Serializable {
     private FaceData face; // List of face samples for this person
     private BufferedImage personImage;
     private MeetingRecord lastestConv;
+
+
     public Person(String name, String relationship) {
-        this.name = capitalizeLabel(name);
-        this.relationship = capitalizeLabel(relationship);
-        this.face = null;
+        this.name = name;
+        this.relationship = relationship;
         this.lastestConv = null;
     }
 
 
-
-    public String capitalizeLabel(String s){
-        if (s == null || s.isEmpty()) return s;
-
-        s = s.toLowerCase();
-        return s.substring(0, 1).toUpperCase() + s.substring(1);
-    }
 
 
     /**

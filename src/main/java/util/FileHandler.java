@@ -32,6 +32,8 @@ public class FileHandler {
         }
     }
 
+
+
     public boolean savePersons(List<Person> persons) {
         File file = new File(DATA_FOLDER, PERSON_FILE);
         boolean savedNewPerson = false;
@@ -49,7 +51,7 @@ public class FileHandler {
         return savedNewPerson;
     }
 
-    public static String generateId(List<Person> persons){
+    public String generateId(List<Person> persons){
         int maxID = 0;
         if(!persons.isEmpty()) {
             for (Person p : persons) {
@@ -63,11 +65,23 @@ public class FileHandler {
     }
 
 
-    public String capitalizeLabel(String s){
+    public static String capitalizeLabel(String s){
         if (s == null || s.isEmpty()) return s;
         s = s.toLowerCase();
-        return s.substring(0, 1).toUpperCase() + s.substring(1);
+        //return s.substring(0, 1).toUpperCase() + s.substring(1);
+        s.substring(0, 1).toUpperCase();
+        String temp = "";
+        temp += s.substring(0, 1).toUpperCase();
+        for (int i = 1; i<s.length(); i++){
+            if(Character.isWhitespace(s.charAt(i-1))){
+                temp+=s.substring(i, i+1).toUpperCase();
+            } else {
+                temp+=s.charAt(i);
+            }
+        }
+        return temp;
     }
+
 
     public List<Person> loadPersonFile(){
         List<Person> personList = new ArrayList<>();
