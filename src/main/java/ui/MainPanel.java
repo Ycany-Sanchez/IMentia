@@ -101,6 +101,7 @@ public class MainPanel extends JPanel{
     public MainPanel(){
         this.fileHandler = new FileHandler();
         persons = fileHandler.loadPersonFile();
+        //this.faceDetector = loadFaceDetector();
 
         this.recognitionService = new FaceRecognitionService();
         this.recognitionService.train(persons);
@@ -406,11 +407,10 @@ public class MainPanel extends JPanel{
         JPanel notesPanel = new JPanel();
         notesPanel.setLayout(new BoxLayout(notesPanel, BoxLayout.Y_AXIS));
         notesPanel.setBackground(Color.WHITE);
-        String FolderName = "Meeting_Notes";
 
         try {
             String fileName = person.getId() + ".txt";
-            File notesFile = new File(fileHandler.getDataFolder() + "/" + FolderName + fileName);
+            File notesFile = new File(fileName);
 
             System.out.println("Trying to load notes from: " + notesFile.getAbsolutePath());
             System.out.println("File exists: " + notesFile.exists());
@@ -733,21 +733,64 @@ public class MainPanel extends JPanel{
         if (choice == JOptionPane.YES_OPTION) {
             persons.remove(personToDelete);
             fileHandler.updatePersonFile(persons);
-            recognitionService.train(persons);
-
 
             try {
                 File imageFile = new File("saved_faces", personToDelete.getId() + ".png");
                 if (imageFile.exists()) {
                     imageFile.delete();
                 }
+
+                // NEW: Delete Meeting Notes File
+                // (Based on logic in displayMeetingNotes, files are named ID.txt)
+                File notesFile = new File(personToDelete.getId() + ".txt");
+                if (notesFile.exists()) {
+                    notesFile.delete();
+                }
+
             } catch (Exception e) {
-                System.out.println("Could not delete image file.");
+                System.out.println("Could not delete associated files.");
+                e.printStackTrace();
             }
+
+            // 4. NEW: Retrain the recognition service so the camera stops recognizing them immediately
+            if (recognitionService != null) {
+                recognitionService.train(persons);
+            }
+
+            // 5. Refresh the UI
             refreshContactsPanel();
 
-            JOptionPane.showMessageDialog(mainPanel, "Contact Deleted.");
+            JOptionPane.showMessageDialog(mainPanel, "Contact and all data deleted.");
         }
+    }
+
+    private void refreshContactsPanel() {
+        PersonPanel.removeAll(); // Clears the old UI components
+        int numPersons = persons.size();
+
+        for (int i = 0; i < numPersons; i += 2) {
+
+            Box rowBox = Box.createHorizontalBox();
+            rowBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            JPanel card1 = createPersonEntryPanel(persons.get(i));
+            rowBox.add(card1);
+
+            rowBox.add(Box.createHorizontalStrut(20));
+
+            if (i + 1 < numPersons) {
+                JPanel card2 = createPersonEntryPanel(persons.get(i + 1));
+                rowBox.add(card2);
+                rowBox.add(Box.createHorizontalGlue());
+            } else {
+                rowBox.add(Box.createHorizontalGlue());
+            }
+            PersonPanel.add(rowBox);
+        }
+
+        // NEW: Force the panel to redraw itself immediately
+        PersonPanel.revalidate();
+        PersonPanel.repaint();
     }
 
     private boolean captureFace() {
@@ -856,4 +899,6 @@ public class MainPanel extends JPanel{
 
         TutorialPanel.add(scrollPane, BorderLayout.CENTER);
     }
+
+
 }
