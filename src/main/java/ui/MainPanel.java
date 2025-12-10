@@ -1,5 +1,7 @@
 // >>> FILE: src/main/java/ui/MainPanel.java
 package ui;
+
+import util.NoCamException;
 import people.MeetingRecord;
 import people.Person;
 
@@ -20,7 +22,7 @@ import java.util.List;
 
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
 
-public class MainPanel extends JPanel{
+public class MainPanel extends JPanel {
 
     //PANELS
     private JPanel mainPanel;
@@ -73,13 +75,10 @@ public class MainPanel extends JPanel{
     private JTextField PersonNameEdit;
     private JTextField PersonRelEdit;
 
-
-
     //FONTS
     private Font buttonFont = new Font("", Font.BOLD, 24);
     private Font HLabelFont = new Font("", Font.BOLD, 20);
     private Font PLabelFont = new Font("", Font.PLAIN, 20);
-
 
     //OTHERS
     private List<JPanel> contactListPanels = new ArrayList<>();
@@ -113,7 +112,6 @@ public class MainPanel extends JPanel{
         setupTutorialPanel();
 
         // Initialize the new Details UI
-
         mainPanel.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
@@ -122,10 +120,18 @@ public class MainPanel extends JPanel{
         });
 
         setUpUI();
-        videoProcessor.startCamera();
+
+        // UPDATED: Handle NoCamException
+        try {
+            videoProcessor.startCamera();
+        } catch (NoCamException e) {
+            JOptionPane.showMessageDialog(mainPanel,
+                    e.getMessage(),
+                    "Camera Error",
+                    JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     }
-
-
 
     private void setUpUI(){
         videoProcessor = new VideoProcessor();
@@ -144,14 +150,12 @@ public class MainPanel extends JPanel{
         DisplayPanel.add(PersonFormPanel, "3");
         DisplayPanel.add(TutorialPanel, "4");
         // Add the new Details Panel as card "5"
-      //  DisplayPanel.add(PersonDetailsPanel, "5");
+        //  DisplayPanel.add(PersonDetailsPanel, "5");
         DisplayPanel.add(PersonDetailsForm, "5");
 
         MeetingNotesTextArea.setVisible(false);
         MeetingNotesTextArea.setFont(PLabelFont);
         MeetingNotesTextArea.setText("Add meeting notes here...");
-
-
 
         tempFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         System.out.println(tempFrame.getWidth() + " " + tempFrame.getHeight());
@@ -160,9 +164,6 @@ public class MainPanel extends JPanel{
         setPLabelFont(mainPanel);
 
         setScrollbarsIncrement(6);
-
-
-
 
         cardLayout.show(DisplayPanel, "1");
         EditContactButton.setFont(new Font("", Font.BOLD, 24));
@@ -195,7 +196,6 @@ public class MainPanel extends JPanel{
                 BackToCameraButton.setText("BACK TO CAMERA");
             }
         });
-
 
         EditContactButton.addActionListener(new ActionListener() {
             @Override
@@ -239,7 +239,6 @@ public class MainPanel extends JPanel{
                 BufferedImage bufferedImage = ImageUtils.matToBufferedImage(faceImage);
                 Image scaledImage = bufferedImage.getScaledInstance(200, 200, Image.SCALE_FAST);
                 ImageIcon imageIcon = new ImageIcon(scaledImage);
-
 
                 PersonImageLabel.setIcon(imageIcon);
                 BackToCameraButton.setVisible(true);
@@ -296,9 +295,6 @@ public class MainPanel extends JPanel{
             }
         });
 
-
-        // Update the ADDMEETINGNOTESButton ActionListener to save meeting notes
-        // Update the ADDMEETINGNOTESButton ActionListener to save meeting notes
         ADDMEETINGNOTESButton.addActionListener(e->{
             isEditingMeetingNotes = !isEditingMeetingNotes;
 
@@ -351,7 +347,7 @@ public class MainPanel extends JPanel{
                         } catch (Exception ex) {
                             ex.printStackTrace();
                             JOptionPane.showMessageDialog(mainPanel,
-                                    "Error saving meeting note: " + ex.getMessage(),
+                                    "Unexpected error: " + ex.getMessage(),
                                     "Error",
                                     JOptionPane.ERROR_MESSAGE);
                         }
@@ -535,6 +531,7 @@ public class MainPanel extends JPanel{
 
                 List<String> allNotes = new ArrayList<>();
 
+                // UPDATED: try-catch with resources for specific IOException
                 try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
                     String line;
                     StringBuilder currentNote = null;
@@ -601,19 +598,6 @@ public class MainPanel extends JPanel{
         noteArea.setEditable(false);
         noteArea.setLineWrap(true);
         noteArea.setWrapStyleWord(true);
-        //noteArea.setBackground(new Color(245, 245, 245));
-        //noteArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-//        JScrollPane scrollPane = new JScrollPane(noteArea);
-//        scrollPane.setPreferredSize(new Dimension(500, 200));  // You can adjust height
-//        scrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
-//        scrollPane.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
-//
-//        JPanel wrapper = new JPanel();
-//        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
-//        wrapper.setBackground(Color.WHITE);
-//        wrapper.add(scrollPane);
-//        wrapper.add(Box.createVerticalStrut(15));
         parent.add(noteArea);
     }
 
@@ -628,13 +612,14 @@ public class MainPanel extends JPanel{
             directory.mkdirs();
         }
 
+        // imwrite returns boolean, doesn't throw checked exceptions usually,
+        // but it's good practice to ensure directory exists.
         boolean isSaved = imwrite(filePath, imageToSave);
 
         if (isSaved) {
             System.out.println("Image successfully saved to: " + filePath);
         } else {
             System.out.println("Failed to save image.");
-            // JOptionPane.showMessageDialog(mainPanel, "Error saving image to disk.");
         }
     }
 
@@ -658,7 +643,6 @@ public class MainPanel extends JPanel{
     }
 
     private void toggleDeleteButton(){
-        //refreshContactsPanel();
         for(JPanel panel : contactListPanels){
             for(Component c : panel.getComponents()){
                 if(c instanceof JButton b){
