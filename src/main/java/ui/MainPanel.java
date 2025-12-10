@@ -23,7 +23,7 @@ import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
 import static org.bytedeco.opencv.global.opencv_imgproc.*;
 import static org.bytedeco.opencv.global.opencv_imgproc.LINE_8;
 
-public class MainPanel {
+public class MainPanel extends JPanel{
 
     //PANELS
     private JPanel mainPanel;
@@ -85,7 +85,8 @@ public class MainPanel {
     private boolean isEditing = false;
     private JFrame tempFrame = new JFrame();
     private boolean hasSaved = false;
-    private VideoCapture camera;
+//    private VideoCapture camera;
+    private VideoProcessor videoProcessor;
     private Mat faceImage;
     private CascadeClassifier faceDetector;
     private FaceRecognitionService recognitionService;
@@ -93,17 +94,14 @@ public class MainPanel {
     private List<Person> persons;
     private String PersonName;
     private String PersonRelationship;
-    private VideoPanel videoPanel;
     private Mat currentFrame;
-    private Rect currentFaceRect;
     boolean isEditingMeetingNotes = false;
-
 
 
     public MainPanel(){
         this.fileHandler = new FileHandler();
         persons = fileHandler.loadPersonFile();
-        this.faceDetector = loadFaceDetector();
+        //this.faceDetector = loadFaceDetector();
 
         this.recognitionService = new FaceRecognitionService();
         this.recognitionService.train(persons);
@@ -120,12 +118,12 @@ public class MainPanel {
         });
 
         setUpUI();
-        startCamera();
+        videoProcessor.startCamera();
     }
 
     private void setUpUI(){
-        videoPanel = new VideoPanel();
-        CameraPanel.add(videoPanel, BorderLayout.CENTER);
+        videoProcessor = new VideoProcessor();
+        CameraPanel.add(videoProcessor, BorderLayout.CENTER);
 
         // Ensure Contacts Scroll Logic is correct
         PersonPanel.setLayout(new BoxLayout(PersonPanel, BoxLayout.Y_AXIS));
@@ -750,149 +748,151 @@ public class MainPanel {
         }
     }
 
-    private static CascadeClassifier loadFaceDetector() {
-        try {
-            System.out.println("Loading face detector from resources...");
-            InputStream is = MainPanel.class.getResourceAsStream("/haarcascade_frontalface_default.xml");
+//    private static CascadeClassifier loadFaceDetector() {
+//        try {
+//            System.out.println("Loading face detector from resources...");
+//            InputStream is = MainPanel.class.getResourceAsStream("/haarcascade_frontalface_default.xml");
+//
+//            if (is == null) {
+//                System.out.println("Could not find haarcascade file in resources!");
+//                return null;
+//            } else {
+//                File tempFile = File.createTempFile("haarcascade", ".xml");
+//                tempFile.deleteOnExit();
+//                FileOutputStream os = new FileOutputStream(tempFile);
+//                byte[] buffer = new byte[4096];
+//
+//                int bytesRead;
+//                while ((bytesRead = is.read(buffer)) != -1) {
+//                    os.write(buffer, 0, bytesRead);
+//                }
+//
+//                is.close();
+//                os.close();
+//                System.out.println("Temp file created at: " + tempFile.getAbsolutePath());
+//
+//                CascadeClassifier classifier = new CascadeClassifier(tempFile.getAbsolutePath());
+//
+//                if (classifier.empty()) {
+//                    System.out.println("Classifier is empty! XML loading failed.");
+//                    return null;
+//                } else {
+//                    return classifier;
+//                }
+//            }
+//        } catch (Exception e) {
+//            System.out.println("Exception while loading face detector:");
+//            e.printStackTrace();
+//            return null;
+//        }
+//    }
 
-            if (is == null) {
-                System.out.println("Could not find haarcascade file in resources!");
-                return null;
-            } else {
-                File tempFile = File.createTempFile("haarcascade", ".xml");
-                tempFile.deleteOnExit();
-                FileOutputStream os = new FileOutputStream(tempFile);
-                byte[] buffer = new byte[4096];
-
-                int bytesRead;
-                while ((bytesRead = is.read(buffer)) != -1) {
-                    os.write(buffer, 0, bytesRead);
-                }
-
-                is.close();
-                os.close();
-                System.out.println("Temp file created at: " + tempFile.getAbsolutePath());
-
-                CascadeClassifier classifier = new CascadeClassifier(tempFile.getAbsolutePath());
-
-                if (classifier.empty()) {
-                    System.out.println("Classifier is empty! XML loading failed.");
-                    return null;
-                } else {
-                    return classifier;
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("Exception while loading face detector:");
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    private void startCamera() {
-        System.out.println("Starting camera...");
-        camera = new VideoCapture(0);
-
-        if (!camera.isOpened()) {
-            System.out.println("ERROR: Cannot open camera!");
-            JOptionPane.showMessageDialog(this.getPanel(), "Cannot open camera!");
-            return;
-        }
-
-        System.out.println("Camera opened successfully");
-
-        Thread cameraThread = new Thread(() -> {
-            System.out.println("Camera thread started");
-            Mat frame = new Mat();
-            Mat grayFrame = new Mat();
-
-            int frameCount = 0;
-
-            int missedDetectionCount = 0;
-            int maxMissedDetections = 60;
-
-            while (true) {
-                if (!camera.read(frame)) {
-                    continue;
-                }
-
-                currentFrame = frame.clone();
-
-                if(frameCount % 4 == 0){
-                    cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
-
-                    RectVector detections = new RectVector();
-                    faceDetector.detectMultiScale(grayFrame, detections);
-
-                    int numFaces = (int)detections.size();
-
-                    if (numFaces > 0) {
-                        Rect[] faces = new Rect[(int)numFaces];
-                        for (int i = 0; i < numFaces; i++) {
-                            Rect temp = detections.get(i);
-                            faces[i] = new Rect(temp.x(), temp.y(), temp.height(), temp.width());
-                        }
-                        currentFaceRect = getBiggestFace(faces);
-                        missedDetectionCount = 0;
-                    } else {
-                        missedDetectionCount++;
-                        if (missedDetectionCount > maxMissedDetections) {
-                            currentFaceRect = null;
-                        }
-                    }
-                }
-                frameCount++;
-
-                if (currentFaceRect != null) {
-                    rectangle(
-                            frame,
-                            new Point(currentFaceRect.x(), currentFaceRect.y()),
-                            new Point(currentFaceRect.x() + currentFaceRect.width(),
-                                    currentFaceRect.y() + currentFaceRect.height()),
-                            new Scalar(0, 255, 0, 0),
-                            3, LINE_8, 0
-                    );
-                }
-
-                BufferedImage bufferedImage = ImageUtils.matToBufferedImage(frame);
-
-                SwingUtilities.invokeLater(() -> {
-                    if (videoPanel != null) {
-                        videoPanel.updateImage(bufferedImage);
-                    }
-                });
-
-                try {
-                    Thread.sleep(30);
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-
-            camera.release();
-            System.out.println("Camera thread stopped");
-        });
-
-        cameraThread.setDaemon(true);
-        cameraThread.start();
-    }
-
-    private Rect getBiggestFace(Rect[] faces) {
-        Rect biggest = faces[0];
-        int maxArea = biggest.width() * biggest.height();
-
-        for (int i = 1; i < faces.length; i++) {
-            int area = faces[i].width() * faces[i].height();
-            if (area > maxArea) {
-                maxArea = area;
-                biggest = faces[i];
-            }
-        }
-        return biggest;
-    }
+//    private void startCamera() {
+//        System.out.println("Starting camera...");
+//        camera = new VideoCapture(0);
+//
+//        if (!camera.isOpened()) {
+//            System.out.println("ERROR: Cannot open camera!");
+//            JOptionPane.showMessageDialog(this.getPanel(), "Cannot open camera!");
+//            return;
+//        }
+//
+//        System.out.println("Camera opened successfully");
+//
+//        Thread cameraThread = new Thread(() -> {
+//            System.out.println("Camera thread started");
+//            Mat frame = new Mat();
+//            Mat grayFrame = new Mat();
+//
+//            int frameCount = 0;
+//
+//            int missedDetectionCount = 0;
+//            int maxMissedDetections = 60;
+//
+//            while (true) {
+//                if (!camera.read(frame)) {
+//                    continue;
+//                }
+//
+//                currentFrame = frame.clone();
+//
+//                if(frameCount % 4 == 0){
+//                    cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
+//
+//                    RectVector detections = new RectVector();
+//                    faceDetector.detectMultiScale(grayFrame, detections);
+//
+//                    int numFaces = (int)detections.size();
+//
+//                    if (numFaces > 0) {
+//                        Rect[] faces = new Rect[(int)numFaces];
+//                        for (int i = 0; i < numFaces; i++) {
+//                            Rect temp = detections.get(i);
+//                            faces[i] = new Rect(temp.x(), temp.y(), temp.height(), temp.width());
+//                        }
+//                        currentFaceRect = getBiggestFace(faces);
+//                        missedDetectionCount = 0;
+//                    } else {
+//                        missedDetectionCount++;
+//                        if (missedDetectionCount > maxMissedDetections) {
+//                            currentFaceRect = null;
+//                        }
+//                    }
+//                }
+//                frameCount++;
+//
+//                if (currentFaceRect != null) {
+//                    rectangle(
+//                            frame,
+//                            new Point(currentFaceRect.x(), currentFaceRect.y()),
+//                            new Point(currentFaceRect.x() + currentFaceRect.width(),
+//                                    currentFaceRect.y() + currentFaceRect.height()),
+//                            new Scalar(0, 255, 0, 0),
+//                            3, LINE_8, 0
+//                    );
+//                }
+//
+//                BufferedImage bufferedImage = ImageUtils.matToBufferedImage(frame);
+//
+//                SwingUtilities.invokeLater(() -> {
+//                    if (videoProcessor != null) {
+//                        videoProcessor.updateImage(bufferedImage);
+//                    }
+//                });
+//
+//                try {
+//                    Thread.sleep(30);
+//                } catch (InterruptedException e) {
+//                    break;
+//                }
+//            }
+//
+//            camera.release();
+//            System.out.println("Camera thread stopped");
+//        });
+//
+//        cameraThread.setDaemon(true);
+//        cameraThread.start();
+//    }
+//
+//    private Rect getBiggestFace(Rect[] faces) {
+//        Rect biggest = faces[0];
+//        int maxArea = biggest.width() * biggest.height();
+//
+//        for (int i = 1; i < faces.length; i++) {
+//            int area = faces[i].width() * faces[i].height();
+//            if (area > maxArea) {
+//                maxArea = area;
+//                biggest = faces[i];
+//            }
+//        }
+//        return biggest;
+//    }
 
     private boolean captureFace() {
         System.out.println("=== captureFace() called ===");
+        Rect currentFaceRect = videoProcessor.getCurrentFaceRect();
+        Mat currentFrame = videoProcessor.getCurrentFrame();
 
         if (currentFrame == null || currentFaceRect == null) {
             System.out.println("No face detected in current frame");
