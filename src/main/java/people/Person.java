@@ -3,91 +3,65 @@ package people;
 
 import java.awt.image.BufferedImage;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * Person is the model for a recognized individual, storing their metadata
- * and a list of captured face samples (FaceData) used for training.
+ * Person is the model for a recognized individual.
+ * It is now a lightweight "Plain Old Java Object" (POJO).
+ * * - Images are handled by util.ImageHandler
+ * - Notes are handled by util.MeetingNotesHandler
  */
 public class Person implements Serializable {
     private static final long serialVersionUID = 1L;
+
     private String id;
     private String name;
     private String relationship;
-    private FaceData face; // List of face samples for this person
-    private BufferedImage personImage;
-    private MeetingRecord lastestConv;
 
+    // "transient" prevents this from being serialized if you ever save this object directly.
+    // We store this here only for UI display purposes during runtime.
+    private transient BufferedImage personImage;
 
     public Person(String name, String relationship) {
         this.name = name;
         this.relationship = relationship;
-        this.lastestConv = null;
     }
 
-
-
-
-    /**
-     * Adds a new FaceData sample to this person's training set.
-     * @param face The FaceData object to add.
-     */
-    public void addFace(FaceData face) {
-        this.face = face;
-    }
+    // --- GETTERS AND SETTERS ---
 
     public String getId() {
         return this.id;
-    }
-
-    public String getName() {
-        return this.name;
-    }
-
-    public String getRelationship() {
-        return this.relationship;
-    }
-
-    public FaceData getFace() {
-        return face;
-    }
-
-    public BufferedImage getPersonImage(){
-        return personImage;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setRelationship(String relationship) {
-        this.relationship = relationship;
     }
 
     public void setId(String id){
         this.id = id;
     }
 
+    public String getName() {
+        return this.name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getRelationship() {
+        return this.relationship;
+    }
+
+    public void setRelationship(String relationship) {
+        this.relationship = relationship;
+    }
+
+    public BufferedImage getPersonImage(){
+        return personImage;
+    }
+
     public void setPersonImage(BufferedImage image){
         personImage = image;
     }
 
-    public MeetingRecord newConversation(String conv){
-
-        MeetingRecord information = new MeetingRecord(this, conv);
-        this.lastestConv = information;
-        return information;
-
-    }
-
-    public MeetingRecord getMeetingRecord(){
-        return lastestConv;
-
-    }
-
-
+    @Override
     public String toString(){
-        return this.id + "," + this.id + ".png" + "," + this.name + "," + this.relationship;
+        return "ID: " + this.id + " | Name: " + this.name;
     }
 }

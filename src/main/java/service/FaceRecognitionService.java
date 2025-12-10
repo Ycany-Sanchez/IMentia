@@ -15,6 +15,7 @@ import org.bytedeco.opencv.opencv_face.LBPHFaceRecognizer;
 import people.FaceData;
 import people.Person;
 import util.FileHandler;
+import util.ImageHandler; // <--- NEW IMPORT
 import util.ImageUtils;
 
 /**
@@ -26,138 +27,19 @@ public class FaceRecognitionService {
     private List<Person> trainedPersons;
     private boolean isTrained = false;
     // The confidence threshold determines the maximum "distance" for a match to be considered a known person.
-    private static final double CONFIDENCE_THRESHOLD = (double)100.0F;
+    private static final double CONFIDENCE_THRESHOLD = 100.0;
 
     public FaceRecognitionService() {
         System.out.println("FaceRecognitionService created");
         // Create the LBPH recognizer instance.
         // Parameters: radius=1, neighbors=8, grid_x=8, grid_y=8, threshold=100.0
-        this.recognizer = LBPHFaceRecognizer.create(1, 8, 8, 8, (double)100.0F);
-        this.trainedPersons = new ArrayList();
+        this.recognizer = LBPHFaceRecognizer.create(1, 8, 8, 8, 100.0);
+        this.trainedPersons = new ArrayList<>();
     }
 
-    //see the method below this
-//    public void train(List<Person> persons) {
-//        System.out.println("\n===== TRAINING START =====");
-//        System.out.println("Received " + persons.size() + " person(s) to train");
-//
-//        if (persons.isEmpty()) {
-//            System.out.println("No persons to train on - marking as untrained");
-//            this.isTrained = false;
-//        } else {
-//            MatVector faceImages = new MatVector(); // Container for all face images (Mat objects)
-//            List<Integer> labelList = new ArrayList(); // Container for corresponding labels (person IDs)
-//            this.trainedPersons.clear();
-//            int label = 0; // Unique integer ID assigned to each Person
-//
-//            for(Person person : persons) {
-//                System.out.println("\nProcessing person: " + person.getName());
-//                System.out.println("  Relationship: " + person.getRelationship());
-//
-//
-//                // --- TRAINING PRE-PROCESSING FOR EACH FACE ---
-//                // Each person gets a unique label 'label'
-//                if (person.getFace()==null) {
-//                    // Skip if no face samples available
-//                    System.out.println("  ⚠ Skipping - no faces");
-//                } else {
-//                    int faceIndex = 0;
-//                    FaceData faceData = person.getFace();
-//                        System.out.println("    Stored size: " + faceData.getImageWidth() + "x" + faceData.getImageHeight());
-//
-//                        try {
-//                            // 1. Convert persisted FaceData back into an OpenCV Mat object
-//                            Mat faceMat = ImageUtils.faceDataToMat(faceData);
-//                            System.out.println("    Converted Mat: " + faceMat.cols() + "x" + faceMat.rows() + ", channels=" + faceMat.channels());
-//
-//                            // 2. Convert face image to grayscale (required by LBPH)
-//                            Mat grayFace = new Mat();
-//                            if (faceMat.channels() > 1) {
-//                                // COLOR_BGR2GRAY is code 6
-//                                opencv_imgproc.cvtColor(faceMat, grayFace, 6);
-//                                System.out.println("    ✓ Converted to grayscale");
-//                            } else {
-//                                grayFace = faceMat.clone();
-//                                System.out.println("    Already grayscale");
-//                            }
-//
-//                            // 3. Resize face to a fixed size (100x100 is standard for this recognizer)
-//                            Mat resizedFace = new Mat();
-//                            opencv_imgproc.resize(grayFace, resizedFace, new Size(100, 100));
-//                            System.out.println("    ✓ Resized to 100x100");
-//
-//                            // 4. Add the pre-processed face image and its corresponding person label to the training set
-//                            faceImages.push_back(resizedFace);
-//                            labelList.add(label);
-//
-//                            System.out.println("    ✓ Added to training set with label " + label);
-//                        } catch (Exception e) {
-//                            System.out.println("    ✗ ERROR processing face:");
-//                            e.printStackTrace();
-//                        }
-//
-//
-//                    // Add the person to the list of trained persons and increment label
-//                    this.trainedPersons.add(person);
-//                    System.out.println("  ✓ Person assigned label: " + label);
-//                    ++label;
-//                }
-//            }
-//
-//            if (faceImages.size() == 0L) {
-//                System.out.println("\n✗ No valid face images to train on");
-//                this.isTrained = false;
-//            } else {
-//                // 5. Create the Labels Mat
-//                // Labels must be provided as a continuous Mat of integers (CV_32SC1)
-//                Mat labels = new Mat(labelList.size(), 1, opencv_core.CV_32SC1);
-//
-//                //OpenCV which is native c++ cannot understand labelList since its Java ArrayList
-//                //IntBuffer allows java to write primitive data like int to the memory that native c++ openCV has allocated in Mat labels
-//
-//                /*
-//                labels.createBuffer(). This Bytedeco/JavaCPP method looks inside the labels Mat object, finds the starting address
-//                of the native memory allocated in step 1, and tells the Java Virtual Machine (JVM),
-//                "Create a special Java NIO Direct Buffer that maps exactly to this memory location."
-//                 */
-//                IntBuffer labelBuffer = (IntBuffer)labels.createBuffer();
-//                for(int i = 0; i < labelList.size(); ++i) {
-//                    labelBuffer.put(i, (Integer)labelList.get(i)); //so now we can populate the labels Mat with labelList integers
-//                }
-//
-//                System.out.println("\nTraining recognizer...");
-//                System.out.println("  Total images: " + faceImages.size());
-//                System.out.println("  Total persons: " + this.trainedPersons.size());
-//
-//                // 6. Execute Training
-//                try {
-//                    this.recognizer.train(faceImages, labels);
-//                    this.isTrained = true;
-//                    System.out.println("  ✓ Training successful!");
-//                } catch (Exception e) {
-//                    System.out.println("  ✗ Training failed:");
-//                    e.printStackTrace();
-//                    this.isTrained = false;
-//                }
-//
-//                System.out.println("\n===== TRAINING COMPLETE =====");
-//                System.out.println("Label mapping:");
-//                for(int i = 0; i < this.trainedPersons.size(); ++i) {
-//                    System.out.println("  Label " + i + " → " + ((Person)this.trainedPersons.get(i)).getName());
-//                }
-//                System.out.println("==============================\n");
-//            }
-//        }
-//    }
-//
-//    /**
-    /*
+    /**
      * Trains the LBPH recognizer using face images loaded directly from files
      * for each Person object in the provided list.
-     * * The process: Load image -> Grayscale -> Resize (Pre-processing) ->
-     * Collect images and corresponding integer labels -> Train the model.
-     *
-     * @param persons The list of people with associated face image files to train on.
      */
     public void train(List<Person> persons) {
         System.out.println("\n===== TRAINING START =====");
@@ -169,45 +51,48 @@ public class FaceRecognitionService {
             return;
         }
 
-        MatVector faceImages = new MatVector(); // 1. Stores all pre-processed face images (Mat objects)
-        List<Integer> labelList = new ArrayList(); // 2. Stores the corresponding integer label (ID) for each face image
+        MatVector faceImages = new MatVector();
+        List<Integer> labelList = new ArrayList<>();
         this.trainedPersons.clear();
-        int label = 0; // Unique integer ID assigned to each Person, starting at 0.
+        int label = 0;
+
+        // Use the Concrete ImageHandler instead of the abstract FileHandler
+        ImageHandler imageHandler = new ImageHandler();
 
         for(Person person : persons) {
             System.out.println("\nProcessing person: " + person.getName());
 
             try {
-                // 1. LOAD IMAGE: Read the image file from disk. IMREAD_COLOR (code 1) is often safer.
-                FileHandler fileHandler = new FileHandler();
-                String directoryPath = Paths.get(fileHandler.getDataFolder(), "saved_faces").toString();
+                // 1. LOAD IMAGE
+                // We use imageHandler.getDataFolder() inherited from FileHandler
+                String directoryPath = Paths.get(imageHandler.getDataFolder(), "saved_faces").toString();
                 String filePath = Paths.get(directoryPath, person.getId() + ".png").toString();
+
                 Mat faceMat = ImageUtils.loadMatFromFile(filePath);
 
-                if (faceMat.empty()) {
-                    System.out.println("  ✗ ERROR: Could not load image from path");
-                    continue; // Skip this person and move to the next one
+                if (faceMat == null || faceMat.empty()) {
+                    System.out.println("  ✗ ERROR: Could not load image from path: " + filePath);
+                    continue;
                 }
 
-                // 2. CONVERT TO GRAYSCALE: LBPH requires grayscale images.
+                // 2. CONVERT TO GRAYSCALE
                 Mat grayFace = new Mat();
                 if (faceMat.channels() > 1) {
-                    // COLOR_BGR2GRAY is code 6 in opencv_imgproc.
-                    opencv_imgproc.cvtColor(faceMat, grayFace, 6);
+                    opencv_imgproc.cvtColor(faceMat, grayFace, opencv_imgproc.COLOR_BGR2GRAY);
                     System.out.println("    ✓ Converted to grayscale");
                 } else {
                     grayFace = faceMat.clone();
                     System.out.println("    Already grayscale");
                 }
 
-                // 3. RESIZE: Resize face to a fixed size (100x100 is typical for LBPH).
+                // 3. RESIZE
                 Mat resizedFace = new Mat();
                 opencv_imgproc.resize(grayFace, resizedFace, new Size(100, 100));
                 System.out.println("    ✓ Resized to 100x100");
 
-                // 4. ADD TO DATASET: Store the pre-processed image and its label.
-                faceImages.push_back(resizedFace); // Add the image
-                labelList.add(label); // Add the corresponding unique label (ID)
+                // 4. ADD TO DATASET
+                faceImages.push_back(resizedFace);
+                labelList.add(label);
 
                 System.out.println("    ✓ Added to training set with label " + label);
 
@@ -216,31 +101,18 @@ public class FaceRecognitionService {
                 e.printStackTrace();
             }
 
-            // Add the person to the official list of trained persons.
             this.trainedPersons.add(person);
             System.out.println("  ✓ Person assigned label: " + label);
-            ++label; // Increment the label for the next unique person
+            ++label;
         }
 
-        if (faceImages.size() == 0L) {
+        if (faceImages.size() == 0) {
             System.out.println("\n✗ No valid face images to train on");
             this.isTrained = false;
         } else {
-
-            // OpenCV's train method requires labels as a single-channel 32-bit Integer Mat (CV_32SC1).
             Mat labels = new Mat(labelList.size(), 1, opencv_core.CV_32SC1);
-
-            //OpenCV which is native c++ cannot understand labelList since its Java ArrayList
-            //IntBuffer allows java to write primitive data like int to the memory that native c++ openCV has allocated in Mat labels
-
-            /*
-            labels.createBuffer(). This Bytedeco/JavaCPP method looks inside the labels Mat object, finds the starting address
-            of the native memory allocated in step 1, and tells the Java Virtual Machine (JVM),
-            "Create a special Java NIO Direct Buffer that maps exactly to this memory location."
-             */
             IntBuffer labelBuffer = labels.createBuffer();
 
-            // Write the labels from the Java list directly into the native Mat buffer.
             for(int i = 0; i < labelList.size(); ++i) {
                 labelBuffer.put(i, labelList.get(i));
             }
@@ -249,9 +121,7 @@ public class FaceRecognitionService {
             System.out.println("  Total images: " + faceImages.size());
             System.out.println("  Total persons: " + this.trainedPersons.size());
 
-            // --- EXECUTE TRAINING ---
             try {
-                // The core training step: associate face feature vectors with their labels.
                 this.recognizer.train(faceImages, labels);
                 this.isTrained = true;
                 System.out.println("  ✓ Training successful!");
@@ -262,106 +132,68 @@ public class FaceRecognitionService {
             }
 
             System.out.println("\n===== TRAINING COMPLETE =====");
-            System.out.println("Label mapping:");
-            for(int i = 0; i < this.trainedPersons.size(); ++i) {
-                // This loop shows how the label integer maps back to the Person object.
-                System.out.println("  Label " + i + " → " + this.trainedPersons.get(i).getName());
-            }
-            System.out.println("==============================\n");
         }
     }
 
     /**
      * Attempts to recognize a face image against the trained model.
-     * @param faceImage The input face image (extracted Mat from the camera frame).
-     * @return A RecognitionResult object containing the matched Person or null.
      */
     public RecognitionResult recognize(Mat faceImage) {
         System.out.println("\n===== RECOGNITION START =====");
         if (!this.isTrained) {
             System.out.println("✗ Cannot recognize - not trained!");
-            return new RecognitionResult((Person)null, (double)-1.0F, "Not Trained");
+            return new RecognitionResult(null, -1.0, "Not Trained");
         } else {
-            System.out.println("Input face: " + faceImage.cols() + "x" + faceImage.rows() + ", channels=" + faceImage.channels());
+            System.out.println("Input face: " + faceImage.cols() + "x" + faceImage.rows());
 
             try {
                 // --- RECOGNITION PRE-PROCESSING ---
-                // 1. Convert input face to grayscale (must match training input format)
                 Mat grayFace = new Mat();
                 if (faceImage.channels() > 1) {
-                    opencv_imgproc.cvtColor(faceImage, grayFace, 6); // 6 is COLOR_BGR2GRAY
-                    System.out.println("✓ Converted to grayscale");
+                    opencv_imgproc.cvtColor(faceImage, grayFace, opencv_imgproc.COLOR_BGR2GRAY);
                 } else {
                     grayFace = faceImage.clone();
-                    System.out.println("Already grayscale");
                 }
 
-                // 2. Resize face to the expected size (100x100)
                 Mat resizedFace = new Mat();
                 opencv_imgproc.resize(grayFace, resizedFace, new Size(100, 100));
-                System.out.println("✓ Resized to 100x100");
 
                 // --- PREDICTION ---
-                int[] predictedLabel = new int[1]; // Output array for the predicted label (index into trainedPersons)
-                double[] confidence = new double[1]; // Output array for the confidence score (lower is better match)
+                int[] predictedLabel = new int[1];
+                double[] confidence = new double[1];
 
-                System.out.println("Calling recognizer.predict()...");
                 this.recognizer.predict(resizedFace, predictedLabel, confidence);
-                System.out.println("✓ Prediction complete");
 
-                System.out.println("\n--- PREDICTION RESULT ---");
                 System.out.println("Predicted label: " + predictedLabel[0]);
                 System.out.println("Confidence: " + confidence[0]);
-                System.out.println("Threshold: 100.0");
-                System.out.println("-------------------------");
 
-                // 3. Evaluate Result
                 String confidenceLevel = this.getConfidenceLevel(confidence[0]);
 
-                if (confidence[0] > (double)CONFIDENCE_THRESHOLD) {
-                    // Fail: Confidence score (distance) is too high.
-                    System.out.println("✗ Confidence " + confidence[0] + " > 100.0");
+                if (confidence[0] > CONFIDENCE_THRESHOLD) {
                     System.out.println("Match not good enough → UNKNOWN");
-                    System.out.println("===== RECOGNITION END (UNKNOWN) =====\n");
-                    return new RecognitionResult((Person)null, confidence[0], confidenceLevel);
+                    return new RecognitionResult(null, confidence[0], confidenceLevel);
                 } else if (predictedLabel[0] >= 0 && predictedLabel[0] < this.trainedPersons.size()) {
-                    // Success: Confidence is acceptable and label is valid.
-                    Person matched = (Person)this.trainedPersons.get(predictedLabel[0]);
-                    System.out.println("✓ Confidence acceptable!");
+                    Person matched = this.trainedPersons.get(predictedLabel[0]);
                     System.out.println("*** MATCH: " + matched.getName() + " ***");
-                    System.out.println("===== RECOGNITION END (MATCHED) =====\n");
                     return new RecognitionResult(matched, confidence[0], confidenceLevel);
                 } else {
-                    // Fail: Label is out of bounds (should not happen if trainedPersons is consistent).
-                    System.out.println("✗ Label " + predictedLabel[0] + " out of range");
-                    System.out.println("===== RECOGNITION END (UNKNOWN) =====\n");
-                    return new RecognitionResult((Person)null, confidence[0], confidenceLevel);
+                    return new RecognitionResult(null, confidence[0], confidenceLevel);
                 }
             } catch (Exception e) {
                 System.out.println("✗ ERROR during recognition:");
                 e.printStackTrace();
-                System.out.println("===== RECOGNITION END (ERROR) =====\n");
-                return new RecognitionResult((Person)null, (double)-1.0F, "Error");
+                return new RecognitionResult(null, -1.0, "Error");
             }
         }
     }
 
     private String getConfidenceLevel(double confidence) {
-        // Map confidence score (distance) to a user-friendly string.
-        // Lower confidence value means closer match.
-        if (confidence < (double)0.0F) {
-            return "Error";
-        } else if (confidence < (double)40.0F) {
-            return "Excellent Match";
-        } else if (confidence < (double)60.0F) {
-            return "Very Good Match";
-        } else if (confidence < (double)80.0F) {
-            return "Good Match";
-        } else if (confidence < (double)100.0F) { // Matches CONFIDENCE_THRESHOLD
-            return "Fair Match";
-        } else {
-            return confidence < (double)120.0F ? "Poor Match" : "Very Poor Match";
-        }
+        if (confidence < 0.0) return "Error";
+        else if (confidence < 40.0) return "Excellent Match";
+        else if (confidence < 60.0) return "Very Good Match";
+        else if (confidence < 80.0) return "Good Match";
+        else if (confidence < 100.0) return "Fair Match";
+        else return confidence < 120.0 ? "Poor Match" : "Very Poor Match";
     }
 
     public boolean isTrained() {
@@ -379,20 +211,9 @@ public class FaceRecognitionService {
             this.confidenceLevel = confidenceLevel;
         }
 
-        public Person getPerson() {
-            return this.person;
-        }
-
-        public double getConfidence() {
-            return this.confidence;
-        }
-
-        public String getConfidenceLevel() {
-            return this.confidenceLevel;
-        }
-
-        public boolean isRecognized() {
-            return this.person != null;
-        }
+        public Person getPerson() { return this.person; }
+        public double getConfidence() { return this.confidence; }
+        public String getConfidenceLevel() { return this.confidenceLevel; }
+        public boolean isRecognized() { return this.person != null; }
     }
 }
