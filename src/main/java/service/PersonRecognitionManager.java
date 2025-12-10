@@ -21,7 +21,7 @@ import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
  * This class acts as the "Manager" Facade. It encapsulates the complexity
  * of synchronizing the FileHandler (Storage) and FaceRecognitionService (AI).
  * Bisag mura siya, by name, going to be mostly about Managing recognition ONLY,
- * it coordinates data to the FaceRecognition.
+ * it coordinates data to the FaceRecognition
  * The UI (MainPanel) interacts ONLY with this class for data operations,
  * unaware of the underlying CSV parsing, image decoding, or model training.
  */

@@ -753,8 +753,13 @@ public class MainPanel extends AbstractMainPanel {
             JLabel successLabel = new JLabel("Contact Deleted.");
             successLabel.setFont(PLabelFont); // <-- APPLY FONT HERE
             JOptionPane.showMessageDialog(mainPanel, successLabel);
+
+            EditContactButton.setText("EDIT LIST");
+            isEditing = !isEditing;
         }
     }
+
+
 
     private void addNoteToPanel(JPanel parent, String noteText) {
         MeetingNotesScrollPane.setVisible(true);
