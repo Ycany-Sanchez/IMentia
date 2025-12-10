@@ -438,7 +438,6 @@ public class MainPanel extends JPanel{
                                     // Skip the first block (person info)
                                     skipFirstBlock = false;
                                 } else {
-                                    // Add subsequent blocks as notes
                                     allNotes.add(currentNote.toString().trim());
                                 }
                                 currentNote = new StringBuilder();
