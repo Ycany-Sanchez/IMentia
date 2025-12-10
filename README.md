@@ -23,7 +23,7 @@ All face profiles, personal information, and meeting histories are **securely st
 
 ***
 
-# 📐 Design Pattern Implementation
+# Design Pattern Implementation
 
 The system architecture relies on several core object-oriented design patterns to achieve separation of concerns, flexibility in data handling, and simplified client interaction.
 
