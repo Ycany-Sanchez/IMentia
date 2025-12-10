@@ -112,6 +112,10 @@ public class FileHandler {
         return personList;
     }
 
+    public String getDataFolder(){
+        return DATA_FOLDER;
+    }
+
     // In util/FileHandler.java
 
     public void updatePersonFile(List<Person> persons) {
