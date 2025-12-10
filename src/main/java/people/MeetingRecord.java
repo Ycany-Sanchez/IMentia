@@ -14,7 +14,6 @@ public class MeetingRecord {
         String fileName = p.getId() + ".txt";
         boolean fileExists = new File(fileName).exists();
 
-
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileName, true))){
 
             if (p.getMeetingRecord() == null) {
@@ -22,7 +21,6 @@ public class MeetingRecord {
             } else {
                 bw.write(conv + "\n\n");
             }
-            bw.close();
         } catch (IOException e) {}
     }
 

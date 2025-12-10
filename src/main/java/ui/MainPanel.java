@@ -869,8 +869,10 @@ public class MainPanel {
         if(result.isRecognized()){
             System.out.println("Person recognized: " + result.getPerson().getId());
             setupPersonDetailsForm(result.getPerson());
+            CapturePhotoButton.setVisible(false);
+            BackToCameraButton.setVisible(true);
+            TutorialButton.setVisible(false);
             cardLayout.show(DisplayPanel, "5");
-
             return false;
         }
 
