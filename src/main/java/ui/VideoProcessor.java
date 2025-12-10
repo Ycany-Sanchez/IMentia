@@ -177,6 +177,15 @@ class VideoProcessor extends JPanel {
         return biggest;
     }
 
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        if (image != null) {
+            // Draw the image scaled to fit the entire panel area
+            g.drawImage(image, 0, 0, getWidth(), getHeight(), this);
+        }
+    }
+
     public Rect getCurrentFaceRect() {
         return currentFaceRect;
     }

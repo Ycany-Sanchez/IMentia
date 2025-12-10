@@ -101,7 +101,6 @@ public class MainPanel extends JPanel{
     public MainPanel(){
         this.fileHandler = new FileHandler();
         persons = fileHandler.loadPersonFile();
-        //this.faceDetector = loadFaceDetector();
 
         this.recognitionService = new FaceRecognitionService();
         this.recognitionService.train(persons);
