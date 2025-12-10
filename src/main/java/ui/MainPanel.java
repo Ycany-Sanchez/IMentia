@@ -10,6 +10,7 @@ import util.FileHandler;
 import util.ImageUtils;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
@@ -563,8 +564,9 @@ public class MainPanel extends JPanel{
                     notesPanel.add(noNotesLabel);
                 } else {
                     for (String note : allNotes) {
-                        addNoteToPanel(notesPanel, note); // your existing rendering method
+                        addNoteToPanel(notesPanel, note);
                     }
+                    notesPanel.add(Box.createVerticalGlue());
                 }
 
             } else {
@@ -601,19 +603,16 @@ public class MainPanel extends JPanel{
         noteArea.setEditable(false);
         noteArea.setLineWrap(true);
         noteArea.setWrapStyleWord(true);
-        //noteArea.setBackground(new Color(245, 245, 245));
-        //noteArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        // Combined border for margin and line
+        Border lineBorder = BorderFactory.createMatteBorder(0, 0, 2, 0, Color.LIGHT_GRAY);
+        Border marginBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+        noteArea.setBorder(BorderFactory.createCompoundBorder(lineBorder, marginBorder));
 
-//        JScrollPane scrollPane = new JScrollPane(noteArea);
-//        scrollPane.setPreferredSize(new Dimension(500, 200));  // You can adjust height
-//        scrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
-//        scrollPane.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
-//
-//        JPanel wrapper = new JPanel();
-//        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
-//        wrapper.setBackground(Color.WHITE);
-//        wrapper.add(scrollPane);
-//        wrapper.add(Box.createVerticalStrut(15));
+        noteArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+        Dimension preferredSize = noteArea.getPreferredSize();
+
+        // Set the maximum height to the preferred height, but allow it to stretch horizontally
+        noteArea.setMaximumSize(new Dimension(Integer.MAX_VALUE, preferredSize.height));
         parent.add(noteArea);
     }
 

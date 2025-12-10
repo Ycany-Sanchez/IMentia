@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import java.time.LocalDate; // import the LocalDate clas
 import java.time.LocalDateTime;
 import java.time.LocalTime; // import the LocalTime class
+import java.time.format.DateTimeFormatter;
 
 
 public class MeetingRecord {
@@ -38,15 +39,19 @@ public class MeetingRecord {
     public void createFile() {
         String fileName = Paths.get(fileHandler.getDataFolder(), FolderName, p.getId() + ".txt").toString();
         LocalTime time = LocalTime.now();
+        DateTimeFormatter formatter12 = DateTimeFormatter.ofPattern("hh:mm a");
+        String timeIn12H = time.format(formatter12);
         LocalDate date = LocalDate.now();
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileName, true))){
             bw.write("----- NOTE START -----\n");
             bw.write(date + "\n");
-            bw.write(time + "\n");
+            bw.write(timeIn12H + "\n\n");
             bw.write(conv + "\n");   // conv already contains all user-entered newlines
             bw.write("----- NOTE END -----\n");
             bw.write("\n"); // spacing between notes
-        } catch (IOException e) {}
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }
