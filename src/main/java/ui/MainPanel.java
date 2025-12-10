@@ -287,7 +287,7 @@ public class MainPanel extends JPanel{
         // Update the ADDMEETINGNOTESButton ActionListener to save meeting notes
         ADDMEETINGNOTESButton.addActionListener(e->{
             isEditingMeetingNotes = !isEditingMeetingNotes;
-            System.out.println("ADd meeting notes clicked. is editing? " + isEditingMeetingNotes);
+
             if(isEditingMeetingNotes){
                 MeetingNotesTextArea.setVisible(true);
                 ADDMEETINGNOTESButton.setText("SAVE MEETING NOTES");
@@ -300,7 +300,6 @@ public class MainPanel extends JPanel{
                     // Find the current person being displayed and add the note
                     if (currentDisplayedPerson != null) {
                         try {
-                            System.out.println("This line reached for creation of meeting record");
                             // Create new conversation/meeting record for the person
                             MeetingRecord record = currentDisplayedPerson.newConversation(noteText);
 
@@ -517,8 +516,8 @@ public class MainPanel extends JPanel{
 
 
     private void saveFaceImage(String personID, Mat imageToSave) {
-        String directoryPath = Paths.get(fileHandler.getDataFolder(), "saved_faces").toString();
-        String filePath = Paths.get(directoryPath, personID + ".png").toString();
+        String directoryPath = "saved_faces/";
+        String filePath = directoryPath + personID + ".png";
 
         File directory = new File(directoryPath);
         if (!directory.exists()) {
