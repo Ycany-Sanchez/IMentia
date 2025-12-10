@@ -97,7 +97,7 @@ public class FileHandler {
                 Person p = new Person(capitalizeLabel(arr[1]), capitalizeLabel(arr[2]));
                 p.setId(id);
                 try {
-                    String directoryPath = Paths.get(DATA_FOLDER, "saved_faces").toString();
+                    String directoryPath = Paths.get(DATA_FOLDER, "imentia_data/saved_faces/").toString();
                     String filePath = Paths.get(directoryPath, id + ".png").toString();
                     File imgFile = new File(filePath);
                     if(imgFile.exists()){

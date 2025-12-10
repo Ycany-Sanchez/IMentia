@@ -179,10 +179,7 @@ public class FaceRecognitionService {
 
             try {
                 // 1. LOAD IMAGE: Read the image file from disk. IMREAD_COLOR (code 1) is often safer.
-                FileHandler fileHandler = new FileHandler();
-                String directoryPath = Paths.get(fileHandler.getDataFolder(), "saved_faces").toString();
-                String filePath = Paths.get(directoryPath, person.getId() + ".png").toString();
-                Mat faceMat = ImageUtils.loadMatFromFile(filePath);
+                Mat faceMat = ImageUtils.loadMatFromFile("imentia_data/saved_faces/" + person.getId() + ".png");
 
                 if (faceMat.empty()) {
                     System.out.println("  ✗ ERROR: Could not load image from path");

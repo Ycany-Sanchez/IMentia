@@ -20,7 +20,7 @@ import java.util.List;
 
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
 
-public class MainPanel extends JPanel{
+public class MainPanel extends AbstractMainPanel {
 
     //PANELS
     private JPanel mainPanel;
@@ -125,9 +125,8 @@ public class MainPanel extends JPanel{
         videoProcessor.startCamera();
     }
 
-
-
-    private void setUpUI(){
+    @Override
+    protected void setUpUI(){
         videoProcessor = new VideoProcessor();
         CameraPanel.add(videoProcessor, BorderLayout.CENTER);
 
