@@ -4,9 +4,7 @@ import people.MeetingRecord;
 import people.Person;
 
 import org.bytedeco.opencv.opencv_core.*;
-import org.bytedeco.opencv.opencv_core.Point;
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
-import org.bytedeco.opencv.opencv_videoio.VideoCapture;
 import service.FaceRecognitionService;
 import util.FileHandler;
 import util.ImageUtils;
@@ -21,10 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
-import static org.bytedeco.opencv.global.opencv_imgproc.*;
-import static org.bytedeco.opencv.global.opencv_imgproc.LINE_8;
 
-public class MainPanel extends JPanel{
+public class MainPanel extends AbstractMainPanel {
 
     //PANELS
     private JPanel mainPanel;
@@ -98,7 +94,6 @@ public class MainPanel extends JPanel{
     private Mat currentFrame;
     boolean isEditingMeetingNotes = false;
 
-
     public MainPanel(){
         this.fileHandler = new FileHandler();
         persons = fileHandler.loadPersonFile();
@@ -121,7 +116,8 @@ public class MainPanel extends JPanel{
         videoProcessor.startCamera();
     }
 
-    private void setUpUI(){
+    @Override
+    protected void setUpUI(){
         videoProcessor = new VideoProcessor();
         CameraPanel.add(videoProcessor, BorderLayout.CENTER);
 
@@ -374,8 +370,8 @@ public class MainPanel extends JPanel{
     }
 
 
-
-    private void setupPersonDetailsForm(Person p){
+    @Override
+    protected void setupPersonDetailsForm(Person p){
         // Store reference to current person being displayed
         currentDisplayedPerson = p;
 
@@ -401,8 +397,8 @@ public class MainPanel extends JPanel{
         displayMeetingNotes(p);
     }
 
-
-    private void displayMeetingNotes(Person person) {
+    @Override
+    protected void displayMeetingNotes(Person person) {
         // Create a panel to hold all meeting notes
         JPanel notesPanel = new JPanel();
         notesPanel.setLayout(new BoxLayout(notesPanel, BoxLayout.Y_AXIS));
@@ -514,8 +510,8 @@ public class MainPanel extends JPanel{
     }
 
 
-    private void saveFaceImage(String personID, Mat imageToSave) {
-        String directoryPath = "saved_faces/";
+    protected void saveFaceImage(String personID, Mat imageToSave) {
+        String directoryPath = "imentia_data/saved_faces/";
         String filePath = directoryPath + personID + ".png";
 
         File directory = new File(directoryPath);
@@ -533,8 +529,8 @@ public class MainPanel extends JPanel{
         }
     }
 
-
-    private void updatePanelSizes() {
+    @Override
+    protected void updatePanelSizes() {
         int totalHeight = mainPanel.getHeight();
         if (totalHeight > 0) {
             int displayHeight = (int)(totalHeight * 0.87);
@@ -552,7 +548,8 @@ public class MainPanel extends JPanel{
         }
     }
 
-    private void toggleDeleteButton(){
+    @Override
+    protected void toggleDeleteButton(){
         //refreshContactsPanel();
         for(JPanel panel : contactListPanels){
             for(Component c : panel.getComponents()){
@@ -597,7 +594,8 @@ public class MainPanel extends JPanel{
         }
     }
 
-    private void refreshContactsPanel() {
+    @Override
+    protected void refreshContactsPanel() {
         PersonPanel.removeAll();
         int numPersons = persons.size();
 
@@ -642,7 +640,7 @@ public class MainPanel extends JPanel{
         imageLabel.setMinimumSize(new Dimension(160, 160));
 
         try {
-            String directoryPath = Paths.get(fileHandler.getDataFolder(), "saved_faces").toString();
+            String directoryPath = Paths.get(fileHandler.getDataFolder(), "imentia_data/saved_faces/").toString();
             String filePath = Paths.get(directoryPath, person.getId() + ".png").toString();
             File imageFile = new File(filePath);
             if (imageFile.exists()) {
@@ -720,7 +718,8 @@ public class MainPanel extends JPanel{
         return panel;
     }
 
-    private void deleteContact(Person personToDelete){
+    @Override
+    protected void deleteContact(Person personToDelete){
         String htmlMessage =
                 "<html><body style='width: 300px'>" +
                         "Are you sure you want to delete this person from your contact list?" +
@@ -756,7 +755,8 @@ public class MainPanel extends JPanel{
         }
     }
 
-    private boolean captureFace() {
+    @Override
+    protected boolean captureFace() {
         System.out.println("=== captureFace() called ===");
         Rect currentFaceRect = videoProcessor.getCurrentFaceRect();
         Mat currentFrame = videoProcessor.getCurrentFrame();
