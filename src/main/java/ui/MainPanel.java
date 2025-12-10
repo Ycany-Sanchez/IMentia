@@ -420,14 +420,14 @@ public class MainPanel extends AbstractMainPanel {
 
     }
 
-    private void setScrollbarsIncrement(int num){
+    protected void setScrollbarsIncrement(int num){
         ContactsScrollPane.getVerticalScrollBar().setUnitIncrement(num);
         MeetingNotesScrollPane.getVerticalScrollBar().setUnitIncrement(num);
         MeetingNotesTextAreaScrollPane.getVerticalScrollBar().setUnitIncrement(num);
     }
 
 
-    private void setupPersonDetailsForm(Person p){
+    protected void setupPersonDetailsForm(Person p){
         // Store reference to current person being displayed
         currentDisplayedPerson = p;
 
@@ -454,7 +454,7 @@ public class MainPanel extends AbstractMainPanel {
     }
 
 
-    private void displayMeetingNotes(Person person) {
+    protected void displayMeetingNotes(Person person) {
         JPanel notesPanel = new JPanel();
         notesPanel.setLayout(new BoxLayout(notesPanel, BoxLayout.Y_AXIS));
         notesPanel.setBackground(Color.WHITE);
@@ -528,7 +528,7 @@ public class MainPanel extends AbstractMainPanel {
     }
 
     // Helper method to add a note entry to the panel
-    private void addNoteToPanel(JPanel parent, String noteText) {
+    protected void addNoteToPanel(JPanel parent, String noteText) {
         MeetingNotesScrollPane.setVisible(true);
         MeetingNotesScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
@@ -557,7 +557,7 @@ public class MainPanel extends AbstractMainPanel {
 
 
 
-    private void saveFaceImage(String personID, Mat imageToSave) {
+    protected void saveFaceImage(String personID, Mat imageToSave) {
         String directoryPath = "imentia_data/saved_faces/";
         String filePath = directoryPath + personID + ".png";
 
@@ -577,7 +577,7 @@ public class MainPanel extends AbstractMainPanel {
     }
 
 
-    private void updatePanelSizes() {
+    protected void updatePanelSizes() {
         int totalHeight = mainPanel.getHeight();
         if (totalHeight > 0) {
             int displayHeight = (int)(totalHeight * 0.87);
@@ -595,7 +595,7 @@ public class MainPanel extends AbstractMainPanel {
         }
     }
 
-    private void toggleDeleteButton(){
+    protected void toggleDeleteButton(){
         //refreshContactsPanel();
         for(JPanel panel : contactListPanels){
             for(Component c : panel.getComponents()){
@@ -640,7 +640,7 @@ public class MainPanel extends AbstractMainPanel {
         }
     }
 
-    private void refreshContactsPanel() {
+    protected void refreshContactsPanel() {
         PersonPanel.removeAll();
         int numPersons = persons.size();
 
@@ -665,7 +665,7 @@ public class MainPanel extends AbstractMainPanel {
         }
     }
 
-    private JPanel createPersonEntryPanel(Person person) {
+    protected JPanel createPersonEntryPanel(Person person) {
         // 1. Setup Panel with GridBagLayout (The most flexible layout)
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setOpaque(false);
@@ -763,7 +763,7 @@ public class MainPanel extends AbstractMainPanel {
         return panel;
     }
 
-    private void deleteContact(Person personToDelete){
+    protected void deleteContact(Person personToDelete){
         String htmlMessage =
                 "<html><body style='width: 300px'>" +
                         "Are you sure you want to delete this person from your contact list?" +
@@ -799,7 +799,7 @@ public class MainPanel extends AbstractMainPanel {
         }
     }
 
-    private boolean captureFace() {
+    protected boolean captureFace() {
         System.out.println("=== captureFace() called ===");
         Rect currentFaceRect = videoProcessor.getCurrentFaceRect();
         Mat currentFrame = videoProcessor.getCurrentFrame();
@@ -840,7 +840,7 @@ public class MainPanel extends AbstractMainPanel {
         }
     }
 
-    private String getConfidenceDescription(double confidence) {
+    protected String getConfidenceDescription(double confidence) {
         if (confidence < 40) return "Excellent Match";
         else if (confidence < 60) return "Very Good Match";
         else if (confidence < 80) return "Good Match";
@@ -849,7 +849,7 @@ public class MainPanel extends AbstractMainPanel {
         else return "Very Poor Match";
     }
 
-    private String getConfidenceColor(double confidence) {
+    protected String getConfidenceColor(double confidence) {
         if (confidence < 40) return "#d4edda";
         else if (confidence < 60) return "#d1ecf1";
         else if (confidence < 80) return "#fff3cd";
@@ -857,7 +857,7 @@ public class MainPanel extends AbstractMainPanel {
         else return "#f8d7da";
     }
 
-    private void setupTutorialPanel() {
+    protected void setupTutorialPanel() {
         TutorialPanel = new JPanel();
         TutorialPanel.setLayout(new BorderLayout());
         TutorialPanel.setBackground(Color.WHITE);
