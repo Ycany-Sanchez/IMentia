@@ -6,11 +6,8 @@ import java.time.LocalDate; // import the LocalDate clas
 import java.time.LocalDateTime;
 import java.time.LocalTime; // import the LocalTime class
 
-<<<<<<< HEAD
 import util.FileHandler;
 import util.PersonDataManager;
-=======
->>>>>>> 406431abf39816ff4b5d8038a46aa6f980859b42
 
 public class MeetingRecord {
 

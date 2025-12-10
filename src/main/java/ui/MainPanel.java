@@ -104,6 +104,77 @@ public class MainPanel extends AbstractMainPanel {
     boolean isEditingPersonDetails = false;
 
 
+    private void showEditDetailsDialog(Person person) {
+        if (person == null) {
+            JOptionPane.showMessageDialog(mainPanel, "Error: No contact data available.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        JTextField nameField = new JTextField(person.getName(), 15);
+        JTextField relationshipField = new JTextField(person.getRelationship(), 15);
+
+        Font dialogLabelFont = new Font("", Font.BOLD, 14);
+        nameField.setFont(PLabelFont);
+        relationshipField.setFont(PLabelFont);
+
+        JPanel editPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 5, 8, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.gridx = 0; gbc.gridy = 0;
+        gbc.weightx = 0;
+        JLabel nameLabel = new JLabel("New Name:");
+        nameLabel.setFont(dialogLabelFont);
+        editPanel.add(nameLabel, gbc);
+
+        gbc.gridx = 1; gbc.gridy = 0;
+        gbc.weightx = 1.0;
+        editPanel.add(nameField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 1;
+        gbc.weightx = 0;
+        JLabel relLabel = new JLabel("New Relationship:");
+        relLabel.setFont(dialogLabelFont);
+        editPanel.add(relLabel, gbc);
+
+        gbc.gridx = 1; gbc.gridy = 1;
+        gbc.weightx = 1.0;
+        editPanel.add(relationshipField, gbc);
+
+        int result = JOptionPane.showConfirmDialog(
+                mainPanel,
+                editPanel,
+                "Edit Contact Details",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            String newName = nameField.getText().trim();
+            String newRel = relationshipField.getText().trim();
+
+            if (newName.isEmpty() || newRel.isEmpty()) {
+                JOptionPane.showMessageDialog(mainPanel, "Name and Relationship cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
+                showEditDetailsDialog(person);
+                return;
+            }
+            person.setName(PersonDataManager.capitalizeLabel(newName));
+            person.setRelationship(newRel);
+
+
+            if(fileHandler.savePersons(persons)){
+                recognitionService.train(persons);
+                JOptionPane.showMessageDialog(mainPanel, "Contact details updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+
+                setupPersonDetailsForm(currentDisplayedPerson);
+            } else {
+                JOptionPane.showMessageDialog(mainPanel, "Error saving person details.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+            fileHandler.updatePersonFile(persons);
+        }
+    }
+
     public MainPanel(){
         this.fileHandler = new PersonDataManager();
         persons = fileHandler.loadPersonFile();
@@ -400,26 +471,19 @@ public class MainPanel extends AbstractMainPanel {
             }
         });
 
-        EDITCONTACTButton.addActionListener(e->{
-            isEditingPersonDetails = !isEditingPersonDetails;
-            if(isEditingPersonDetails){
-                EDITCONTACTButton.setVisible(false);
-                SAVEEDITButton.setVisible(true);
-                CANCELEDITButton.setVisible(true);
 
-                PersonNameEdit.setVisible(true);
-                PersonRelEdit.setVisible(true);
-                PersonNameEdit.setText(currentDisplayedPerson.getName());
-                PersonRelEdit.setText(currentDisplayedPerson.getRelationship());
-
-                PersonDetailPersonName.setVisible(false);
-                PersonDetailPersonRel.setVisible(false);
-
+        EDITCONTACTButton.addActionListener(e -> {
+            // Check if a person is currently displayed before attempting to edit
+            if (currentDisplayedPerson != null) {
+                showEditDetailsDialog(currentDisplayedPerson);
+            } else {
+                JOptionPane.showMessageDialog(mainPanel, "No person selected for editing.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
 
     }
+
 
     protected void setScrollbarsIncrement(int num){
         ContactsScrollPane.getVerticalScrollBar().setUnitIncrement(num);
