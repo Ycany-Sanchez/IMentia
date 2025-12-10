@@ -408,23 +408,6 @@ public class MainPanel extends JPanel{
                 JOptionPane.showMessageDialog(mainPanel, "No person selected for editing.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
-        EDITCONTACTButton.addActionListener(e->{
-            isEditingPersonDetails = !isEditingPersonDetails;
-            if(isEditingPersonDetails){
-                EDITCONTACTButton.setVisible(false);
-                SAVEEDITButton.setVisible(true);
-                CANCELEDITButton.setVisible(true);
-
-                PersonNameEdit.setVisible(true);
-                PersonRelEdit.setVisible(true);
-                PersonNameEdit.setText(currentDisplayedPerson.getName());
-                PersonRelEdit.setText(currentDisplayedPerson.getRelationship());
-
-                PersonDetailPersonName.setVisible(false);
-                PersonDetailPersonRel.setVisible(false);
-
-            }
-        });
 
 
     }
