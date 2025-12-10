@@ -3,11 +3,13 @@ package service;
 
 import people.Person;
 import util.FileHandler;
+import util.ImageHandler;
 import util.ImageUtils;
 import org.bytedeco.opencv.opencv_core.Mat;
 import util.PersonDataManager;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.List;
 
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
@@ -131,5 +133,37 @@ public class PersonRecognitionManager {
         }
         String filePath = directoryPath + personID + ".png";
         imwrite(filePath, imageToSave);
+    }
+
+    // >>> FILE: src/main/java/service/PersonRecognitionManager.java (New Method)
+
+// ... inside PersonRecognitionManager class
+
+    /**
+     * Facade Method: Ensures the given Person object has its BufferedImage loaded
+     * from disk. If the image is already set, it does nothing.
+     *
+     * @param person The person object to check/update.
+     */
+    public void ensureImageLoaded(Person person) {
+        if (person.getPersonImage() != null) {
+            return; // Already loaded
+        }
+
+        try {
+            // Use the FileHandler (PersonDataManager) to resolve the path
+            String directoryPath = fileHandler.getDataFolder() + "/saved_faces";
+            String filePath = Paths.get(directoryPath, person.getId() + ".png").toString();
+
+            Mat faceMat = ImageHandler.loadMatFromFile(filePath);
+
+            if (faceMat != null && !faceMat.empty()) {
+                person.setPersonImage(ImageUtils.matToBufferedImage(faceMat));
+            } else {
+                System.out.println("Could not load image file for ID: " + person.getId() + ". File not found or empty.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading image for person " + person.getId() + ": " + e.getMessage());
+        }
     }
 }

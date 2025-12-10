@@ -297,6 +297,7 @@ public class MainPanel extends AbstractMainPanel {
             } else {
                 // Save the meeting notes when user clicks save
                 String noteText = MeetingNotesTextArea.getText().trim();
+                // --- OOP FIX: Delegate image loading to the Facade (Manager) ---
 
                 // Don't save if it's empty or still has placeholder text
                 if (!noteText.isEmpty() && !noteText.equals("Add meeting notes here...")) {
@@ -391,10 +392,13 @@ public class MainPanel extends AbstractMainPanel {
     protected void setupPersonDetailsForm(Person p){
         // Store reference to current person being displayed
         currentDisplayedPerson = p;
+        personManager.ensureImageLoaded(p);
 
         if (p.getPersonImage() != null) {
             Image scaledImage = p.getPersonImage().getScaledInstance(200, 200, Image.SCALE_FAST);
             PersonDetailsImageLabel.setIcon(new ImageIcon(scaledImage));
+        } else {
+            System.out.println("Person is null.");
         }
 
         PersonDetailPersonName.setText(p.getName());
