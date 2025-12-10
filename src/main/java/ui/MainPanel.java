@@ -64,14 +64,15 @@ public class MainPanel extends JPanel{
     //SCROLLPANE
     private JScrollPane ContactsScrollPane;
     private JScrollPane MeetingNotesScrollPane;
+    private JScrollPane MeetingNotesTextAreaScrollPane;
 
     //TEXTAREA
     private JTextArea MeetingNotesTextArea;
-    private JEditorPane editorPane1;
     private JButton SAVEEDITButton;
     private JButton CANCELEDITButton;
     private JTextField PersonNameEdit;
     private JTextField PersonRelEdit;
+
 
 
     //FONTS
@@ -124,6 +125,8 @@ public class MainPanel extends JPanel{
         videoProcessor.startCamera();
     }
 
+
+
     private void setUpUI(){
         videoProcessor = new VideoProcessor();
         CameraPanel.add(videoProcessor, BorderLayout.CENTER);
@@ -145,7 +148,9 @@ public class MainPanel extends JPanel{
         DisplayPanel.add(PersonDetailsForm, "5");
 
         MeetingNotesTextArea.setVisible(false);
+        MeetingNotesTextArea.setFont(PLabelFont);
         MeetingNotesTextArea.setText("Add meeting notes here...");
+
 
 
         tempFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -154,11 +159,14 @@ public class MainPanel extends JPanel{
         setButtonFont(mainPanel);
         setPLabelFont(mainPanel);
 
+        setScrollbarsIncrement(6);
+
 
 
 
         cardLayout.show(DisplayPanel, "1");
         EditContactButton.setFont(new Font("", Font.BOLD, 24));
+        MeetingNotesTextAreaScrollPane.setVisible(false);
 
         ViewContactsButton.addActionListener(new ActionListener() {
             @Override
@@ -295,8 +303,10 @@ public class MainPanel extends JPanel{
             isEditingMeetingNotes = !isEditingMeetingNotes;
 
             if(isEditingMeetingNotes){
+                MeetingNotesTextAreaScrollPane.setVisible(true);
                 MeetingNotesTextArea.setVisible(true);
                 ADDMEETINGNOTESButton.setText("SAVE MEETING NOTES");
+                MeetingNotesTextArea.setText("Add meeting notes here...");
             } else {
                 // Save the meeting notes when user clicks save
                 String noteText = MeetingNotesTextArea.getText().trim();
@@ -357,6 +367,7 @@ public class MainPanel extends JPanel{
                 MeetingNotesTextArea.setText("Add meeting notes here...");
                 MeetingNotesTextArea.setForeground(Color.GRAY);
                 MeetingNotesTextArea.setVisible(false);
+                MeetingNotesTextAreaScrollPane.setVisible(false);
                 ADDMEETINGNOTESButton.setText("ADD MEETING NOTES");
             }
         });
@@ -410,6 +421,11 @@ public class MainPanel extends JPanel{
 
     }
 
+    private void setScrollbarsIncrement(int num){
+        ContactsScrollPane.getVerticalScrollBar().setUnitIncrement(num);
+        MeetingNotesScrollPane.getVerticalScrollBar().setUnitIncrement(num);
+        MeetingNotesTextAreaScrollPane.getVerticalScrollBar().setUnitIncrement(num);
+    }
 
 
     private void setupPersonDetailsForm(Person p){
@@ -506,6 +522,7 @@ public class MainPanel extends JPanel{
             notesPanel.add(errorLabel);
         }
 
+        MeetingNotesScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         MeetingNotesScrollPane.setViewportView(notesPanel);
         MeetingNotesScrollPane.revalidate();
         MeetingNotesScrollPane.repaint();
@@ -513,27 +530,30 @@ public class MainPanel extends JPanel{
 
     // Helper method to add a note entry to the panel
     private void addNoteToPanel(JPanel parent, String noteText) {
+        MeetingNotesScrollPane.setVisible(true);
+        MeetingNotesScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
         JTextArea noteArea = new JTextArea(noteText);
+        noteArea.setBackground(Color.WHITE);
+        noteArea.setFocusable(false);
         noteArea.setFont(PLabelFont);
         noteArea.setEditable(false);
         noteArea.setLineWrap(true);
         noteArea.setWrapStyleWord(true);
-        noteArea.setBackground(new Color(245, 245, 245));
-        noteArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        //noteArea.setBackground(new Color(245, 245, 245));
+        //noteArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JScrollPane scrollPane = new JScrollPane(noteArea);
-        scrollPane.setPreferredSize(new Dimension(500, 200));  // You can adjust height
-        scrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
-        scrollPane.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
-
-        JPanel wrapper = new JPanel();
-        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
-        wrapper.setBackground(Color.WHITE);
-        wrapper.add(scrollPane);
-        wrapper.add(Box.createVerticalStrut(15));
-
-        parent.add(wrapper);
+//        JScrollPane scrollPane = new JScrollPane(noteArea);
+//        scrollPane.setPreferredSize(new Dimension(500, 200));  // You can adjust height
+//        scrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
+//        scrollPane.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+//
+//        JPanel wrapper = new JPanel();
+//        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+//        wrapper.setBackground(Color.WHITE);
+//        wrapper.add(scrollPane);
+//        wrapper.add(Box.createVerticalStrut(15));
+        parent.add(noteArea);
     }
 
 
