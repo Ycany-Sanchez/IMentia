@@ -592,30 +592,6 @@ public class MainPanel extends JPanel{
         }
     }
 
-    private void refreshContactsPanel() {
-        PersonPanel.removeAll();
-        int numPersons = persons.size();
-
-        for (int i = 0; i < numPersons; i += 2) {
-
-            Box rowBox = Box.createHorizontalBox();
-            rowBox.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-            JPanel card1 = createPersonEntryPanel(persons.get(i));
-            rowBox.add(card1);
-
-            rowBox.add(Box.createHorizontalStrut(20));
-
-            if (i + 1 < numPersons) {
-                JPanel card2 = createPersonEntryPanel(persons.get(i + 1));
-                rowBox.add(card2);
-                rowBox.add(Box.createHorizontalGlue());
-            } else {
-                rowBox.add(Box.createHorizontalGlue());
-            }
-            PersonPanel.add(rowBox);
-        }
-    }
 
     private JPanel createPersonEntryPanel(Person person) {
         // 1. Setup Panel with GridBagLayout (The most flexible layout)
