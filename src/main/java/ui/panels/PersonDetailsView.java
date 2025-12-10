@@ -51,7 +51,7 @@ public class PersonDetailsView extends JPanel {
 
         JButton editButton = new JButton("EDIT DETAILS");
         editButton.setFont(AppTheme.BUTTON_FONT);
-        editButton.addActionListener(e -> showEditDialog());
+        editButton.addActionListener(e -> showEditDialog(currentPerson));
 
         infoPanel.add(nameLabel);
         infoPanel.add(relLabel);
@@ -174,28 +174,57 @@ public class PersonDetailsView extends JPanel {
         }
     }
 
-    private void showEditDialog() {
-        JTextField nameField = new JTextField(currentPerson.getName());
-        JTextField relField = new JTextField(currentPerson.getRelationship());
+    public void showEditDialog(Person person) { // <-- CHANGED: Now public and accepts a Person argument
+        if (person == null) {
+            JOptionPane.showMessageDialog(this, "Error: No contact data available.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
-        // Enforce consistent fonts in Dialog components
+        // Create the input fields, ensuring font consistency
+        JTextField nameField = new JTextField(person.getName(), 15);
+        JTextField relField = new JTextField(person.getRelationship(), 15);
+
         nameField.setFont(AppTheme.P_LABEL_FONT);
         relField.setFont(AppTheme.P_LABEL_FONT);
 
-        Object[] message = {
-                "Name:", nameField,
-                "Relationship:", relField
-        };
+        // Setup the panel for the dialog
+        JPanel editPanel = new JPanel(new GridLayout(2, 2, 5, 5));
+        editPanel.add(new JLabel("New Name:"));
+        editPanel.add(nameField);
+        editPanel.add(new JLabel("New Relationship:"));
+        editPanel.add(relField);
 
-        // Customizing the option pane to use standard fonts is tricky,
-        // but the input fields will now look correct.
-        int option = JOptionPane.showConfirmDialog(this, message, "Edit Contact", JOptionPane.OK_CANCEL_OPTION);
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                editPanel,
+                "Edit Contact Details",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
 
-        if (option == JOptionPane.OK_OPTION) {
-            currentPerson.setName(util.FileHandler.capitalizeLabel(nameField.getText()));
-            currentPerson.setRelationship(relField.getText());
-            if (onUpdateCallback != null) onUpdateCallback.run();
-            setPerson(currentPerson); // Refresh view
+        if (result == JOptionPane.OK_OPTION) {
+            String newName = nameField.getText().trim();
+            String newRel = relField.getText().trim();
+
+            if (newName.isEmpty() || newRel.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Name and Relationship cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // 1. Update the person object
+            person.setName(util.FileHandler.capitalizeLabel(newName));
+            person.setRelationship(newRel);
+
+            // 2. Notify the MainPanel (Controller) to save the changes to disk
+            if (onUpdateCallback != null) {
+                onUpdateCallback.run();
+
+                // 3. Refresh this view with the new data
+                setPerson(person);
+
+                JOptionPane.showMessageDialog(this, "Contact details updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "Error: Update callback missing.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 }

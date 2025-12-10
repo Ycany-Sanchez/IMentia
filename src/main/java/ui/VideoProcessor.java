@@ -1,196 +1,163 @@
-// 1. Create this inner class
+// >>> FILE: src/main/java/ui/VideoProcessor.java (COMPLETE & CORRECTED)
 package ui;
-import org.bytedeco.opencv.opencv_core.*;
+
+import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Point;
-import org.bytedeco.opencv.opencv_objdetect.BaseCascadeClassifier;
+import org.bytedeco.opencv.opencv_core.Rect;
+import org.bytedeco.opencv.opencv_core.Scalar;
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
 import org.bytedeco.opencv.opencv_videoio.VideoCapture;
-import org.opencv.video.Video;
 import util.ImageUtils;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.Graphics;
-import  java.awt.image.BufferedImage;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.bytedeco.opencv.global.opencv_imgproc.*;
-import static org.bytedeco.opencv.global.opencv_imgproc.LINE_8;
+import static org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2GRAY;
+import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
+import static org.bytedeco.opencv.global.opencv_imgproc.rectangle;
 
-class VideoProcessor extends JPanel {
-    private BufferedImage image;
-    private VideoCapture camera;
-    private Mat currentFrame;
+public class VideoProcessor extends JPanel {
+
+    private VideoCapture capture;
     private CascadeClassifier faceDetector;
-    private Component dialogParent;
-    private Rect currentFaceRect ;
+    private JLabel cameraScreen;
 
+    // 1. ADDED: Field to track the camera thread state
+    private AtomicBoolean isRunning = new AtomicBoolean(false);
 
-    public VideoProcessor(){
-        faceDetector = loadFaceDetector();
-    }
+    private Mat currentFrame;
+    private Rect currentFaceRect;
 
-    public void updateImage(BufferedImage newImage) {
-        this.image = newImage;
-        this.repaint();
+    public VideoProcessor() {
+        setLayout(new BorderLayout());
+        cameraScreen = new JLabel();
+        cameraScreen.setHorizontalAlignment(SwingConstants.CENTER);
+        add(cameraScreen, BorderLayout.CENTER);
+
+        // Initialize logic
+        currentFrame = new Mat();
+        loadCascade();
     }
 
     public void startCamera() {
-        System.out.println("Starting camera...");
-        camera = new VideoCapture(0);
+        if (isRunning.get()) return;
 
-        if (!camera.isOpened()) {
-            System.out.println("ERROR: Cannot open camera!");
-            JOptionPane.showMessageDialog(this.dialogParent, "Cannot open camera!");
-            return;
-        }
+        // Start camera in a separate thread to avoid freezing UI
+        new Thread(() -> {
+            capture = new VideoCapture(0); // 0 is usually the default webcam
 
-        System.out.println("Camera opened successfully");
+            if (!capture.isOpened()) {
+                System.err.println("Error: Could not open camera.");
+                return;
+            }
 
-        Thread cameraThread = new Thread(() -> {
-            System.out.println("Camera thread started");
-            Mat frame = new Mat();
+            isRunning.set(true);
+            Mat rawFrame = new Mat();
             Mat grayFrame = new Mat();
 
-            int frameCount = 0;
+            while (isRunning.get()) {
+                if (capture.read(rawFrame)) {
+                    // 1. Clone for external use
+                    synchronized (this) {
+                        currentFrame = rawFrame.clone();
+                    }
 
-            int missedDetectionCount = 0;
-            int maxMissedDetections = 60;
+                    // 2. Detect Faces
+                    cvtColor(rawFrame, grayFrame, COLOR_BGR2GRAY);
+                    org.bytedeco.opencv.opencv_core.RectVector faces = new org.bytedeco.opencv.opencv_core.RectVector();
 
-            while (true) {
-                if (!camera.read(frame)) {
-                    continue;
-                }
+                    if (faceDetector != null && !faceDetector.empty()) {
+                        faceDetector.detectMultiScale(grayFrame, faces, 1.1, 3, 0, null, null);
+                    }
 
-                currentFrame = frame.clone();
+                    // 3. Draw Rectangle & Update State
+                    if (faces.size() > 0) {
+                        Rect face = faces.get(0);
 
-
-                if(frameCount % 4 == 0){
-                    cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
-
-                    RectVector detections = new RectVector();
-                    faceDetector.detectMultiScale(grayFrame, detections);
-
-                    int numFaces = (int)detections.size();
-
-                    if (numFaces > 0) {
-                        Rect[] faces = new Rect[(int)numFaces];
-                        for (int i = 0; i < numFaces; i++) {
-                            Rect temp = detections.get(i);
-                            faces[i] = new Rect(temp.x(), temp.y(), temp.height(), temp.width());
+                        synchronized (this) {
+                            currentFaceRect = face;
                         }
-                        currentFaceRect = getBiggestFace(faces);
-                        missedDetectionCount = 0;
+
+                        // Draw Green Rectangle on Display
+                        rectangle(rawFrame,
+                                new Point(face.x(), face.y()),
+                                new Point(face.x() + face.width(), face.y() + face.height()),
+                                new Scalar(0, 255, 0, 0), // Green
+                                2, 0, 0);
                     } else {
-                        missedDetectionCount++;
-                        if (missedDetectionCount > maxMissedDetections) {
+                        synchronized (this) {
                             currentFaceRect = null;
                         }
                     }
-                }
-                frameCount++;
 
-                if (currentFaceRect != null) {
-                    rectangle(
-                            frame,
-                            new Point(currentFaceRect.x(), currentFaceRect.y()),
-                            new Point(currentFaceRect.x() + currentFaceRect.width(),
-                                    currentFaceRect.y() + currentFaceRect.height()),
-                            new Scalar(0, 255, 0, 0),
-                            3, LINE_8, 0
-                    );
-                }
-
-                BufferedImage bufferedImage = ImageUtils.matToBufferedImage(frame);
-
-                SwingUtilities.invokeLater(() -> {
-                    updateImage(bufferedImage);
-                });
-
-                try {
-                    Thread.sleep(30);
-                } catch (InterruptedException e) {
-                    break;
+                    // 4. Convert to Swing Image and Paint
+                    BufferedImage image = ImageUtils.matToBufferedImage(rawFrame);
+                    SwingUtilities.invokeLater(() -> {
+                        if (image != null) {
+                            // Scale to fit the panel
+                            Image scaled = image.getScaledInstance(getWidth(), getHeight(), Image.SCALE_FAST);
+                            cameraScreen.setIcon(new ImageIcon(scaled));
+                        }
+                    });
                 }
             }
 
-            camera.release();
-            System.out.println("Camera thread stopped");
-        });
-
-        cameraThread.setDaemon(true);
-        cameraThread.start();
+            capture.release();
+        }).start();
     }
 
-    private static CascadeClassifier loadFaceDetector() {
+    // 2. ADDED: Public method to stop the camera thread cleanly
+    public void stopCamera() {
+        isRunning.set(false);
+    }
+
+    // 3. ADDED: Public method to check the camera thread state
+    public boolean isRunning() {
+        return isRunning.get();
+    }
+
+    // Thread-safe getter for the Capture button
+    public synchronized Rect getCurrentFaceRect() {
+        return currentFaceRect;
+    }
+
+    // Thread-safe getter for saving the image
+    public synchronized Mat getCurrentFrame() {
+        return currentFrame;
+    }
+
+    /**
+     * Loads the HAAR Cascade from resources into a temp file so OpenCV C++ can read it.
+     */
+    private void loadCascade() {
         try {
-            System.out.println("Loading face detector from resources...");
-            InputStream is = MainPanel.class.getResourceAsStream("/haarcascade_frontalface_default.xml");
-
+            InputStream is = getClass().getResourceAsStream("/haarcascade_frontalface_default.xml");
             if (is == null) {
-                System.out.println("Could not find haarcascade file in resources!");
-                return null;
-            } else {
-                File tempFile = File.createTempFile("haarcascade", ".xml");
-                tempFile.deleteOnExit();
-                FileOutputStream os = new FileOutputStream(tempFile);
-                byte[] buffer = new byte[4096];
+                System.err.println("Error: haarcascade xml not found in resources!");
+                return;
+            }
 
+            File tempFile = File.createTempFile("haarcascade", ".xml");
+            tempFile.deleteOnExit();
+
+            try (FileOutputStream os = new FileOutputStream(tempFile)) {
+                byte[] buffer = new byte[4096];
                 int bytesRead;
                 while ((bytesRead = is.read(buffer)) != -1) {
                     os.write(buffer, 0, bytesRead);
                 }
-
-                is.close();
-                os.close();
-                System.out.println("Temp file created at: " + tempFile.getAbsolutePath());
-
-                CascadeClassifier classifier = new CascadeClassifier(tempFile.getAbsolutePath());
-
-                if (classifier.empty()) {
-                    System.out.println("Classifier is empty! XML loading failed.");
-                    return null;
-                } else {
-                    return classifier;
-                }
             }
+
+            faceDetector = new CascadeClassifier(tempFile.getAbsolutePath());
+            System.out.println("Face detector loaded.");
+
         } catch (Exception e) {
-            System.out.println("Exception while loading face detector:");
             e.printStackTrace();
-            return null;
         }
-    }
-
-    private Rect getBiggestFace(Rect[] faces) {
-        Rect biggest = faces[0];
-        int maxArea = biggest.width() * biggest.height();
-
-        for (int i = 1; i < faces.length; i++) {
-            int area = faces[i].width() * faces[i].height();
-            if (area > maxArea) {
-                maxArea = area;
-                biggest = faces[i];
-            }
-        }
-        return biggest;
-    }
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        if (image != null) {
-            // Draw the image scaled to fit the entire panel area
-            g.drawImage(image, 0, 0, getWidth(), getHeight(), this);
-        }
-    }
-
-    public Rect getCurrentFaceRect() {
-        return currentFaceRect;
-    }
-
-    public Mat getCurrentFrame() {
-        return currentFrame;
     }
 }
