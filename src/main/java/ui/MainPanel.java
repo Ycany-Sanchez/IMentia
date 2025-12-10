@@ -67,6 +67,11 @@ public class MainPanel extends AbstractMainPanel {
 
     //TEXTAREA
     private JTextArea MeetingNotesTextArea;
+    private JEditorPane editorPane1;
+    private JButton SAVEEDITButton;
+    private JButton CANCELEDITButton;
+    private JTextField PersonNameEdit;
+    private JTextField PersonRelEdit;
 
 
     //FONTS
@@ -82,7 +87,8 @@ public class MainPanel extends AbstractMainPanel {
     private boolean isEditing = false;
     private JFrame tempFrame = new JFrame();
     private boolean hasSaved = false;
-//    private VideoCapture camera;
+
+    //    private VideoCapture camera;
     private VideoProcessor videoProcessor;
     private Mat faceImage;
     private CascadeClassifier faceDetector;
@@ -93,6 +99,7 @@ public class MainPanel extends AbstractMainPanel {
     private String PersonRelationship;
     private Mat currentFrame;
     boolean isEditingMeetingNotes = false;
+    boolean isEditingPersonDetails = false;
 
     public MainPanel(){
         this.fileHandler = new FileHandler();
@@ -146,6 +153,9 @@ public class MainPanel extends AbstractMainPanel {
 
         setButtonFont(mainPanel);
         setPLabelFont(mainPanel);
+
+
+
 
         cardLayout.show(DisplayPanel, "1");
         EditContactButton.setFont(new Font("", Font.BOLD, 24));
@@ -296,24 +306,37 @@ public class MainPanel extends AbstractMainPanel {
                     // Find the current person being displayed and add the note
                     if (currentDisplayedPerson != null) {
                         try {
-                            // Create new conversation/meeting record for the person
-                            MeetingRecord record = currentDisplayedPerson.newConversation(noteText);
+                            // Find the actual person object in the persons list
+                            Person personToUpdate = null;
+                            for (Person p : persons) {
+                                if (p.getId().equals(currentDisplayedPerson.getId())) {
+                                    personToUpdate = p;
+                                    break;
+                                }
+                            }
 
-                            // Save the meeting record to file
-                            record.createFile();
+                            if (personToUpdate != null) {
+                                // Create new conversation/meeting record for the person
+                                MeetingRecord record = personToUpdate.newConversation(noteText);
 
-                            // Try to save persons list to persist the lastestConv reference
-                            // Even if this fails, the meeting note file was created
-                            fileHandler.savePersons(persons);
+                                // Save the meeting record to file
+                                record.createFile();
 
-                            // Show confirmation
-                            JOptionPane.showMessageDialog(mainPanel,
-                                    "Meeting note saved successfully!",
-                                    "Success",
-                                    JOptionPane.INFORMATION_MESSAGE);
+                                // Save persons list to persist the lastestConv reference
+                                fileHandler.savePersons(persons);
 
-                            // Refresh the display to show the new note
-                            setupPersonDetailsForm(currentDisplayedPerson);
+                                // Update the currentDisplayedPerson reference
+                                currentDisplayedPerson = personToUpdate;
+
+                                // Show confirmation
+                                JOptionPane.showMessageDialog(mainPanel,
+                                        "Meeting note saved successfully!",
+                                        "Success",
+                                        JOptionPane.INFORMATION_MESSAGE);
+
+                                // Refresh the display to show the new note
+                                setupPersonDetailsForm(currentDisplayedPerson);
+                            }
 
                         } catch (Exception ex) {
                             ex.printStackTrace();
@@ -366,6 +389,24 @@ public class MainPanel extends AbstractMainPanel {
             }
         });
 
+        EDITCONTACTButton.addActionListener(e->{
+            isEditingPersonDetails = !isEditingPersonDetails;
+            if(isEditingPersonDetails){
+                EDITCONTACTButton.setVisible(false);
+                SAVEEDITButton.setVisible(true);
+                CANCELEDITButton.setVisible(true);
+
+                PersonNameEdit.setVisible(true);
+                PersonRelEdit.setVisible(true);
+                PersonNameEdit.setText(currentDisplayedPerson.getName());
+                PersonRelEdit.setText(currentDisplayedPerson.getRelationship());
+
+                PersonDetailPersonName.setVisible(false);
+                PersonDetailPersonRel.setVisible(false);
+
+            }
+        });
+
 
     }
 
@@ -397,18 +438,20 @@ public class MainPanel extends AbstractMainPanel {
         displayMeetingNotes(p);
     }
 
+<<<<<<< HEAD
     @Override
     protected void displayMeetingNotes(Person person) {
         // Create a panel to hold all meeting notes
+=======
+
+    private void displayMeetingNotes(Person person) {
+>>>>>>> a5a857b4f902987cf676e1840879ee677f4cd740
         JPanel notesPanel = new JPanel();
         notesPanel.setLayout(new BoxLayout(notesPanel, BoxLayout.Y_AXIS));
         notesPanel.setBackground(Color.WHITE);
         String FolderName = "Meeting_Notes";
 
         try {
-            //String fileName = person.getId() + ".txt";
-            //File notesFile = new File(fileHandler.getDataFolder() + "/" + FolderName + fileName);
-
             String directoryPath = Paths.get(fileHandler.getDataFolder(), FolderName).toString();
             String filePath = Paths.get(directoryPath, person.getId() + ".txt").toString();
 
@@ -418,38 +461,29 @@ public class MainPanel extends AbstractMainPanel {
             System.out.println("File exists: " + notesFile.exists());
 
             if (notesFile.exists()) {
+
                 List<String> allNotes = new ArrayList<>();
+
                 try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
                     String line;
-                    StringBuilder currentNote = new StringBuilder();
-                    boolean skipFirstBlock = true; // Skip the person info header
+                    StringBuilder currentNote = null;
 
                     while ((line = br.readLine()) != null) {
-                        System.out.println("Read line: " + line); // Debug
 
-                        if (line.trim().isEmpty()) {
-                            // Empty line indicates end of a block
-                            if (currentNote.length() > 0) {
-                                if (skipFirstBlock) {
-                                    // Skip the first block (person info)
-                                    skipFirstBlock = false;
-                                } else {
-                                    allNotes.add(currentNote.toString().trim());
-                                }
-                                currentNote = new StringBuilder();
+                        if (line.equals("----- NOTE START -----")) {
+                            currentNote = new StringBuilder();
+                        }
+                        else if (line.equals("----- NOTE END -----")) {
+                            if (currentNote != null) {
+                                allNotes.add(currentNote.toString());  // store entire note
                             }
-                        } else {
-                            currentNote.append(line).append("\n");
+                            currentNote = null;
+                        }
+                        else if (currentNote != null) {
+                            currentNote.append(line).append("\n");   // preserve ALL newlines
                         }
                     }
-
-                    // Add the last note if exists
-                    if (currentNote.length() > 0 && !skipFirstBlock) {
-                        allNotes.add(currentNote.toString().trim());
-                    }
                 }
-
-                System.out.println("Total notes found: " + allNotes.size());
 
                 if (allNotes.isEmpty()) {
                     JLabel noNotesLabel = new JLabel("No meeting notes yet.");
@@ -458,59 +492,63 @@ public class MainPanel extends AbstractMainPanel {
                     notesPanel.add(noNotesLabel);
                 } else {
                     for (String note : allNotes) {
-                        addNoteToPanel(notesPanel, note);
+                        addNoteToPanel(notesPanel, note); // your existing rendering method
                     }
                 }
+
             } else {
-                // No notes file exists yet
-                System.out.println("No notes file found");
                 JLabel noNotesLabel = new JLabel("No meeting notes yet.");
                 noNotesLabel.setFont(PLabelFont);
                 noNotesLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
                 notesPanel.add(noNotesLabel);
             }
+
         } catch (IOException e) {
             System.out.println("Error reading meeting notes: " + e.getMessage());
             e.printStackTrace();
+
             JLabel errorLabel = new JLabel("Error loading meeting notes.");
             errorLabel.setFont(PLabelFont);
             notesPanel.add(errorLabel);
         }
 
-        // Set the notes panel as the viewport of the scroll pane
         MeetingNotesScrollPane.setViewportView(notesPanel);
         MeetingNotesScrollPane.revalidate();
         MeetingNotesScrollPane.repaint();
     }
 
     // Helper method to add a note entry to the panel
-    private void addNoteToPanel(JPanel panel, String noteText) {
-        JPanel noteEntryPanel = new JPanel();
-        noteEntryPanel.setLayout(new BorderLayout());
-        noteEntryPanel.setBackground(new Color(240, 240, 240));
-        noteEntryPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
-        noteEntryPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 150));
-        noteEntryPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    private void addNoteToPanel(JPanel parent, String noteText) {
 
-        JTextArea noteTextArea = new JTextArea(noteText.trim());
-        noteTextArea.setFont(PLabelFont);
-        noteTextArea.setLineWrap(true);
-        noteTextArea.setWrapStyleWord(true);
-        noteTextArea.setEditable(false);
-        noteTextArea.setOpaque(false);
-        noteTextArea.setBorder(null);
+        JTextArea noteArea = new JTextArea(noteText);
+        noteArea.setFont(PLabelFont);
+        noteArea.setEditable(false);
+        noteArea.setLineWrap(true);
+        noteArea.setWrapStyleWord(true);
+        noteArea.setBackground(new Color(245, 245, 245));
+        noteArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        noteEntryPanel.add(noteTextArea, BorderLayout.CENTER);
+        JScrollPane scrollPane = new JScrollPane(noteArea);
+        scrollPane.setPreferredSize(new Dimension(500, 200));  // You can adjust height
+        scrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
+        scrollPane.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-        panel.add(noteEntryPanel);
-        panel.add(Box.createVerticalStrut(10)); // Spacing between notes
+        JPanel wrapper = new JPanel();
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+        wrapper.setBackground(Color.WHITE);
+        wrapper.add(scrollPane);
+        wrapper.add(Box.createVerticalStrut(15));
+
+        parent.add(wrapper);
     }
 
 
+<<<<<<< HEAD
     protected void saveFaceImage(String personID, Mat imageToSave) {
+=======
+
+    private void saveFaceImage(String personID, Mat imageToSave) {
+>>>>>>> a5a857b4f902987cf676e1840879ee677f4cd740
         String directoryPath = "imentia_data/saved_faces/";
         String filePath = directoryPath + personID + ".png";
 
