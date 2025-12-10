@@ -24,23 +24,4 @@ public class MeetingRecord {
         } catch (IOException e) {}
     }
 
-
-    public void readHistory(){
-
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(p.getId() + ".txt"));
-            if (p.getMeetingRecord() == null) {
-                return;
-            }
-
-            String line;
-
-            while((line = br.readLine()) != null){
-                System.out.println(line);
-            }
-
-
-        } catch (IOException e) {}
-
-    }
 }

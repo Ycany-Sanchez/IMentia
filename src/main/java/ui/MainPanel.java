@@ -3,6 +3,7 @@ package ui;
 
 import org.bytedeco.opencv.opencv_core.*;
 import org.bytedeco.opencv.opencv_core.Point;
+import people.MeetingRecord;
 import people.Person;
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
 import org.bytedeco.opencv.opencv_videoio.VideoCapture;
@@ -287,20 +288,65 @@ public class MainPanel {
         });
 
 
+        // Update the ADDMEETINGNOTESButton ActionListener to save meeting notes
+        // Update the ADDMEETINGNOTESButton ActionListener to save meeting notes
         ADDMEETINGNOTESButton.addActionListener(e->{
-
             isEditingMeetingNotes = !isEditingMeetingNotes;
 
             if(isEditingMeetingNotes){
                 MeetingNotesTextArea.setVisible(true);
                 ADDMEETINGNOTESButton.setText("SAVE MEETING NOTES");
-
             } else {
+                // Save the meeting notes when user clicks save
+                String noteText = MeetingNotesTextArea.getText().trim();
+
+                // Don't save if it's empty or still has placeholder text
+                if (!noteText.isEmpty() && !noteText.equals("Add meeting notes here...")) {
+                    // Find the current person being displayed and add the note
+                    if (currentDisplayedPerson != null) {
+                        try {
+                            // Create new conversation/meeting record for the person
+                            MeetingRecord record = currentDisplayedPerson.newConversation(noteText);
+
+                            // Save the meeting record to file
+                            record.createFile();
+
+                            // Try to save persons list to persist the lastestConv reference
+                            // Even if this fails, the meeting note file was created
+                            fileHandler.savePersons(persons);
+
+                            // Show confirmation
+                            JOptionPane.showMessageDialog(mainPanel,
+                                    "Meeting note saved successfully!",
+                                    "Success",
+                                    JOptionPane.INFORMATION_MESSAGE);
+
+                            // Refresh the display to show the new note
+                            setupPersonDetailsForm(currentDisplayedPerson);
+
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                            JOptionPane.showMessageDialog(mainPanel,
+                                    "Error saving meeting note: " + ex.getMessage(),
+                                    "Error",
+                                    JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(mainPanel,
+                            "Please enter meeting notes before saving.",
+                            "Empty Note",
+                            JOptionPane.WARNING_MESSAGE);
+                }
+
+                // Clear the text area and reset
+                MeetingNotesTextArea.setText("Add meeting notes here...");
+                MeetingNotesTextArea.setForeground(Color.GRAY);
                 MeetingNotesTextArea.setVisible(false);
                 ADDMEETINGNOTESButton.setText("ADD MEETING NOTES");
             }
-
         });
+
 
         MeetingNotesTextArea.addFocusListener(new FocusListener() {
             @Override
@@ -335,6 +381,9 @@ public class MainPanel {
 
 
     private void setupPersonDetailsForm(Person p){
+        // Store reference to current person being displayed
+        currentDisplayedPerson = p;
+
         Image scaledImage = p.getPersonImage().getScaledInstance(200, 200, Image.SCALE_FAST);
         PersonDetailsImageLabel.setIcon(new ImageIcon(scaledImage));
 
@@ -345,6 +394,123 @@ public class MainPanel {
         MeetingNotesLabel.setFont(HLabelFont);
 
         ViewContactsButton.setVisible(true);
+
+        // Reset the meeting notes input area
+        MeetingNotesTextArea.setText("Add meeting notes here...");
+        MeetingNotesTextArea.setForeground(Color.GRAY);
+        MeetingNotesTextArea.setVisible(false);
+        isEditingMeetingNotes = false;
+        ADDMEETINGNOTESButton.setText("ADD MEETING NOTES");
+
+        // Display existing meeting notes from file
+        displayMeetingNotes(p);
+    }
+
+
+    private void displayMeetingNotes(Person person) {
+        // Create a panel to hold all meeting notes
+        JPanel notesPanel = new JPanel();
+        notesPanel.setLayout(new BoxLayout(notesPanel, BoxLayout.Y_AXIS));
+        notesPanel.setBackground(Color.WHITE);
+
+        try {
+            String fileName = person.getId() + ".txt";
+            File notesFile = new File(fileName);
+
+            System.out.println("Trying to load notes from: " + notesFile.getAbsolutePath());
+            System.out.println("File exists: " + notesFile.exists());
+
+            if (notesFile.exists()) {
+                List<String> allNotes = new ArrayList<>();
+                try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+                    String line;
+                    StringBuilder currentNote = new StringBuilder();
+                    boolean skipFirstBlock = true; // Skip the person info header
+
+                    while ((line = br.readLine()) != null) {
+                        System.out.println("Read line: " + line); // Debug
+
+                        if (line.trim().isEmpty()) {
+                            // Empty line indicates end of a block
+                            if (currentNote.length() > 0) {
+                                if (skipFirstBlock) {
+                                    // Skip the first block (person info)
+                                    skipFirstBlock = false;
+                                } else {
+                                    // Add subsequent blocks as notes
+                                    allNotes.add(currentNote.toString().trim());
+                                }
+                                currentNote = new StringBuilder();
+                            }
+                        } else {
+                            currentNote.append(line).append("\n");
+                        }
+                    }
+
+                    // Add the last note if exists
+                    if (currentNote.length() > 0 && !skipFirstBlock) {
+                        allNotes.add(currentNote.toString().trim());
+                    }
+                }
+
+                System.out.println("Total notes found: " + allNotes.size());
+
+                if (allNotes.isEmpty()) {
+                    JLabel noNotesLabel = new JLabel("No meeting notes yet.");
+                    noNotesLabel.setFont(PLabelFont);
+                    noNotesLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    notesPanel.add(noNotesLabel);
+                } else {
+                    for (String note : allNotes) {
+                        addNoteToPanel(notesPanel, note);
+                    }
+                }
+            } else {
+                // No notes file exists yet
+                System.out.println("No notes file found");
+                JLabel noNotesLabel = new JLabel("No meeting notes yet.");
+                noNotesLabel.setFont(PLabelFont);
+                noNotesLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                notesPanel.add(noNotesLabel);
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading meeting notes: " + e.getMessage());
+            e.printStackTrace();
+            JLabel errorLabel = new JLabel("Error loading meeting notes.");
+            errorLabel.setFont(PLabelFont);
+            notesPanel.add(errorLabel);
+        }
+
+        // Set the notes panel as the viewport of the scroll pane
+        MeetingNotesScrollPane.setViewportView(notesPanel);
+        MeetingNotesScrollPane.revalidate();
+        MeetingNotesScrollPane.repaint();
+    }
+
+    // Helper method to add a note entry to the panel
+    private void addNoteToPanel(JPanel panel, String noteText) {
+        JPanel noteEntryPanel = new JPanel();
+        noteEntryPanel.setLayout(new BorderLayout());
+        noteEntryPanel.setBackground(new Color(240, 240, 240));
+        noteEntryPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        noteEntryPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 150));
+        noteEntryPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JTextArea noteTextArea = new JTextArea(noteText.trim());
+        noteTextArea.setFont(PLabelFont);
+        noteTextArea.setLineWrap(true);
+        noteTextArea.setWrapStyleWord(true);
+        noteTextArea.setEditable(false);
+        noteTextArea.setOpaque(false);
+        noteTextArea.setBorder(null);
+
+        noteEntryPanel.add(noteTextArea, BorderLayout.CENTER);
+
+        panel.add(noteEntryPanel);
+        panel.add(Box.createVerticalStrut(10)); // Spacing between notes
     }
 
 //    private void setupPersonDetailsPanel() {

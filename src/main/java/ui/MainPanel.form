@@ -301,6 +301,7 @@
                     </constraints>
                     <properties>
                       <foreground color="-1776412"/>
+                      <text value=""/>
                     </properties>
                   </component>
                 </children>
