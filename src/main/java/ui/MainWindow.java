@@ -1,6 +1,7 @@
 // >>> FILE: src/main/java/ui/MainWindow.java
 package ui;
 
+import util.NoCamException;
 import people.Person;
 import org.bytedeco.opencv.opencv_core.*;
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
@@ -20,13 +21,6 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.util.List;
 
-/**
- * Main application window responsible for:
- * 1. Initializing services (FileHandler, FaceRecognitionService).
- * 2. Loading saved person data and training the recognizer.
- * 3. Setting up the Swing UI.
- * 4. Starting the camera and the main video processing loop.
- */
 public class MainWindow extends JFrame {
     private JLabel cameraLabel;
     private JButton captureButton;
@@ -66,7 +60,14 @@ public class MainWindow extends JFrame {
 
         // 2. UI Setup and Camera Start
         setupUI();
-        startCamera();
+
+        // UPDATED: Handle NoCamException
+        try {
+            startCamera();
+        } catch (NoCamException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Camera Failure", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
 
         System.out.println("=== MainWindow Constructor END ===");
     }
@@ -107,18 +108,14 @@ public class MainWindow extends JFrame {
         System.out.println("UI setup complete");
     }
 
-
-
-    //Starts a dedicated thread for continuous camera capture and processing, separate from main thread for performance
-    private void startCamera() {
+    // UPDATED: Throws NoCamException
+    private void startCamera() throws NoCamException {
         System.out.println("Starting camera...");
         camera = new VideoCapture(0); // 0 is typically the default webcam
 
         if (!camera.isOpened()) {
-            // Handle camera open failure
             System.out.println("ERROR: Cannot open camera!");
-            JOptionPane.showMessageDialog(this, "Cannot open camera!");
-            return;
+            throw new NoCamException("Hardware Error: Cannot open camera (index 0).");
         }
 
         System.out.println("Camera opened successfully");
@@ -134,19 +131,17 @@ public class MainWindow extends JFrame {
                     continue;
                 }
 
-                currentFrame = frame.clone(); // Store a copy of the original frame for potential capture
+                currentFrame = frame.clone(); // Store a copy of the original frame
 
                 // 1. Pre-process: Convert frame to grayscale for faster detection
                 cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
 
                 // 2. Face Detection
                 RectVector detections = new RectVector();
-                // detectMultiScale applies the Haar Cascade to find faces
                 faceDetector.detectMultiScale(grayFrame, detections);
 
-                int numFaces = (int)detections.size(); //cast to int because for some reason, this method returns a long
+                int numFaces = (int)detections.size();
                 if (numFaces > 0) {
-                    // Find the largest face to focus on
                     Rect[] faces = new Rect[(int)numFaces];
                     for (int i = 0; i < numFaces; i++) {
                         faces[i] = detections.get(i);
@@ -154,26 +149,29 @@ public class MainWindow extends JFrame {
                     currentFaceRect = getBiggestFace(faces);
 
                     // 3. Draw green rectangle on the color frame
-                    rectangle(
-                            frame,
-                            new Point(currentFaceRect.x(), currentFaceRect.y()),
-                            new Point(currentFaceRect.x() + currentFaceRect.width(),
-                                    currentFaceRect.y() + currentFaceRect.height()),
-                            new Scalar(0, 255, 0, 0), // BGR color: Green
-                            3, LINE_8, 0
-                    );
+                    if (currentFaceRect != null) {
+                        rectangle(
+                                frame,
+                                new Point(currentFaceRect.x(), currentFaceRect.y()),
+                                new Point(currentFaceRect.x() + currentFaceRect.width(),
+                                        currentFaceRect.y() + currentFaceRect.height()),
+                                new Scalar(0, 255, 0, 0),
+                                3, LINE_8, 0
+                        );
+                    }
                 } else {
-                    currentFaceRect = null; // No face detected
+                    currentFaceRect = null;
                 }
 
-                // 4. Display: Convert OpenCV Mat to Swing Icon and update the JLabel cameraLabel
                 ImageIcon icon = new ImageIcon(ImageUtils.matToBufferedImage(frame));
                 SwingUtilities.invokeLater(() -> cameraLabel.setIcon(icon)); // Update UI on EDT
 
                 // Important code below to control CPU usage
                 try {
-                    Thread.sleep(30); // Control frame rate (~60 FPS) ----16 for 60fps, 30 for 30fps
+                    Thread.sleep(30);
                 } catch (InterruptedException e) {
+                    System.out.println("Camera thread interrupted");
+                    Thread.currentThread().interrupt();
                     break;
                 }
             }
@@ -182,12 +180,12 @@ public class MainWindow extends JFrame {
             System.out.println("Camera thread stopped");
         });
 
-        cameraThread.setDaemon(true); // Daemon threads allow application to exit even if this thread is running
+        cameraThread.setDaemon(true);
         cameraThread.start();
     }
 
     private Rect getBiggestFace(Rect[] faces) {
-        // Simple helper to find the detection rectangle with the largest area
+        if (faces == null || faces.length == 0) return null;
         Rect biggest = faces[0];
         int maxArea = biggest.width() * biggest.height();
 
@@ -201,9 +199,6 @@ public class MainWindow extends JFrame {
         return biggest;
     }
 
-    /**
-     * Executes the face recognition sequence when the CAPTURE button is pressed.
-     */
     private void captureFace() {
         System.out.println("=== captureFace() called ===");
 
@@ -282,7 +277,6 @@ public class MainWindow extends JFrame {
     }
 
     private String getConfidenceDescription(double confidence) {
-        // Mirrors the logic in FaceRecognitionService
         if (confidence < 40) return "Excellent Match";
         else if (confidence < 60) return "Very Good Match";
         else if (confidence < 80) return "Good Match";
@@ -299,9 +293,6 @@ public class MainWindow extends JFrame {
         else return "#f8d7da";
     }
 
-    /**
-     * Handles the process of adding a new person to the system.
-     */
     private void showAddPersonDialog(Mat faceImage) {
         System.out.println("Opening add person dialog...");
         PersonFormDialog dialog = new PersonFormDialog(this, faceImage);
@@ -311,14 +302,11 @@ public class MainWindow extends JFrame {
             Person newPerson = dialog.getPerson();
             System.out.println("New person confirmed: " + newPerson.getName());
 
-            // 1. Add the new Person to the in-memory list
             persons.add(newPerson);
 
-            // 2. Persist the updated list of persons to disk
             System.out.println("Saving persons to file...");
             fileHandler.savePersons(persons);
 
-            // 3. The face model must be **retrained** with the new person's face data
             System.out.println("Retraining recognizer...");
             recognitionService.train(persons);
 

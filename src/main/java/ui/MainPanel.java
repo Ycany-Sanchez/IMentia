@@ -1,16 +1,20 @@
 // >>> FILE: src/main/java/ui/MainPanel.java
 package ui;
+
+import util.NoCamException;
 import people.MeetingRecord;
 import people.Person;
 
 import org.bytedeco.opencv.opencv_core.*;
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
 import service.FaceRecognitionService;
+import service.PersonRecognitionManager;
 import util.FileHandler;
 import util.ImageHandler;
 import util.ImageUtils;
 import util.PersonDataManager;
 
+import org.bytedeco.opencv.opencv_core.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -23,6 +27,11 @@ import java.util.List;
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
 
 public class MainPanel extends AbstractMainPanel {
+
+    // --- SERVICES ---
+    // The Manager Facade replaces direct access to FileHandler, RecognitionService, and raw Person lists
+    private PersonRecognitionManager personManager;
+    private VideoProcessor videoProcessor;
 
     //PANELS
     private JPanel mainPanel;
@@ -47,6 +56,8 @@ public class MainPanel extends AbstractMainPanel {
     private JButton SavePersonInfoButton;
     private JButton ADDMEETINGNOTESButton;
     private JButton EDITCONTACTButton;
+    private JButton SAVEEDITButton; // Kept for UI binding compatibility
+    private JButton CANCELEDITButton; // Kept for UI binding compatibility
 
     //LABEL
     private JLabel PersonNameLabel;
@@ -62,6 +73,8 @@ public class MainPanel extends AbstractMainPanel {
     //TEXTFIELD
     private JTextField PersonNameField;
     private JTextField PersonRelationshipField;
+    private JTextField PersonNameEdit;
+    private JTextField PersonRelEdit;
 
     //SCROLLPANE
     private JScrollPane ContactsScrollPane;
@@ -70,12 +83,6 @@ public class MainPanel extends AbstractMainPanel {
 
     //TEXTAREA
     private JTextArea MeetingNotesTextArea;
-    private JButton SAVEEDITButton;
-    private JButton CANCELEDITButton;
-    private JTextField PersonNameEdit;
-    private JTextField PersonRelEdit;
-
-
 
     //FONTS
     private Font buttonFont = new Font("", Font.BOLD, 24);
@@ -90,31 +97,17 @@ public class MainPanel extends AbstractMainPanel {
     private boolean isEditing = false;
     private JFrame tempFrame = new JFrame();
     private boolean hasSaved = false;
+    private Mat faceImage; // Stored temporarily when capturing a new face
 
-    //    private VideoCapture camera;
-    private VideoProcessor videoProcessor;
-    private Mat faceImage;
-    private CascadeClassifier faceDetector;
-    private FaceRecognitionService recognitionService;
-    private PersonDataManager fileHandler;
-    private List<Person> persons;
-    private String PersonName;
-    private String PersonRelationship;
-    private Mat currentFrame;
     boolean isEditingMeetingNotes = false;
     boolean isEditingPersonDetails = false;
 
-
-    public MainPanel(){
-        this.fileHandler = new PersonDataManager();
-        persons = fileHandler.loadPersons();
-
-        this.recognitionService = new FaceRecognitionService();
-        this.recognitionService.train(persons);
+    public MainPanel() {
+        // Initialize the Facade Manager
+        // This handles loading data, training the model, and file management
+        this.personManager = new PersonRecognitionManager();
 
         setupTutorialPanel();
-
-        // Initialize the new Details UI
 
         mainPanel.addComponentListener(new ComponentAdapter() {
             @Override
@@ -124,7 +117,16 @@ public class MainPanel extends AbstractMainPanel {
         });
 
         setUpUI();
-        videoProcessor.startCamera();
+
+        try {
+            videoProcessor.startCamera();
+        } catch (NoCamException e) {
+            JOptionPane.showMessageDialog(mainPanel,
+                    e.getMessage(),
+                    "Camera Error",
+                    JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -145,14 +147,11 @@ public class MainPanel extends AbstractMainPanel {
         DisplayPanel.add(PersonFormPanel, "3");
         DisplayPanel.add(TutorialPanel, "4");
         // Add the new Details Panel as card "5"
-      //  DisplayPanel.add(PersonDetailsPanel, "5");
         DisplayPanel.add(PersonDetailsForm, "5");
 
         MeetingNotesTextArea.setVisible(false);
         MeetingNotesTextArea.setFont(PLabelFont);
         MeetingNotesTextArea.setText("Add meeting notes here...");
-
-
 
         tempFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         System.out.println(tempFrame.getWidth() + " " + tempFrame.getHeight());
@@ -162,17 +161,17 @@ public class MainPanel extends AbstractMainPanel {
 
         setScrollbarsIncrement(6);
 
-
-
-
         cardLayout.show(DisplayPanel, "1");
         EditContactButton.setFont(new Font("", Font.BOLD, 24));
         MeetingNotesTextAreaScrollPane.setVisible(false);
 
+        // --- BUTTON LISTENERS ---
+
         ViewContactsButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                persons = fileHandler.loadPersons();
+                // Facade ensures data is fresh and model is trained
+                personManager.refreshDataAndTrain();
                 refreshContactsPanel();
 
                 cardLayout.show(DisplayPanel, "2");
@@ -197,7 +196,6 @@ public class MainPanel extends AbstractMainPanel {
             }
         });
 
-
         EditContactButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -221,7 +219,6 @@ public class MainPanel extends AbstractMainPanel {
                     isEditing = false;
                     EditContactButton.setText("EDIT LIST");
                     toggleDeleteButton();
-
                 }
                 hasSaved = false;
                 cardLayout.show(DisplayPanel, "1");
@@ -234,13 +231,12 @@ public class MainPanel extends AbstractMainPanel {
             }
         });
 
-        CapturePhotoButton.addActionListener(e ->{
+        CapturePhotoButton.addActionListener(e -> {
             if(captureFace()){
                 cardLayout.show(DisplayPanel, "3");
                 BufferedImage bufferedImage = ImageUtils.matToBufferedImage(faceImage);
                 Image scaledImage = bufferedImage.getScaledInstance(200, 200, Image.SCALE_FAST);
                 ImageIcon imageIcon = new ImageIcon(scaledImage);
-
 
                 PersonImageLabel.setIcon(imageIcon);
                 BackToCameraButton.setVisible(true);
@@ -250,7 +246,8 @@ public class MainPanel extends AbstractMainPanel {
             }
         });
 
-        SavePersonInfoButton.addActionListener(e->{
+        // *** FACADE USAGE: Register New Person ***
+        SavePersonInfoButton.addActionListener(e -> {
             String htmlMessage =
                     "<html><body style='width: 300px'>" +
                             "Do you want to save this person with these information?<br><br>" +
@@ -263,44 +260,33 @@ public class MainPanel extends AbstractMainPanel {
             messageLabel.setFont(PLabelFont);
             int op = JOptionPane.showConfirmDialog(mainPanel, messageLabel,
                     "Confirm Person Information", JOptionPane.YES_NO_OPTION);
+
             if (op == JOptionPane.YES_OPTION) {
-                PersonName = PersonNameField.getText().trim();
-                PersonRelationship = PersonRelationshipField.getText().trim();
-                String PersonCapitalizedName = fileHandler.capitalizeLabel(PersonName);
+                String pName = PersonNameField.getText().trim();
+                String pRel = PersonRelationshipField.getText().trim();
 
-                System.out.println("Cpaitalized name: " + PersonCapitalizedName);
+                // DELEGATE TO FACADE
+                Person savedPerson = personManager.registerNewPerson(pName, pRel, faceImage);
 
-                Person person = new Person(PersonCapitalizedName, PersonRelationship);
-
-                person.setId(fileHandler.generateId(persons));
-                person.setPersonImage(ImageUtils.matToBufferedImage(faceImage));
-                persons.add(person);
-                String curID = person.getId();
-                System.out.println("ID: " + curID);
-
-
-                if(fileHandler.savePersons(persons)){
-                    ImageHandler.saveFaceImage(curID, faceImage);
-                    recognitionService.train(persons);
-                    //showPersonDetails(person, faceImage);
-                    setupPersonDetailsForm(person);
+                if (savedPerson != null) {
+                    setupPersonDetailsForm(savedPerson);
                     cardLayout.show(DisplayPanel, "5");
                 } else {
+                    JOptionPane.showMessageDialog(mainPanel, "Error saving person.", "Error", JOptionPane.ERROR_MESSAGE);
+                    // Reset UI logic
                     BackToCameraButton.setVisible(false);
                     CapturePhotoButton.setVisible(true);
                     TutorialButton.setVisible(true);
                     ViewContactsButton.setVisible(true);
                     cardLayout.show(DisplayPanel, "1");
                 }
+
                 PersonNameField.setText("");
                 PersonRelationshipField.setText("");
             }
         });
 
-
-        // Update the ADDMEETINGNOTESButton ActionListener to save meeting notes
-        // Update the ADDMEETINGNOTESButton ActionListener to save meeting notes
-        ADDMEETINGNOTESButton.addActionListener(e->{
+        ADDMEETINGNOTESButton.addActionListener(e -> {
             isEditingMeetingNotes = !isEditingMeetingNotes;
 
             if(isEditingMeetingNotes){
@@ -317,37 +303,24 @@ public class MainPanel extends AbstractMainPanel {
                     // Find the current person being displayed and add the note
                     if (currentDisplayedPerson != null) {
                         try {
-                            // Find the actual person object in the persons list
-                            Person personToUpdate = null;
-                            for (Person p : persons) {
-                                if (p.getId().equals(currentDisplayedPerson.getId())) {
-                                    personToUpdate = p;
-                                    break;
-                                }
-                            }
+                            // Create new conversation/meeting record for the person
+                            MeetingRecord record = currentDisplayedPerson.newConversation(noteText);
 
-                            if (personToUpdate != null) {
-                                // Create new conversation/meeting record for the person
-                                MeetingRecord record = personToUpdate.newConversation(noteText);
+                            // Save the meeting record to file
+                            record.createFile();
 
-                                // Save the meeting record to file
-                                record.createFile();
+                            // *** FACADE USAGE: Update Person State ***
+                            // We need to save the person list to persist the 'lastestConv' reference
+                            personManager.updatePersonDetails(currentDisplayedPerson);
 
-                                // Save persons list to persist the lastestConv reference
-                                fileHandler.savePersons(persons);
+                            // Show confirmation
+                            JOptionPane.showMessageDialog(mainPanel,
+                                    "Meeting note saved successfully!",
+                                    "Success",
+                                    JOptionPane.INFORMATION_MESSAGE);
 
-                                // Update the currentDisplayedPerson reference
-                                currentDisplayedPerson = personToUpdate;
-
-                                // Show confirmation
-                                JOptionPane.showMessageDialog(mainPanel,
-                                        "Meeting note saved successfully!",
-                                        "Success",
-                                        JOptionPane.INFORMATION_MESSAGE);
-
-                                // Refresh the display to show the new note
-                                setupPersonDetailsForm(currentDisplayedPerson);
-                            }
+                            // Refresh the display to show the new note
+                            setupPersonDetailsForm(currentDisplayedPerson);
 
                         } catch (Exception ex) {
                             ex.printStackTrace();
@@ -373,7 +346,6 @@ public class MainPanel extends AbstractMainPanel {
             }
         });
 
-
         MeetingNotesTextArea.addFocusListener(new FocusListener() {
             @Override
             public void focusGained(FocusEvent e) {
@@ -390,9 +362,8 @@ public class MainPanel extends AbstractMainPanel {
                     MeetingNotesTextArea.setText("Add meeting notes here...");
                 }
             }
-
-
         });
+
         mainPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -409,24 +380,22 @@ public class MainPanel extends AbstractMainPanel {
                 JOptionPane.showMessageDialog(mainPanel, "No person selected for editing.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
-
-
     }
 
-
-    protected void setScrollbarsIncrement(int num){
+    private void setScrollbarsIncrement(int num){
         ContactsScrollPane.getVerticalScrollBar().setUnitIncrement(num);
         MeetingNotesScrollPane.getVerticalScrollBar().setUnitIncrement(num);
         MeetingNotesTextAreaScrollPane.getVerticalScrollBar().setUnitIncrement(num);
     }
 
-
     protected void setupPersonDetailsForm(Person p){
         // Store reference to current person being displayed
         currentDisplayedPerson = p;
 
-        Image scaledImage = p.getPersonImage().getScaledInstance(200, 200, Image.SCALE_FAST);
-        PersonDetailsImageLabel.setIcon(new ImageIcon(scaledImage));
+        if (p.getPersonImage() != null) {
+            Image scaledImage = p.getPersonImage().getScaledInstance(200, 200, Image.SCALE_FAST);
+            PersonDetailsImageLabel.setIcon(new ImageIcon(scaledImage));
+        }
 
         PersonDetailPersonName.setText(p.getName());
         PersonDetailPersonRel.setText(p.getRelationship());
@@ -447,7 +416,7 @@ public class MainPanel extends AbstractMainPanel {
         displayMeetingNotes(p);
     }
 
-    protected void showEditDetailsDialog(Person person) {
+    private void showEditDetailsDialog(Person person) {
         if (person == null) {
             JOptionPane.showMessageDialog(mainPanel, "Error: No contact data available.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
@@ -502,19 +471,15 @@ public class MainPanel extends AbstractMainPanel {
                 showEditDetailsDialog(person);
                 return;
             }
+
+            // *** FACADE USAGE: Update Person ***
             person.setName(FileHandler.capitalizeLabel(newName));
             person.setRelationship(newRel);
 
+            personManager.updatePersonDetails(person);
 
-            if(fileHandler.savePersons(persons)){
-                recognitionService.train(persons);
-                JOptionPane.showMessageDialog(mainPanel, "Contact details updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-
-                setupPersonDetailsForm(person);
-            } else {
-                JOptionPane.showMessageDialog(mainPanel, "Error saving person details.", "Error", JOptionPane.ERROR_MESSAGE);
-            }
-            fileHandler.updatePersonFile(persons);
+            JOptionPane.showMessageDialog(mainPanel, "Contact details updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            setupPersonDetailsForm(person);
         }
     }
 
@@ -525,7 +490,9 @@ public class MainPanel extends AbstractMainPanel {
         String FolderName = "Meeting_Notes";
 
         try {
-            String directoryPath = Paths.get(fileHandler.getDataFolder(), FolderName).toString();
+            // NOTE: We use a local FileHandler instance or hardcoded string just for path resolution here
+            // to keep the facade clean from UI-specific path logic, though logically this could be in Facade.
+            String directoryPath = Paths.get("imentia_data", FolderName).toString();
             String filePath = Paths.get(directoryPath, person.getId() + ".txt").toString();
 
             File notesFile = new File(filePath);
@@ -565,7 +532,7 @@ public class MainPanel extends AbstractMainPanel {
                     notesPanel.add(noNotesLabel);
                 } else {
                     for (String note : allNotes) {
-                        addNoteToPanel(notesPanel, note); // your existing rendering method
+                        addNoteToPanel(notesPanel, note);
                     }
                 }
 
@@ -592,7 +559,7 @@ public class MainPanel extends AbstractMainPanel {
     }
 
     // Helper method to add a note entry to the panel
-    protected void addNoteToPanel(JPanel parent, String noteText) {
+    private void addNoteToPanel(JPanel parent, String noteText) {
         MeetingNotesScrollPane.setVisible(true);
         MeetingNotesScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
@@ -603,22 +570,8 @@ public class MainPanel extends AbstractMainPanel {
         noteArea.setEditable(false);
         noteArea.setLineWrap(true);
         noteArea.setWrapStyleWord(true);
-        //noteArea.setBackground(new Color(245, 245, 245));
-        //noteArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-//        JScrollPane scrollPane = new JScrollPane(noteArea);
-//        scrollPane.setPreferredSize(new Dimension(500, 200));  // You can adjust height
-//        scrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
-//        scrollPane.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
-//
-//        JPanel wrapper = new JPanel();
-//        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
-//        wrapper.setBackground(Color.WHITE);
-//        wrapper.add(scrollPane);
-//        wrapper.add(Box.createVerticalStrut(15));
         parent.add(noteArea);
     }
-
 
     protected void updatePanelSizes() {
         int totalHeight = mainPanel.getHeight();
@@ -639,7 +592,6 @@ public class MainPanel extends AbstractMainPanel {
     }
 
     protected void toggleDeleteButton(){
-        //refreshContactsPanel();
         for(JPanel panel : contactListPanels){
             for(Component c : panel.getComponents()){
                 if(c instanceof JButton b){
@@ -648,7 +600,6 @@ public class MainPanel extends AbstractMainPanel {
                 }
             }
         }
-
     }
 
     public JPanel getPanel(){
@@ -685,6 +636,8 @@ public class MainPanel extends AbstractMainPanel {
 
     protected void refreshContactsPanel() {
         PersonPanel.removeAll();
+        // *** FACADE USAGE: Get Data ***
+        List<Person> persons = personManager.getAllPersons();
         int numPersons = persons.size();
 
         for (int i = 0; i < numPersons; i += 2) {
@@ -708,7 +661,7 @@ public class MainPanel extends AbstractMainPanel {
         }
     }
 
-    protected JPanel createPersonEntryPanel(Person person) {
+    private JPanel createPersonEntryPanel(Person person) {
         // 1. Setup Panel with GridBagLayout (The most flexible layout)
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setOpaque(false);
@@ -721,14 +674,14 @@ public class MainPanel extends AbstractMainPanel {
         panel.setMaximumSize(fixedSize);
         panel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
 
-
         // -- Image Label --
         JLabel imageLabel = new JLabel("img", SwingConstants.CENTER);
         imageLabel.setPreferredSize(new Dimension(160, 160));
         imageLabel.setMinimumSize(new Dimension(160, 160));
 
         try {
-            String directoryPath = Paths.get(fileHandler.getDataFolder(), "saved_faces").toString();
+            // Using standard path resolution
+            String directoryPath = Paths.get("imentia_data", "saved_faces").toString();
             String filePath = Paths.get(directoryPath, person.getId() + ".png").toString();
             File imageFile = new File(filePath);
             if (imageFile.exists()) {
@@ -823,21 +776,10 @@ public class MainPanel extends AbstractMainPanel {
         );
 
         if (choice == JOptionPane.YES_OPTION) {
-            persons.remove(personToDelete);
-            fileHandler.updatePersonFile(persons);
-            recognitionService.train(persons);
+            // *** FACADE USAGE: Delete ***
+            personManager.deletePerson(personToDelete);
 
-
-            try {
-                File imageFile = new File("saved_faces", personToDelete.getId() + ".png");
-                if (imageFile.exists()) {
-                    imageFile.delete();
-                }
-            } catch (Exception e) {
-                System.out.println("Could not delete image file.");
-            }
             refreshContactsPanel();
-
             JOptionPane.showMessageDialog(mainPanel, "Contact Deleted.");
         }
     }
@@ -857,7 +799,9 @@ public class MainPanel extends AbstractMainPanel {
 
         faceImage = new Mat(currentFrame, currentFaceRect);
 
-        FaceRecognitionService.RecognitionResult result = recognitionService.recognize(faceImage);
+        // *** FACADE USAGE: Recognize ***
+        FaceRecognitionService.RecognitionResult result = personManager.recognizeFace(faceImage);
+
         if(result.isRecognized()){
             System.out.println("Person recognized: " + result.getPerson().getId());
             setupPersonDetailsForm(result.getPerson());
@@ -883,24 +827,7 @@ public class MainPanel extends AbstractMainPanel {
         }
     }
 
-    protected String getConfidenceDescription(double confidence) {
-        if (confidence < 40) return "Excellent Match";
-        else if (confidence < 60) return "Very Good Match";
-        else if (confidence < 80) return "Good Match";
-        else if (confidence < 100) return "Fair Match";
-        else if (confidence < 120) return "Poor Match";
-        else return "Very Poor Match";
-    }
-
-    protected String getConfidenceColor(double confidence) {
-        if (confidence < 40) return "#d4edda";
-        else if (confidence < 60) return "#d1ecf1";
-        else if (confidence < 80) return "#fff3cd";
-        else if (confidence < 100) return "#f8d7da";
-        else return "#f8d7da";
-    }
-
-    protected void setupTutorialPanel() {
+    private void setupTutorialPanel() {
         TutorialPanel = new JPanel();
         TutorialPanel.setLayout(new BorderLayout());
         TutorialPanel.setBackground(Color.WHITE);

@@ -34,31 +34,38 @@ public class ImageUtils {
         // UByteIndexer provides fast, direct access to the Mat's underlying pixel data
         UByteIndexer indexer = mat.createIndexer();
 
-        if (channels == 3) { // 3-channel (BGR/Color) image
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    // OpenCV Mat stores pixels in BGR order
-                    int b = indexer.get(y, x, 0);
-                    int g = indexer.get(y, x, 1);
-                    int r = indexer.get(y, x, 2);
+        try
+        {
+            if (channels == 3) { // 3-channel (BGR/Color) image
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        // OpenCV Mat stores pixels in BGR order
+                        int b = indexer.get(y, x, 0);
+                        int g = indexer.get(y, x, 1);
+                        int r = indexer.get(y, x, 2);
 
-                    // Java BufferedImage stores pixels in ARGB/RGB order
-                    int rgb = ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
-                    image.setRGB(x, y, rgb);
+                        // Java BufferedImage stores pixels in ARGB/RGB order
+                        int rgb = ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
+                        image.setRGB(x, y, rgb);
+                    }
                 }
-            }
-        } else { // 1-channel (Grayscale) image
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    int gray = indexer.get(y, x, 0);
-                    // Set all R, G, B components to the same gray value
-                    int rgb = ((gray & 0xFF) << 16) | ((gray & 0xFF) << 8) | (gray & 0xFF);
-                    image.setRGB(x, y, rgb);
+            } else { // 1-channel (Grayscale) image
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        int gray = indexer.get(y, x, 0);
+                        // Set all R, G, B components to the same gray value
+                        int rgb = ((gray & 0xFF) << 16) | ((gray & 0xFF) << 8) | (gray & 0xFF);
+                        image.setRGB(x, y, rgb);
+                    }
                 }
             }
         }
-
-        indexer.release();
+        finally
+        {
+            if (indexer != null) {
+                indexer.release();
+            }
+        }
         return image;
     }
 
@@ -125,28 +132,26 @@ public class ImageUtils {
         byte[] bytes = faceData.getImageBytes();
 
         // Copy the linear byte array back into the 3D structure of the Mat via the Indexer
-        int idx = 0;
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                for (int c = 0; c < channels; c++) {
-                    // Use & 0xFF to convert signed byte back to unsigned integer for Mat indexer
-                    indexer.put(y, x, c, bytes[idx++] & 0xFF);
+        try {
+            int idx = 0;
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    for (int c = 0; c < channels; c++) {
+                        // Use & 0xFF to convert signed byte back to unsigned integer for Mat indexer
+                        indexer.put(y, x, c, bytes[idx++] & 0xFF);
+                    }
                 }
             }
         }
-
-        indexer.release();
+        finally
+        {
+            if (indexer != null) {
+                indexer.release();
+            }
+        }
 
         System.out.println("  Reconstructed: " + mat.cols() + "x" + mat.rows() + ", channels=" + mat.channels());
 
         return mat;
     }
-
-    /**
-     * Loads an image directly from the file system into an OpenCV Mat object.
-     * This is required by MainPanel.createPersonEntryPanel to display saved photos.
-     * @param filePath The path to the image file (e.g., "saved_faces/ID.png").
-     * @return The loaded Mat, or null if loading fails.
-     */
-
 }
