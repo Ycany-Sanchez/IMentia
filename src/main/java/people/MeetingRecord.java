@@ -1,20 +1,18 @@
+// >>> FILE: src/main/java/people/MeetingRecord.java
 package people;
+
 import util.FileHandler;
 import java.io.*;
 import java.nio.file.Paths;
-import java.time.LocalDate; // import the LocalDate clas
-import java.time.LocalDateTime;
-import java.time.LocalTime; // import the LocalTime class
-
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 public class MeetingRecord {
-
 
     private Person p;
     private String conv;
     private final String FolderName = "Meeting_Notes";
     private FileHandler fileHandler;
-
 
     public MeetingRecord(Person p, String conv) {
         this.p = p;
@@ -27,7 +25,7 @@ public class MeetingRecord {
 
         if (!folder.exists()) {
             System.out.println("Attempting to create directory at: " + folder.getAbsolutePath());
-            boolean created = folder.mkdirs(); // mkdirs() creates parent directories too
+            boolean created = folder.mkdirs();
             if (created) {
                 System.out.println("Directory created successfully.");
             } else {
@@ -35,18 +33,23 @@ public class MeetingRecord {
             }
         }
     }
+
     public void createFile() {
         String fileName = Paths.get(fileHandler.getDataFolder(), FolderName, p.getId() + ".txt").toString();
         LocalTime time = LocalTime.now();
         LocalDate date = LocalDate.now();
+
+        // UPDATED: Proper exception handling
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileName, true))){
             bw.write("----- NOTE START -----\n");
             bw.write(date + "\n");
             bw.write(time + "\n");
-            bw.write(conv + "\n");   // conv already contains all user-entered newlines
+            bw.write(conv + "\n");
             bw.write("----- NOTE END -----\n");
-            bw.write("\n"); // spacing between notes
-        } catch (IOException e) {}
+            bw.write("\n");
+        } catch (IOException e) {
+            System.err.println("Error writing meeting record to file: " + fileName);
+            e.printStackTrace();
+        }
     }
-
 }
