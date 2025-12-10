@@ -55,44 +55,44 @@ public class FaceRecognitionService {
                 Mat faceMat = ImageHandler.loadMatFromFile(filePath);
 
                 if (faceMat.empty()) {
-                    System.out.println("  ✗ ERROR: Could not load image from path");
+                    System.out.println("ERROR: Could not load image from path");
                     continue;
                 }
 
                 Mat grayFace = new Mat();
                 if (faceMat.channels() > 1) {
                     opencv_imgproc.cvtColor(faceMat, grayFace, 6);
-                    System.out.println("    ✓ Converted to grayscale");
+                    System.out.println("Converted to grayscale");
                 } else {
                     grayFace = faceMat.clone();
-                    System.out.println("    Already grayscale");
+                    System.out.println("Already grayscale");
                 }
 
                 Mat resizedFace = new Mat();
                 opencv_imgproc.resize(grayFace, resizedFace, new Size(100, 100));
-                System.out.println("    ✓ Resized to 100x100");
+                System.out.println("Resized to 100x100");
 
                 faceImages.push_back(resizedFace);
                 labelList.add(label);
 
-                System.out.println("    ✓ Added to training set with label " + label);
+                System.out.println("Added to training set with label " + label);
 
             } catch (RuntimeException e) {
                 // OpenCV/JavaCV often throws RuntimeExceptions for native errors
-                System.out.println("    ✗ OPENCV ERROR processing face:");
+                System.out.println("OPENCV ERROR processing face:");
                 e.printStackTrace();
             } catch (Exception e) {
-                System.out.println("    ✗ GENERAL ERROR processing face:");
+                System.out.println("GENERAL ERROR processing face:");
                 e.printStackTrace();
             }
 
             this.trainedPersons.add(person);
-            System.out.println("  ✓ Person assigned label: " + label);
+            System.out.println("Person assigned label: " + label);
             ++label;
         }
 
         if (faceImages.size() == 0L) {
-            System.out.println("\n✗ No valid face images to train on");
+            System.out.println("\nNo valid face images to train on");
             this.isTrained = false;
         } else {
             Mat labels = new Mat(labelList.size(), 1, opencv_core.CV_32SC1);
@@ -109,13 +109,13 @@ public class FaceRecognitionService {
             try {
                 this.recognizer.train(faceImages, labels);
                 this.isTrained = true;
-                System.out.println("  ✓ Training successful!");
+                System.out.println("Training successful!");
             } catch (RuntimeException e) {
-                System.out.println("  ✗ Training failed (Native Error):");
+                System.out.println("Training failed (Native Error):");
                 e.printStackTrace();
                 this.isTrained = false;
             } catch (Exception e) {
-                System.out.println("  ✗ Training failed (General Error):");
+                System.out.println("Training failed (General Error):");
                 e.printStackTrace();
                 this.isTrained = false;
             }
@@ -132,7 +132,7 @@ public class FaceRecognitionService {
     public RecognitionResult recognize(Mat faceImage) {
         System.out.println("\n===== RECOGNITION START =====");
         if (!this.isTrained) {
-            System.out.println("✗ Cannot recognize - not trained!");
+            System.out.println("Cannot recognize - not trained!");
             return new RecognitionResult((Person)null, (double)-1.0F, "Not Trained");
         } else {
             System.out.println("Input face: " + faceImage.cols() + "x" + faceImage.rows() + ", channels=" + faceImage.channels());
@@ -141,7 +141,7 @@ public class FaceRecognitionService {
                 Mat grayFace = new Mat();
                 if (faceImage.channels() > 1) {
                     opencv_imgproc.cvtColor(faceImage, grayFace, 6);
-                    System.out.println("✓ Converted to grayscale");
+                    System.out.println("Converted to grayscale");
                 } else {
                     grayFace = faceImage.clone();
                     System.out.println("Already grayscale");
@@ -149,14 +149,14 @@ public class FaceRecognitionService {
 
                 Mat resizedFace = new Mat();
                 opencv_imgproc.resize(grayFace, resizedFace, new Size(100, 100));
-                System.out.println("✓ Resized to 100x100");
+                System.out.println("Resized to 100x100");
 
                 int[] predictedLabel = new int[1];
                 double[] confidence = new double[1];
 
                 System.out.println("Calling recognizer.predict()...");
                 this.recognizer.predict(resizedFace, predictedLabel, confidence);
-                System.out.println("✓ Prediction complete");
+                System.out.println("Prediction complete");
 
                 System.out.println("\n--- PREDICTION RESULT ---");
                 System.out.println("Predicted label: " + predictedLabel[0]);
@@ -167,18 +167,18 @@ public class FaceRecognitionService {
                 String confidenceLevel = this.getConfidenceLevel(confidence[0]);
 
                 if (confidence[0] > (double)CONFIDENCE_THRESHOLD) {
-                    System.out.println("✗ Confidence " + confidence[0] + " > 100.0");
+                    System.out.println("Confidence " + confidence[0] + " > 100.0");
                     System.out.println("Match not good enough → UNKNOWN");
                     System.out.println("===== RECOGNITION END (UNKNOWN) =====\n");
                     return new RecognitionResult((Person)null, confidence[0], confidenceLevel);
                 } else if (predictedLabel[0] >= 0 && predictedLabel[0] < this.trainedPersons.size()) {
                     Person matched = (Person)this.trainedPersons.get(predictedLabel[0]);
-                    System.out.println("✓ Confidence acceptable!");
+                    System.out.println("Confidence acceptable!");
                     System.out.println("*** MATCH: " + matched.getName() + " ***");
                     System.out.println("===== RECOGNITION END (MATCHED) =====\n");
                     return new RecognitionResult(matched, confidence[0], confidenceLevel);
                 } else {
-                    System.out.println("✗ Label " + predictedLabel[0] + " out of range");
+                    System.out.println("Label " + predictedLabel[0] + " out of range");
                     System.out.println("===== RECOGNITION END (UNKNOWN) =====\n");
                     return new RecognitionResult((Person)null, confidence[0], confidenceLevel);
                 }

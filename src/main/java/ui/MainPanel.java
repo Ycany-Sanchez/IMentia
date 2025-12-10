@@ -257,6 +257,7 @@ public class MainPanel extends AbstractMainPanel {
                             "</body></html>";
 
             JLabel messageLabel = new JLabel(htmlMessage);
+            messageLabel.setFont(PLabelFont);
 
             messageLabel.setFont(PLabelFont);
             int op = JOptionPane.showConfirmDialog(mainPanel, messageLabel,
@@ -341,8 +342,11 @@ public class MainPanel extends AbstractMainPanel {
                         // If edits were saved above, the message was already shown.
                         // If no edits were saved (meetingNoteAreas was empty), show new note success message.
                         if (meetingNoteAreas.isEmpty()) {
+                            JLabel successLabel = new JLabel("New Meeting note saved successfully!");
+                            successLabel.setFont(PLabelFont); // <-- APPLY FONT HERE
+
                             JOptionPane.showMessageDialog(mainPanel,
-                                    "New Meeting note saved successfully!",
+                                    successLabel,
                                     "Success",
                                     JOptionPane.INFORMATION_MESSAGE);
                         }
@@ -350,8 +354,11 @@ public class MainPanel extends AbstractMainPanel {
 
                     } catch (Exception ex) {
                         ex.printStackTrace();
+                        JLabel errorLabel = new JLabel("Error saving new meeting note: " + ex.getMessage());
+                        errorLabel.setFont(PLabelFont); // <-- APPLY FONT HERE
+
                         JOptionPane.showMessageDialog(mainPanel,
-                                "Error saving new meeting note: " + ex.getMessage(),
+                                errorLabel,
                                 "Error",
                                 JOptionPane.ERROR_MESSAGE);
                     }
@@ -585,7 +592,9 @@ public class MainPanel extends AbstractMainPanel {
             String newRel = relationshipField.getText().trim();
 
             if (newName.isEmpty() || newRel.isEmpty()) {
-                JOptionPane.showMessageDialog(mainPanel, "Name and Relationship cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
+                JLabel errorLabel = new JLabel("Name and Relationship cannot be empty.");
+                errorLabel.setFont(PLabelFont); // <-- APPLY FONT HERE
+                JOptionPane.showMessageDialog(mainPanel, errorLabel, "Error", JOptionPane.ERROR_MESSAGE);
                 showEditDetailsDialog(person);
                 return;
             }
@@ -678,7 +687,10 @@ public class MainPanel extends AbstractMainPanel {
 
         if (currentFrame == null || currentFaceRect == null) {
             System.out.println("No face detected in current frame");
-            JOptionPane.showMessageDialog(mainPanel, "No face detected! Please look at the camera.", "No Face", JOptionPane.WARNING_MESSAGE);
+            JLabel errorLabel = new JLabel("No face detected! Please look at the camera.");
+            errorLabel.setFont(PLabelFont);
+
+            JOptionPane.showMessageDialog(mainPanel, errorLabel, "No Face", JOptionPane.WARNING_MESSAGE);
             return false;
         }
 
@@ -700,8 +712,10 @@ public class MainPanel extends AbstractMainPanel {
         }
 
         System.out.println("*** PERSON NOT RECOGNIZED ***");
+        JLabel questionLabel = new JLabel("Person not recognized. Would you like to add them?");
+        questionLabel.setFont(PLabelFont);
         int choice = JOptionPane.showConfirmDialog(mainPanel,
-                "Person not recognized. Would you like to add them?",
+                questionLabel,
                 "Unknown Person",
                 JOptionPane.YES_NO_OPTION);
 
@@ -735,7 +749,10 @@ public class MainPanel extends AbstractMainPanel {
             personManager.deletePerson(personToDelete);
 
             refreshContactsPanel();
-            JOptionPane.showMessageDialog(mainPanel, "Contact Deleted.");
+
+            JLabel successLabel = new JLabel("Contact Deleted.");
+            successLabel.setFont(PLabelFont); // <-- APPLY FONT HERE
+            JOptionPane.showMessageDialog(mainPanel, successLabel);
         }
     }
 
@@ -832,15 +849,18 @@ public class MainPanel extends AbstractMainPanel {
                 bw.write(note);
             }
 
-            String message = "Notes successfully saved. " + editedCount + " notes remaining. " + deletedCount + " notes deleted.";
-            // If a new note was added in the button listener, we skip showing this message
+            String messageText = "Notes successfully saved. " + editedCount + " notes remaining. " + deletedCount + " notes deleted.";
+
+            JLabel messageLabel = new JLabel(messageText);
+            messageLabel.setFont(PLabelFont);
             if (!newNoteAdded) {
-                JOptionPane.showMessageDialog(mainPanel, message, "Edits Saved", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(mainPanel, messageLabel, "Edits Saved", JOptionPane.INFORMATION_MESSAGE);
             }
 
         } catch (IOException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(mainPanel, "Error saving note edits: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JLabel errorLabel = new JLabel("Error saving note edits: " + e.getMessage());
+            errorLabel.setFont(PLabelFont);
+            JOptionPane.showMessageDialog(mainPanel, errorLabel, "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
