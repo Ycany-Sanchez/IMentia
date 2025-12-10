@@ -86,8 +86,6 @@ public class PersonDataManager extends FileHandler
 
     @Override
     public void updatePersons(List<Person> persons) {
-        // Instead of separate savePersons() and updatePersonFile(),
-        // just overwrite the file with the latest list.
         updatePersonFile(persons);
     }
 

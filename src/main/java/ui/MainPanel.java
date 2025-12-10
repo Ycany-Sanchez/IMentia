@@ -101,7 +101,6 @@ public class MainPanel extends AbstractMainPanel {
     private Mat faceImage; // Stored temporarily when capturing a new face
 
     boolean isEditingMeetingNotes = false;
-    boolean isEditingPersonDetails = false;
 
     public MainPanel() {
         // Initialize the Facade Manager
@@ -130,6 +129,7 @@ public class MainPanel extends AbstractMainPanel {
         }
     }
 
+    // UI Setup and Display
     @Override
     protected void setUpUI(){
         videoProcessor = new VideoProcessor();
@@ -409,12 +409,6 @@ public class MainPanel extends AbstractMainPanel {
         });
     }
 
-    private void setScrollbarsIncrement(int num){
-        ContactsScrollPane.getVerticalScrollBar().setUnitIncrement(num);
-        MeetingNotesScrollPane.getVerticalScrollBar().setUnitIncrement(num);
-        MeetingNotesTextAreaScrollPane.getVerticalScrollBar().setUnitIncrement(num);
-    }
-
     protected void setupPersonDetailsForm(Person p){
         // Store reference to current person being displayed
         currentDisplayedPerson = p;
@@ -448,6 +442,96 @@ public class MainPanel extends AbstractMainPanel {
 
         // Display existing meeting notes from file
         displayMeetingNotes(p);
+    }
+
+    private void setupTutorialPanel() {
+        TutorialPanel = new JPanel();
+        TutorialPanel.setLayout(new BorderLayout());
+        TutorialPanel.setBackground(Color.WHITE);
+
+        JPanel headerPanel = new JPanel();
+        headerPanel.setBackground(Color.WHITE);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 0, 20));
+
+        JLabel titleLabel = new JLabel("Welcome to IMentia");
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 36));
+        headerPanel.add(titleLabel);
+
+        TutorialPanel.add(headerPanel, BorderLayout.NORTH);
+
+        String htmlContent = "<html><body style='width: 100%; font-family: sans-serif;'>" +
+                "<div style='padding: 60px 60px 60px 60px;'>" +
+
+                "<p style='font-size: 18px; color: #444; line-height: 1.5; margin-top: 0;'>" +
+                "<b>IMentia</b> is a supportive memory assistant designed to help you recognize loved ones and daily companions.<br/>" +
+                "By storing photos and details of important people, the application provides gentle, real-time reminders <br/>" +
+                "of who someone is and how they are connected to you. With the help of caregivers to manage these memories,<br/> " +
+                "<b>IMentia</b> aims to reduce confusion and strengthen your emotional connections with the people around you.<br/>" +
+                "</p>" +
+
+                "<hr style='margin-top: 30px; margin-bottom: 30px;'>" +
+
+                "<h3>How to use:</h3>" +
+                "<p><b>1. Position yourself:</b><br/>" +
+                "Sit comfortably in front of the camera so the face is clearly visible.</p><br/>" +
+                "<p><b>2. Automatic Recognition:</b><br/>" +
+                "Just look at the screen. If the system knows the person, their name will appear.</p><br/>" +
+                "<p><b>3. Saving a New Person:</b><br/>" +
+                "If the system doesn't know the person, press the <b>'Capture Photo'</b> button to save them.</p><br/>" +
+                "<p><b>4. View List:</b><br/>" +
+                "Press <b>'View Contacts'</b> to see all your saved family and friends.</p>" +
+                "</div></body></html>";
+
+        JLabel textLabel = new JLabel(htmlContent);
+
+        textLabel.setVerticalAlignment(SwingConstants.TOP);
+
+        JScrollPane scrollPane = new JScrollPane(textLabel);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        TutorialPanel.add(scrollPane, BorderLayout.CENTER);
+    }
+
+    protected void displayMeetingNotes(Person person) {
+        JPanel notesPanel = new JPanel();
+        notesPanel.setLayout(new BoxLayout(notesPanel, BoxLayout.Y_AXIS));
+        notesPanel.setBackground(Color.WHITE);
+
+        meetingNoteAreas.clear(); // Clear old references
+
+        try {
+            // Use the MeetingRecord helper to read notes (better data encapsulation)
+            MeetingRecord reader = new MeetingRecord(person, "");
+            List<String> allNotesBlocks = reader.readAllNotes(); // Reads the full blocks with START/END
+
+            if (allNotesBlocks.isEmpty()) {
+                JLabel noNotesLabel = new JLabel("No meeting notes yet.");
+                noNotesLabel.setFont(PLabelFont);
+                noNotesLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                notesPanel.add(noNotesLabel);
+            } else {
+                for (String fullBlock : allNotesBlocks) {
+                    // Extract only the displayable text (Date, Time, Content)
+                    String displayableContent = extractContentFromNoteBlock(fullBlock);
+                    addNoteToPanel(notesPanel, displayableContent);
+                }
+                notesPanel.add(Box.createVerticalGlue());
+            }
+
+        } catch (IOException e) {
+            System.out.println("Error reading meeting notes: " + e.getMessage());
+            e.printStackTrace();
+
+            JLabel errorLabel = new JLabel("Error loading meeting notes.");
+            errorLabel.setFont(PLabelFont);
+            notesPanel.add(errorLabel);
+        }
+
+        MeetingNotesScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        MeetingNotesScrollPane.setViewportView(notesPanel);
+        MeetingNotesScrollPane.revalidate();
+        MeetingNotesScrollPane.repaint();
     }
 
     private void showEditDetailsDialog(Person person) {
@@ -517,7 +601,174 @@ public class MainPanel extends AbstractMainPanel {
         }
     }
 
-    // NEW METHOD to save all edited notes by rewriting the file
+
+    // UI Helpers
+    private void setScrollbarsIncrement(int num){
+        ContactsScrollPane.getVerticalScrollBar().setUnitIncrement(num);
+        MeetingNotesScrollPane.getVerticalScrollBar().setUnitIncrement(num);
+        MeetingNotesTextAreaScrollPane.getVerticalScrollBar().setUnitIncrement(num);
+    }
+
+    protected void updatePanelSizes() {
+        int totalHeight = mainPanel.getHeight();
+        if (totalHeight > 0) {
+            int displayHeight = (int)(totalHeight * 0.87);
+            int buttonHeight = (int)(totalHeight * 0.13);
+
+            DisplayPanel.setPreferredSize(new Dimension(mainPanel.getWidth(), displayHeight));
+            DisplayPanel.setMinimumSize(new Dimension(mainPanel.getWidth(), displayHeight));
+            DisplayPanel.setMaximumSize(new Dimension(mainPanel.getWidth(), displayHeight));
+
+            ButtonPanel.setPreferredSize(new Dimension(mainPanel.getWidth(), buttonHeight));
+            ButtonPanel.setMinimumSize(new Dimension(mainPanel.getWidth(), buttonHeight));
+            ButtonPanel.setMaximumSize(new Dimension(mainPanel.getWidth(), buttonHeight));
+
+            mainPanel.revalidate();
+        }
+    }
+
+    void setButtonFont(Container container){
+        for(Component c1 : container.getComponents()){
+            if(c1 instanceof JButton b){
+                b.setFont(buttonFont);
+            }
+
+            if(c1 instanceof Container c2){
+                setButtonFont(c2);
+            }
+        }
+    }
+
+    void setPLabelFont(Container container){
+        for(Component c1 : container.getComponents()){
+            if(c1 instanceof JLabel l){
+                l.setFont(PLabelFont);
+            }
+
+            if(c1 instanceof JTextField t){
+                t.setFont(PLabelFont);
+            }
+
+            if(c1 instanceof Container c2){
+                setPLabelFont(c2);
+            }
+        }
+    }
+
+    public JPanel getPanel(){
+        return mainPanel;
+    }
+
+    protected void toggleDeleteButton(){
+        for(JPanel panel : contactListPanels){
+            for(Component c : panel.getComponents()){
+                if(c instanceof JButton b){
+                    if(!b.isVisible()) b.setVisible(true);
+                    else b.setVisible(false);
+                }
+            }
+        }
+    }
+
+    // UI Logic
+    protected boolean captureFace() {
+        System.out.println("=== captureFace() called ===");
+        Rect currentFaceRect = videoProcessor.getCurrentFaceRect();
+        Mat currentFrame = videoProcessor.getCurrentFrame();
+
+        if (currentFrame == null || currentFaceRect == null) {
+            System.out.println("No face detected in current frame");
+            JOptionPane.showMessageDialog(mainPanel, "No face detected! Please look at the camera.", "No Face", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
+        System.out.println("Extracting face from frame...");
+
+        faceImage = new Mat(currentFrame, currentFaceRect);
+
+        // *** FACADE USAGE: Recognize ***
+        FaceRecognitionService.RecognitionResult result = personManager.recognizeFace(faceImage);
+
+        if(result.isRecognized()){
+            System.out.println("Person recognized: " + result.getPerson().getId());
+            setupPersonDetailsForm(result.getPerson());
+            CapturePhotoButton.setVisible(false);
+            BackToCameraButton.setVisible(true);
+            TutorialButton.setVisible(false);
+            cardLayout.show(DisplayPanel, "5");
+            return false;
+        }
+
+        System.out.println("*** PERSON NOT RECOGNIZED ***");
+        int choice = JOptionPane.showConfirmDialog(mainPanel,
+                "Person not recognized. Would you like to add them?",
+                "Unknown Person",
+                JOptionPane.YES_NO_OPTION);
+
+        if (choice == JOptionPane.YES_OPTION) {
+            System.out.println("User chose to add new person");
+            return true;
+        } else {
+            System.out.println("User chose not to add person");
+            return false;
+        }
+    }
+
+    protected void deleteContact(Person personToDelete){
+        String htmlMessage =
+                "<html><body style='width: 300px'>" +
+                        "Are you sure you want to delete this person from your contact list?" +
+                        "</body></html>";
+
+        JLabel messageLabel = new JLabel(htmlMessage);
+        messageLabel.setFont(PLabelFont);
+
+        int choice = JOptionPane.showConfirmDialog(
+                mainPanel,
+                messageLabel,
+                "Confirm Delete Person",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (choice == JOptionPane.YES_OPTION) {
+            // *** FACADE USAGE: Delete ***
+            personManager.deletePerson(personToDelete);
+
+            refreshContactsPanel();
+            JOptionPane.showMessageDialog(mainPanel, "Contact Deleted.");
+        }
+    }
+
+    private void addNoteToPanel(JPanel parent, String noteText) {
+        MeetingNotesScrollPane.setVisible(true);
+        MeetingNotesScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+        JTextArea noteArea = new JTextArea(noteText);
+        noteArea.setBackground(Color.WHITE);
+        noteArea.setFocusable(false); // Default state: Not focusable/editable
+        noteArea.setFont(PLabelFont);
+        noteArea.setEditable(false); // Default state
+        noteArea.setLineWrap(true);
+        noteArea.setWrapStyleWord(true);
+
+        Border lineBorder = BorderFactory.createMatteBorder(0, 0, 2, 0, Color.LIGHT_GRAY);
+        Border marginBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+        noteArea.setBorder(BorderFactory.createCompoundBorder(lineBorder, marginBorder));
+
+        noteArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Calculate height based on content
+        // Set a temporary size to allow JTextArea to calculate its preferred height
+        noteArea.setSize(new Dimension(parent.getWidth(), 9999));
+        Dimension preferredSize = noteArea.getPreferredSize();
+
+        noteArea.setMaximumSize(new Dimension(Integer.MAX_VALUE, preferredSize.height));
+
+        parent.add(noteArea);
+
+        meetingNoteAreas.add(noteArea); // <-- ADD TO LIST
+    }
+
     private void saveEditedNotesToFile(boolean newNoteAdded) {
         if (currentDisplayedPerson == null) return;
 
@@ -593,52 +844,6 @@ public class MainPanel extends AbstractMainPanel {
         }
     }
 
-
-    protected void displayMeetingNotes(Person person) {
-        JPanel notesPanel = new JPanel();
-        notesPanel.setLayout(new BoxLayout(notesPanel, BoxLayout.Y_AXIS));
-        notesPanel.setBackground(Color.WHITE);
-
-        meetingNoteAreas.clear(); // Clear old references
-
-        try {
-            // Use the MeetingRecord helper to read notes (better data encapsulation)
-            MeetingRecord reader = new MeetingRecord(person, "");
-            List<String> allNotesBlocks = reader.readAllNotes(); // Reads the full blocks with START/END
-
-            if (allNotesBlocks.isEmpty()) {
-                JLabel noNotesLabel = new JLabel("No meeting notes yet.");
-                noNotesLabel.setFont(PLabelFont);
-                noNotesLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-                notesPanel.add(noNotesLabel);
-            } else {
-                for (String fullBlock : allNotesBlocks) {
-                    // Extract only the displayable text (Date, Time, Content)
-                    String displayableContent = extractContentFromNoteBlock(fullBlock);
-                    addNoteToPanel(notesPanel, displayableContent);
-                }
-                notesPanel.add(Box.createVerticalGlue());
-            }
-
-        } catch (IOException e) {
-            System.out.println("Error reading meeting notes: " + e.getMessage());
-            e.printStackTrace();
-
-            JLabel errorLabel = new JLabel("Error loading meeting notes.");
-            errorLabel.setFont(PLabelFont);
-            notesPanel.add(errorLabel);
-        }
-
-        MeetingNotesScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        MeetingNotesScrollPane.setViewportView(notesPanel);
-        MeetingNotesScrollPane.revalidate();
-        MeetingNotesScrollPane.repaint();
-    }
-
-    /**
-     * Extracts date/time header and content from the full note block string,
-     * removing the START/END tags.
-     */
     private String extractContentFromNoteBlock(String fullBlock) {
         String content = fullBlock.trim();
 
@@ -651,125 +856,6 @@ public class MainPanel extends AbstractMainPanel {
             content = content.substring(0, content.lastIndexOf("----- NOTE END -----")).trim();
         }
         return content;
-    }
-
-    // Helper method to add a note entry to the panel
-    private void addNoteToPanel(JPanel parent, String noteText) {
-        MeetingNotesScrollPane.setVisible(true);
-        MeetingNotesScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-
-        JTextArea noteArea = new JTextArea(noteText);
-        noteArea.setBackground(Color.WHITE);
-        noteArea.setFocusable(false); // Default state: Not focusable/editable
-        noteArea.setFont(PLabelFont);
-        noteArea.setEditable(false); // Default state
-        noteArea.setLineWrap(true);
-        noteArea.setWrapStyleWord(true);
-
-        Border lineBorder = BorderFactory.createMatteBorder(0, 0, 2, 0, Color.LIGHT_GRAY);
-        Border marginBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
-        noteArea.setBorder(BorderFactory.createCompoundBorder(lineBorder, marginBorder));
-
-        noteArea.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        // Calculate height based on content
-        // Set a temporary size to allow JTextArea to calculate its preferred height
-        noteArea.setSize(new Dimension(parent.getWidth(), 9999));
-        Dimension preferredSize = noteArea.getPreferredSize();
-
-        noteArea.setMaximumSize(new Dimension(Integer.MAX_VALUE, preferredSize.height));
-
-        parent.add(noteArea);
-
-        meetingNoteAreas.add(noteArea); // <-- ADD TO LIST
-    }
-
-    protected void updatePanelSizes() {
-        int totalHeight = mainPanel.getHeight();
-        if (totalHeight > 0) {
-            int displayHeight = (int)(totalHeight * 0.87);
-            int buttonHeight = (int)(totalHeight * 0.13);
-
-            DisplayPanel.setPreferredSize(new Dimension(mainPanel.getWidth(), displayHeight));
-            DisplayPanel.setMinimumSize(new Dimension(mainPanel.getWidth(), displayHeight));
-            DisplayPanel.setMaximumSize(new Dimension(mainPanel.getWidth(), displayHeight));
-
-            ButtonPanel.setPreferredSize(new Dimension(mainPanel.getWidth(), buttonHeight));
-            ButtonPanel.setMinimumSize(new Dimension(mainPanel.getWidth(), buttonHeight));
-            ButtonPanel.setMaximumSize(new Dimension(mainPanel.getWidth(), buttonHeight));
-
-            mainPanel.revalidate();
-        }
-    }
-
-    protected void toggleDeleteButton(){
-        for(JPanel panel : contactListPanels){
-            for(Component c : panel.getComponents()){
-                if(c instanceof JButton b){
-                    if(!b.isVisible()) b.setVisible(true);
-                    else b.setVisible(false);
-                }
-            }
-        }
-    }
-
-    public JPanel getPanel(){
-        return mainPanel;
-    }
-
-    void setButtonFont(Container container){
-        for(Component c1 : container.getComponents()){
-            if(c1 instanceof JButton b){
-                b.setFont(buttonFont);
-            }
-
-            if(c1 instanceof Container c2){
-                setButtonFont(c2);
-            }
-        }
-    }
-
-    void setPLabelFont(Container container){
-        for(Component c1 : container.getComponents()){
-            if(c1 instanceof JLabel l){
-                l.setFont(PLabelFont);
-            }
-
-            if(c1 instanceof JTextField t){
-                t.setFont(PLabelFont);
-            }
-
-            if(c1 instanceof Container c2){
-                setPLabelFont(c2);
-            }
-        }
-    }
-
-    protected void refreshContactsPanel() {
-        PersonPanel.removeAll();
-        // *** FACADE USAGE: Get Data ***
-        List<Person> persons = personManager.getAllPersons();
-        int numPersons = persons.size();
-
-        for (int i = 0; i < numPersons; i += 2) {
-
-            Box rowBox = Box.createHorizontalBox();
-            rowBox.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-            JPanel card1 = createPersonEntryPanel(persons.get(i));
-            rowBox.add(card1);
-
-            rowBox.add(Box.createHorizontalStrut(20));
-
-            if (i + 1 < numPersons) {
-                JPanel card2 = createPersonEntryPanel(persons.get(i + 1));
-                rowBox.add(card2);
-                rowBox.add(Box.createHorizontalGlue());
-            } else {
-                rowBox.add(Box.createHorizontalGlue());
-            }
-            PersonPanel.add(rowBox);
-        }
     }
 
     private JPanel createPersonEntryPanel(Person person) {
@@ -868,120 +954,31 @@ public class MainPanel extends AbstractMainPanel {
         return panel;
     }
 
-    protected void deleteContact(Person personToDelete){
-        String htmlMessage =
-                "<html><body style='width: 300px'>" +
-                        "Are you sure you want to delete this person from your contact list?" +
-                        "</body></html>";
+    protected void refreshContactsPanel() {
+        PersonPanel.removeAll();
+        // *** FACADE USAGE: Get Data ***
+        List<Person> persons = personManager.getAllPersons();
+        int numPersons = persons.size();
 
-        JLabel messageLabel = new JLabel(htmlMessage);
-        messageLabel.setFont(PLabelFont);
+        for (int i = 0; i < numPersons; i += 2) {
 
-        int choice = JOptionPane.showConfirmDialog(
-                mainPanel,
-                messageLabel,
-                "Confirm Delete Person",
-                JOptionPane.YES_NO_OPTION
-        );
+            Box rowBox = Box.createHorizontalBox();
+            rowBox.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        if (choice == JOptionPane.YES_OPTION) {
-            // *** FACADE USAGE: Delete ***
-            personManager.deletePerson(personToDelete);
+            JPanel card1 = createPersonEntryPanel(persons.get(i));
+            rowBox.add(card1);
 
-            refreshContactsPanel();
-            JOptionPane.showMessageDialog(mainPanel, "Contact Deleted.");
+            rowBox.add(Box.createHorizontalStrut(20));
+
+            if (i + 1 < numPersons) {
+                JPanel card2 = createPersonEntryPanel(persons.get(i + 1));
+                rowBox.add(card2);
+                rowBox.add(Box.createHorizontalGlue());
+            } else {
+                rowBox.add(Box.createHorizontalGlue());
+            }
+            PersonPanel.add(rowBox);
         }
     }
 
-    protected boolean captureFace() {
-        System.out.println("=== captureFace() called ===");
-        Rect currentFaceRect = videoProcessor.getCurrentFaceRect();
-        Mat currentFrame = videoProcessor.getCurrentFrame();
-
-        if (currentFrame == null || currentFaceRect == null) {
-            System.out.println("No face detected in current frame");
-            JOptionPane.showMessageDialog(mainPanel, "No face detected! Please look at the camera.", "No Face", JOptionPane.WARNING_MESSAGE);
-            return false;
-        }
-
-        System.out.println("Extracting face from frame...");
-
-        faceImage = new Mat(currentFrame, currentFaceRect);
-
-        // *** FACADE USAGE: Recognize ***
-        FaceRecognitionService.RecognitionResult result = personManager.recognizeFace(faceImage);
-
-        if(result.isRecognized()){
-            System.out.println("Person recognized: " + result.getPerson().getId());
-            setupPersonDetailsForm(result.getPerson());
-            CapturePhotoButton.setVisible(false);
-            BackToCameraButton.setVisible(true);
-            TutorialButton.setVisible(false);
-            cardLayout.show(DisplayPanel, "5");
-            return false;
-        }
-
-        System.out.println("*** PERSON NOT RECOGNIZED ***");
-        int choice = JOptionPane.showConfirmDialog(mainPanel,
-                "Person not recognized. Would you like to add them?",
-                "Unknown Person",
-                JOptionPane.YES_NO_OPTION);
-
-        if (choice == JOptionPane.YES_OPTION) {
-            System.out.println("User chose to add new person");
-            return true;
-        } else {
-            System.out.println("User chose not to add person");
-            return false;
-        }
-    }
-
-    private void setupTutorialPanel() {
-        TutorialPanel = new JPanel();
-        TutorialPanel.setLayout(new BorderLayout());
-        TutorialPanel.setBackground(Color.WHITE);
-
-        JPanel headerPanel = new JPanel();
-        headerPanel.setBackground(Color.WHITE);
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 0, 20));
-
-        JLabel titleLabel = new JLabel("Welcome to IMentia");
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 36));
-        headerPanel.add(titleLabel);
-
-        TutorialPanel.add(headerPanel, BorderLayout.NORTH);
-
-        String htmlContent = "<html><body style='width: 100%; font-family: sans-serif;'>" +
-                "<div style='padding: 60px 60px 60px 60px;'>" +
-
-                "<p style='font-size: 18px; color: #444; line-height: 1.5; margin-top: 0;'>" +
-                "<b>IMentia</b> is a supportive memory assistant designed to help you recognize loved ones and daily companions.<br/>" +
-                "By storing photos and details of important people, the application provides gentle, real-time reminders <br/>" +
-                "of who someone is and how they are connected to you. With the help of caregivers to manage these memories,<br/> " +
-                "<b>IMentia</b> aims to reduce confusion and strengthen your emotional connections with the people around you.<br/>" +
-                "</p>" +
-
-                "<hr style='margin-top: 30px; margin-bottom: 30px;'>" +
-
-                "<h3>How to use:</h3>" +
-                "<p><b>1. Position yourself:</b><br/>" +
-                "Sit comfortably in front of the camera so the face is clearly visible.</p><br/>" +
-                "<p><b>2. Automatic Recognition:</b><br/>" +
-                "Just look at the screen. If the system knows the person, their name will appear.</p><br/>" +
-                "<p><b>3. Saving a New Person:</b><br/>" +
-                "If the system doesn't know the person, press the <b>'Capture Photo'</b> button to save them.</p><br/>" +
-                "<p><b>4. View List:</b><br/>" +
-                "Press <b>'View Contacts'</b> to see all your saved family and friends.</p>" +
-                "</div></body></html>";
-
-        JLabel textLabel = new JLabel(htmlContent);
-
-        textLabel.setVerticalAlignment(SwingConstants.TOP);
-
-        JScrollPane scrollPane = new JScrollPane(textLabel);
-        scrollPane.setBorder(null);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-
-        TutorialPanel.add(scrollPane, BorderLayout.CENTER);
-    }
 }
