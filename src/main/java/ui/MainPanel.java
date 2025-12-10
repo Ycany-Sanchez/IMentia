@@ -16,6 +16,7 @@ import util.PersonDataManager;
 
 import org.bytedeco.opencv.opencv_core.*;
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
@@ -538,6 +539,7 @@ public class MainPanel extends AbstractMainPanel {
                     for (String note : allNotes) {
                         addNoteToPanel(notesPanel, note);
                     }
+                    notesPanel.add(Box.createVerticalGlue());
                 }
 
             } else {
@@ -574,6 +576,15 @@ public class MainPanel extends AbstractMainPanel {
         noteArea.setEditable(false);
         noteArea.setLineWrap(true);
         noteArea.setWrapStyleWord(true);
+
+        Border lineBorder = BorderFactory.createMatteBorder(0, 0, 2, 0, Color.LIGHT_GRAY);
+        Border marginBorder = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+        noteArea.setBorder(BorderFactory.createCompoundBorder(lineBorder, marginBorder));
+
+        noteArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+        Dimension preferredSize = noteArea.getPreferredSize();
+
+        noteArea.setMaximumSize(new Dimension(Integer.MAX_VALUE, preferredSize.height));
         parent.add(noteArea);
     }
 
