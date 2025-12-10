@@ -286,12 +286,23 @@
                   <scrollpane id="8c846" binding="MeetingNotesScrollPane">
                     <constraints>
                       <grid row="1" column="0" row-span="1" col-span="2" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-                      <gridbag top="0" left="10" bottom="0" right="10" weightx="1.0" weighty="0.9"/>
+                      <gridbag top="0" left="10" bottom="0" right="10" weightx="1.0" weighty="0.4"/>
                     </constraints>
                     <properties/>
                     <border type="none"/>
                     <children/>
                   </scrollpane>
+                  <component id="1c273" class="javax.swing.JTextArea" binding="MeetingNotesTextArea">
+                    <constraints>
+                      <grid row="2" column="0" row-span="1" col-span="2" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                        <preferred-size width="150" height="50"/>
+                      </grid>
+                      <gridbag top="10" left="10" bottom="10" right="10" weightx="0.0" weighty="0.5"/>
+                    </constraints>
+                    <properties>
+                      <foreground color="-1776412"/>
+                    </properties>
+                  </component>
                 </children>
               </grid>
             </children>

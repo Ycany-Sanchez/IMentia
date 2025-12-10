@@ -58,6 +58,7 @@ public class MainPanel {
     private JLabel PersonDetailPersonRel;
     private JLabel PersonDetailNameLabel;
     private JLabel PersonDetailRelLabel;
+    private JTextArea MeetingNotesTextArea;
 
     private List<JPanel> contactListPanels = new ArrayList<>();
 
@@ -95,6 +96,9 @@ public class MainPanel {
     private Mat currentFrame;
     private Rect currentFaceRect;
     private boolean running = true;
+
+    boolean isEditingMeetingNotes = false;
+
 
 
     public MainPanel(){
@@ -140,6 +144,9 @@ public class MainPanel {
         // Add the new Details Panel as card "5"
       //  DisplayPanel.add(PersonDetailsPanel, "5");
         DisplayPanel.add(PersonDetailsForm, "5");
+
+        MeetingNotesTextArea.setVisible(false);
+        MeetingNotesTextArea.setText("Add meeting notes here...");
 
 
         tempFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -278,6 +285,50 @@ public class MainPanel {
                 PersonRelationshipField.setText("");
             }
         });
+
+
+        ADDMEETINGNOTESButton.addActionListener(e->{
+
+            isEditingMeetingNotes = !isEditingMeetingNotes;
+
+            if(isEditingMeetingNotes){
+                MeetingNotesTextArea.setVisible(true);
+                ADDMEETINGNOTESButton.setText("SAVE MEETING NOTES");
+
+            } else {
+                MeetingNotesTextArea.setVisible(false);
+                ADDMEETINGNOTESButton.setText("ADD MEETING NOTES");
+            }
+
+        });
+
+        MeetingNotesTextArea.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (MeetingNotesTextArea.getText().equals("Add meeting notes here...")) {
+                    MeetingNotesTextArea.setText("");
+                    MeetingNotesTextArea.setForeground(Color.BLACK); // Change back to standard text color
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (MeetingNotesTextArea.getText().isEmpty()) {
+                    MeetingNotesTextArea.setForeground(Color.GRAY); // Set back to placeholder color
+                    MeetingNotesTextArea.setText("Add meeting notes here...");
+                }
+            }
+
+
+        });
+        mainPanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                // Request focus when the user clicks the background panel
+                mainPanel.requestFocusInWindow();
+            }
+        });
+
 
     }
 
