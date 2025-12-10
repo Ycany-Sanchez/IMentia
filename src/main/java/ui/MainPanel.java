@@ -1,10 +1,10 @@
 // >>> FILE: src/main/java/ui/MainPanel.java
 package ui;
+import people.MeetingRecord;
+import people.Person;
 
 import org.bytedeco.opencv.opencv_core.*;
 import org.bytedeco.opencv.opencv_core.Point;
-import people.MeetingRecord;
-import people.Person;
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
 import org.bytedeco.opencv.opencv_videoio.VideoCapture;
 import service.FaceRecognitionService;
@@ -24,66 +24,67 @@ import static org.bytedeco.opencv.global.opencv_imgproc.*;
 import static org.bytedeco.opencv.global.opencv_imgproc.LINE_8;
 
 public class MainPanel {
+
+    //PANELS
     private JPanel mainPanel;
-    private JButton CapturePhotoButton;
-    private JButton ViewContactsButton;
-    private JButton TutorialButton;
     private JPanel CameraPanel;
     private JPanel ContactsPanel;
     private JPanel TutorialPanel;
     private JPanel PersonFormPanel;
     private JPanel PersonDetailsForm;
-    private JButton EditContactButton;
-    private JButton DeleteButton;
     private JPanel DisplayPanel;
     private JPanel ButtonPanel;
     private JPanel PersonPanel;
-    private JButton BackToCameraButton;
-    private JLabel PersonImageLabel;
-    private JTextField PersonNameField;
-    private JButton SavePersonInfoButton;
-    private JLabel PersonNameLabel;
     private JPanel NamePanel;
     private JPanel RelationshipPanel;
-    private JLabel PersonRelationshipLabel;
-    private JTextField PersonRelationshipField;
-    private JScrollPane ContactsScrollPane;
-    private JLabel PersonDetailsImageLabel;
     private JPanel PersonDetailsTopSection;
     private JPanel PersonDetailsBottomSection;
+    //BUTTONS
+    private JButton CapturePhotoButton;
+    private JButton ViewContactsButton;
+    private JButton TutorialButton;
+    private JButton EditContactButton;
+    private JButton BackToCameraButton;
+    private JButton SavePersonInfoButton;
     private JButton ADDMEETINGNOTESButton;
     private JButton EDITCONTACTButton;
-    private JScrollPane MeetingNotesScrollPane;
+
+    //LABEL
+    private JLabel PersonNameLabel;
+    private JLabel PersonImageLabel;
+    private JLabel PersonRelationshipLabel;
     private JLabel MeetingNotesLabel;
     private JLabel PersonDetailPersonName;
     private JLabel PersonDetailPersonRel;
     private JLabel PersonDetailNameLabel;
     private JLabel PersonDetailRelLabel;
+    private JLabel PersonDetailsImageLabel;
+
+    //TEXTFIELD
+    private JTextField PersonNameField;
+    private JTextField PersonRelationshipField;
+
+    //SCROLLPANE
+    private JScrollPane ContactsScrollPane;
+    private JScrollPane MeetingNotesScrollPane;
+
+    //TEXTAREA
     private JTextArea MeetingNotesTextArea;
 
-    private List<JPanel> contactListPanels = new ArrayList<>();
 
-    private JLabel personInfoLabel = new JLabel();
-
-    // --- NEW VARIABLES FOR DETAILS PANEL ---
-    private JPanel PersonDetailsPanel;
-    private JLabel detailsImageLabel;
-    private JLabel detailsNameLabel;
-    private JLabel detailsRelationLabel;
-    private JPanel notesListPanel;
-    private Person currentDisplayedPerson;
-    // ---------------------------------------
-
-    private CardLayout cardLayout = new CardLayout();
-    private boolean isEditing = false;
-    private JFrame tempFrame = new JFrame();
-
+    //FONTS
     private Font buttonFont = new Font("", Font.BOLD, 24);
     private Font HLabelFont = new Font("", Font.BOLD, 20);
     private Font PLabelFont = new Font("", Font.PLAIN, 20);
 
-    private boolean hasSaved = false;
 
+    //OTHERS
+    private List<JPanel> contactListPanels = new ArrayList<>();
+    private Person currentDisplayedPerson;
+    private CardLayout cardLayout = new CardLayout();
+    private boolean isEditing = false;
+    private JFrame tempFrame = new JFrame();
+    private boolean hasSaved = false;
     private VideoCapture camera;
     private Mat faceImage;
     private CascadeClassifier faceDetector;
@@ -92,12 +93,9 @@ public class MainPanel {
     private List<Person> persons;
     private String PersonName;
     private String PersonRelationship;
-
     private VideoPanel videoPanel;
     private Mat currentFrame;
     private Rect currentFaceRect;
-    private boolean running = true;
-
     boolean isEditingMeetingNotes = false;
 
 
@@ -113,7 +111,6 @@ public class MainPanel {
         setupTutorialPanel();
 
         // Initialize the new Details UI
-//        setupPersonDetailsPanel();
 
         mainPanel.addComponentListener(new ComponentAdapter() {
             @Override
@@ -513,181 +510,6 @@ public class MainPanel {
         panel.add(Box.createVerticalStrut(10)); // Spacing between notes
     }
 
-//    private void setupPersonDetailsPanel() {
-//        PersonDetailsPanel = new JPanel(new BorderLayout());
-//        PersonDetailsPanel.setBackground(new Color(230, 230, 230));
-//
-//        // 1. Top Section (Image + Info) -> Goes to NORTH
-//        JPanel topSection = new JPanel(new BorderLayout(20, 0));
-//        topSection.setOpaque(false);
-//        topSection.setBorder(BorderFactory.createEmptyBorder(30, 40, 20, 40));
-//
-//        // Image Label - Fixed Size to prevent stretching
-//        detailsImageLabel = new JLabel();
-//        Dimension imageSize = new Dimension(200, 200);
-//        detailsImageLabel.setPreferredSize(imageSize);
-//        detailsImageLabel.setMinimumSize(imageSize);
-//        detailsImageLabel.setMaximumSize(imageSize);
-//        detailsImageLabel.setSize(imageSize);
-//        detailsImageLabel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
-//        detailsImageLabel.setOpaque(true);
-//        detailsImageLabel.setBackground(Color.LIGHT_GRAY);
-//        detailsImageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-//        detailsImageLabel.setVerticalAlignment(SwingConstants.CENTER);
-//
-//        // Text Info Panel
-//        JPanel infoTextPanel = new JPanel();
-//        infoTextPanel.setLayout(new BoxLayout(infoTextPanel, BoxLayout.Y_AXIS));
-//        infoTextPanel.setOpaque(false);
-//
-//        detailsNameLabel = new JLabel("Name Placeholder");
-//        detailsNameLabel.setFont(new Font("SansSerif", Font.BOLD, 28));
-//
-//        detailsRelationLabel = new JLabel("Relation Placeholder");
-//        detailsRelationLabel.setFont(new Font("SansSerif", Font.BOLD, 22));
-//        detailsRelationLabel.setForeground(Color.DARK_GRAY);
-//
-//        infoTextPanel.add(Box.createVerticalStrut(40));
-//        infoTextPanel.add(detailsNameLabel);
-//        infoTextPanel.add(Box.createVerticalStrut(15));
-//        infoTextPanel.add(detailsRelationLabel);
-//
-//        // Edit Button (Top Right)
-//        JPanel editButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-//        editButtonPanel.setOpaque(false);
-//        JButton editDetailsButton = new JButton("EDIT CONTACT");
-//        editDetailsButton.setFont(buttonFont);
-//        editButtonPanel.add(editDetailsButton);
-//
-//        topSection.add(detailsImageLabel, BorderLayout.WEST);
-//        topSection.add(infoTextPanel, BorderLayout.CENTER);
-//        topSection.add(editButtonPanel, BorderLayout.EAST);
-//
-//        // 2. Middle Section (Notes) -> Goes to CENTER (Fills remaining space)
-//        JPanel notesSection = new JPanel(new BorderLayout(0, 5));
-//        notesSection.setOpaque(false);
-//        notesSection.setBorder(BorderFactory.createEmptyBorder(10, 40, 40, 40));
-//
-//        // Header
-//        JPanel notesHeader = new JPanel(new BorderLayout());
-//        notesHeader.setOpaque(false);
-//
-//        JLabel notesTitle = new JLabel("Notes From Your Meetings");
-//        notesTitle.setFont(new Font("SansSerif", Font.PLAIN, 20));
-//
-//        JButton addNoteButton = new JButton("ADD MEETING NOTES");
-//        addNoteButton.setFont(buttonFont);
-//
-//        notesHeader.add(notesTitle, BorderLayout.WEST);
-//        notesHeader.add(addNoteButton, BorderLayout.EAST);
-//
-//        // Notes List
-//        notesListPanel = new JPanel();
-//        notesListPanel.setLayout(new BoxLayout(notesListPanel, BoxLayout.Y_AXIS));
-//        notesListPanel.setBackground(Color.WHITE);
-//
-//        // Wrapper
-//        JPanel notesWrapper = new JPanel(new BorderLayout());
-//        notesWrapper.setBackground(Color.WHITE);
-//        notesWrapper.add(notesListPanel, BorderLayout.NORTH);
-//
-//        JScrollPane notesScroll = new JScrollPane(notesWrapper);
-//        notesScroll.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
-//
-//        notesSection.add(notesHeader, BorderLayout.NORTH);
-//        notesSection.add(notesScroll, BorderLayout.CENTER);
-//
-//        // 3. Assemble
-//        PersonDetailsPanel.add(topSection, BorderLayout.NORTH);
-//        PersonDetailsPanel.add(notesSection, BorderLayout.CENTER);
-//
-//        // --- BUTTON ACTIONS ---
-//        addNoteButton.addActionListener(e -> {
-//            if(currentDisplayedPerson != null) {
-//                JOptionPane.showMessageDialog(mainPanel, "Add note feature coming soon for " + currentDisplayedPerson.getName());
-//            }
-//        });
-//
-//        editDetailsButton.addActionListener(e -> {
-//            if(currentDisplayedPerson != null) {
-//                JOptionPane.showMessageDialog(mainPanel, "Edit feature coming soon.");
-//            }
-//        });
-//    }
-//
-//    // --- UPDATED METHOD: Accepts an optional directImage for immediate display ---
-//    private void showPersonDetails(Person person, Mat directImage) {
-//        this.currentDisplayedPerson = person;
-//
-//        // Populate Text
-//        detailsNameLabel.setText("<html>Person's Name: &nbsp;&nbsp; " + person.getName() + "</html>");
-//        detailsRelationLabel.setText("<html>Your Relation: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; " + person.getRelationship() + "</html>");
-//
-//        BufferedImage buff = null;
-//
-//        try {
-//            // 1. Priority: Use the image passed directly (from Save action)
-//            if (directImage != null && !directImage.empty()) {
-//                buff = ImageUtils.matToBufferedImage(directImage);
-//            }
-//            // 2. Fallback: Load from disk (from Contact List action)
-//            else {
-//                String filePath = "saved_faces/" + person.getId() + ".png";
-//                File imgFile = new File(filePath);
-//                if (imgFile.exists()) {
-//                    Mat faceMat = ImageUtils.loadMatFromFile(filePath);
-//                    if (faceMat != null && !faceMat.empty()) {
-//                        buff = ImageUtils.matToBufferedImage(faceMat);
-//                    }
-//                }
-//            }
-//
-//            // 3. Render the image if found
-//            if (buff != null) {
-//                // Logic to Fit Image within 200x200 maintaining aspect ratio
-//                int originalW = buff.getWidth();
-//                int originalH = buff.getHeight();
-//                int targetW = 200;
-//                int targetH = 200;
-//
-//                int newW = targetW;
-//                int newH = (originalH * targetW) / originalW;
-//
-//                if (newH > targetH) {
-//                    newH = targetH;
-//                    newW = (originalW * targetH) / originalH;
-//                }
-//
-//                Image scaled = buff.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
-//                detailsImageLabel.setIcon(new ImageIcon(scaled));
-//                detailsImageLabel.setText("");
-//            } else {
-//                detailsImageLabel.setIcon(null);
-//                detailsImageLabel.setText("No Image");
-//            }
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            detailsImageLabel.setIcon(null);
-//            detailsImageLabel.setText("Error");
-//        }
-//
-//        // Clear Notes
-//        notesListPanel.removeAll();
-//        notesListPanel.revalidate();
-//        notesListPanel.repaint();
-//
-//        // Switch View to Details
-//        cardLayout.show(DisplayPanel, "5");
-//
-//        // Manage Footer
-//        CapturePhotoButton.setVisible(false);
-//        TutorialButton.setVisible(false);
-//
-//        BackToCameraButton.setVisible(true);
-//        ViewContactsButton.setVisible(true);
-//    }
-
 
     private void saveFaceImage(String personID, Mat imageToSave) {
         String directoryPath = "saved_faces/";
@@ -989,7 +811,7 @@ public class MainPanel {
             int missedDetectionCount = 0;
             int maxMissedDetections = 60;
 
-            while (running) {
+            while (true) {
                 if (!camera.read(frame)) {
                     continue;
                 }
@@ -1107,31 +929,6 @@ public class MainPanel {
             return false;
         }
     }
-//
-//    private void showRecognizedPerson(Person person, double confidence) {
-//        System.out.println("Showing recognized person dialog for: " + person.getName());
-//
-//        String confidenceLevel = getConfidenceDescription(confidence);
-//        personInfoLabel.setText("Recognized: " + person.getName() + " - " + confidenceLevel);
-//
-//        String message = String.format(
-//                "<html><center>" +
-//                        "<h1 style='font-size: 32px; margin: 10px;'>%s</h1>" +
-//                        "<h2 style='font-size: 24px; color: #666; margin: 10px;'>%s</h2>" +
-//                        "<div style='margin-top: 20px; padding: 10px; background-color: %s; border-radius: 5px;'>" +
-//                        "<p style='font-size: 18px; margin: 5px;'><b>Match Quality:</b> %s</p>" +
-//                        "<p style='font-size: 14px; color: #666; margin: 5px;'>Confidence Score: %.1f</p>" +
-//                        "</div>" +
-//                        "</center></html>",
-//                person.getName(),
-//                person.getRelationship(),
-//                getConfidenceColor(confidence),
-//                confidenceLevel,
-//                confidence
-//        );
-//
-//        JOptionPane.showMessageDialog(mainPanel, message,"Person Recognized!", JOptionPane.INFORMATION_MESSAGE);
-//    }
 
     private String getConfidenceDescription(double confidence) {
         if (confidence < 40) return "Excellent Match";
