@@ -4,9 +4,7 @@ import people.MeetingRecord;
 import people.Person;
 
 import org.bytedeco.opencv.opencv_core.*;
-import org.bytedeco.opencv.opencv_core.Point;
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
-import org.bytedeco.opencv.opencv_videoio.VideoCapture;
 import service.FaceRecognitionService;
 import util.FileHandler;
 import util.ImageUtils;
@@ -21,8 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
-import static org.bytedeco.opencv.global.opencv_imgproc.*;
-import static org.bytedeco.opencv.global.opencv_imgproc.LINE_8;
 
 public class MainPanel extends JPanel{
 
@@ -71,6 +67,11 @@ public class MainPanel extends JPanel{
 
     //TEXTAREA
     private JTextArea MeetingNotesTextArea;
+    private JEditorPane editorPane1;
+    private JButton SAVEEDITButton;
+    private JButton CANCELEDITButton;
+    private JTextField PersonNameEdit;
+    private JTextField PersonRelEdit;
 
 
     //FONTS
@@ -97,6 +98,7 @@ public class MainPanel extends JPanel{
     private String PersonRelationship;
     private Mat currentFrame;
     boolean isEditingMeetingNotes = false;
+    boolean isEditingPersonDetails = false;
 
 
     public MainPanel(){
@@ -150,6 +152,9 @@ public class MainPanel extends JPanel{
 
         setButtonFont(mainPanel);
         setPLabelFont(mainPanel);
+
+
+
 
         cardLayout.show(DisplayPanel, "1");
         EditContactButton.setFont(new Font("", Font.BOLD, 24));
@@ -367,6 +372,24 @@ public class MainPanel extends JPanel{
             public void mouseClicked(MouseEvent e) {
                 // Request focus when the user clicks the background panel
                 mainPanel.requestFocusInWindow();
+            }
+        });
+
+        EDITCONTACTButton.addActionListener(e->{
+            isEditingPersonDetails = !isEditingPersonDetails;
+            if(isEditingPersonDetails){
+                EDITCONTACTButton.setVisible(false);
+                SAVEEDITButton.setVisible(true);
+                CANCELEDITButton.setVisible(true);
+
+                PersonNameEdit.setVisible(true);
+                PersonRelEdit.setVisible(true);
+                PersonNameEdit.setText(currentDisplayedPerson.getName());
+                PersonRelEdit.setText(currentDisplayedPerson.getRelationship());
+
+                PersonDetailPersonName.setVisible(false);
+                PersonDetailPersonRel.setVisible(false);
+
             }
         });
 
