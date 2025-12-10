@@ -3,9 +3,8 @@ import util.FileHandler;
 import java.io.*;
 import java.nio.file.Paths;
 import java.time.LocalDate; // import the LocalDate clas
-import java.time.LocalDateTime;
 import java.time.LocalTime; // import the LocalTime class
-
+import java.time.temporal.ChronoUnit;
 
 public class MeetingRecord {
 
@@ -37,13 +36,14 @@ public class MeetingRecord {
     }
     public void createFile() {
         String fileName = Paths.get(fileHandler.getDataFolder(), FolderName, p.getId() + ".txt").toString();
-        LocalTime time = LocalTime.now();
+        LocalTime time = LocalTime.now().truncatedTo(ChronoUnit.SECONDS);
         LocalDate date = LocalDate.now();
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileName, true))){
             bw.write("----- NOTE START -----\n");
             bw.write(date + "\n");
             bw.write(time + "\n");
-            bw.write(conv + "\n");   // conv already contains all user-entered newlines
+            bw.write("\n" + conv + "\n");   // conv already contains all user-entered newlines
+            bw.write("____________________________________________________________________________________________________________________________________________________________________\n");
             bw.write("----- NOTE END -----\n");
             bw.write("\n"); // spacing between notes
         } catch (IOException e) {}
