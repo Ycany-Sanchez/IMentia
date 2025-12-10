@@ -6,6 +6,7 @@ import people.Person;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
@@ -28,7 +29,7 @@ public class FileHandler {
         File folder = new File(DATA_FOLDER);
         if (!folder.exists()) {
             System.out.println("Creating data folder: " + DATA_FOLDER);
-            folder.mkdir();
+            folder.mkdirs();
         }
     }
 
@@ -96,7 +97,9 @@ public class FileHandler {
                 Person p = new Person(capitalizeLabel(arr[1]), capitalizeLabel(arr[2]));
                 p.setId(id);
                 try {
-                    File imgFile = new File("saved_faces/", id + ".png");
+                    String directoryPath = Paths.get(DATA_FOLDER, "saved_faces").toString();
+                    String filePath = Paths.get(directoryPath, id + ".png").toString();
+                    File imgFile = new File(filePath);
                     if(imgFile.exists()){
                         BufferedImage img = ImageIO.read(imgFile);
                         p.setPersonImage(img);

@@ -19,10 +19,19 @@ public class MeetingRecord {
         this.p = p;
         this.conv = conv;
         this.fileHandler = new FileHandler();
-        File folder = new File(Paths.get(fileHandler.getDataFolder(),FolderName).toString());
+        File folder = Paths.get(fileHandler.getDataFolder(), FolderName).toAbsolutePath().toFile();
+
+        System.out.println("[MeetingRecord] Targeted Folder Path: " + folder.getAbsolutePath());
+        System.out.println("[MeetingRecord] Does folder exist? " + folder.exists());
+
         if (!folder.exists()) {
-            System.out.println("Creating data folder: " + FolderName);
-            folder.mkdir();
+            System.out.println("Attempting to create directory at: " + folder.getAbsolutePath());
+            boolean created = folder.mkdirs(); // mkdirs() creates parent directories too
+            if (created) {
+                System.out.println("Directory created successfully.");
+            } else {
+                System.err.println("FAILED to create directory.");
+            }
         }
     }
     public void createFile() {

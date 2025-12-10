@@ -3,6 +3,7 @@ package service;
 
 import java.io.PrintStream;
 import java.nio.IntBuffer;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import org.bytedeco.opencv.global.opencv_core;
@@ -13,6 +14,7 @@ import org.bytedeco.opencv.opencv_core.Size;
 import org.bytedeco.opencv.opencv_face.LBPHFaceRecognizer;
 import people.FaceData;
 import people.Person;
+import util.FileHandler;
 import util.ImageUtils;
 
 /**
@@ -177,7 +179,10 @@ public class FaceRecognitionService {
 
             try {
                 // 1. LOAD IMAGE: Read the image file from disk. IMREAD_COLOR (code 1) is often safer.
-                Mat faceMat = ImageUtils.loadMatFromFile("saved_faces/" + person.getId() + ".png");
+                FileHandler fileHandler = new FileHandler();
+                String directoryPath = Paths.get(fileHandler.getDataFolder(), "saved_faces").toString();
+                String filePath = Paths.get(directoryPath, person.getId() + ".png").toString();
+                Mat faceMat = ImageUtils.loadMatFromFile(filePath);
 
                 if (faceMat.empty()) {
                     System.out.println("  ✗ ERROR: Could not load image from path");

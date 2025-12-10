@@ -16,6 +16,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -286,7 +287,7 @@ public class MainPanel extends JPanel{
         // Update the ADDMEETINGNOTESButton ActionListener to save meeting notes
         ADDMEETINGNOTESButton.addActionListener(e->{
             isEditingMeetingNotes = !isEditingMeetingNotes;
-
+            System.out.println("ADd meeting notes clicked. is editing? " + isEditingMeetingNotes);
             if(isEditingMeetingNotes){
                 MeetingNotesTextArea.setVisible(true);
                 ADDMEETINGNOTESButton.setText("SAVE MEETING NOTES");
@@ -299,6 +300,7 @@ public class MainPanel extends JPanel{
                     // Find the current person being displayed and add the note
                     if (currentDisplayedPerson != null) {
                         try {
+                            System.out.println("This line reached for creation of meeting record");
                             // Create new conversation/meeting record for the person
                             MeetingRecord record = currentDisplayedPerson.newConversation(noteText);
 
@@ -409,15 +411,20 @@ public class MainPanel extends JPanel{
         String FolderName = "Meeting_Notes";
 
         try {
-            String fileName = person.getId() + ".txt";
-            File notesFile = new File(fileHandler.getDataFolder() + "/" + FolderName + fileName);
+            //String fileName = person.getId() + ".txt";
+            //File notesFile = new File(fileHandler.getDataFolder() + "/" + FolderName + fileName);
+
+            String directoryPath = Paths.get(fileHandler.getDataFolder(), FolderName).toString();
+            String filePath = Paths.get(directoryPath, person.getId() + ".txt").toString();
+
+            File notesFile = new File(filePath);
 
             System.out.println("Trying to load notes from: " + notesFile.getAbsolutePath());
             System.out.println("File exists: " + notesFile.exists());
 
             if (notesFile.exists()) {
                 List<String> allNotes = new ArrayList<>();
-                try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+                try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
                     String line;
                     StringBuilder currentNote = new StringBuilder();
                     boolean skipFirstBlock = true; // Skip the person info header
@@ -510,8 +517,8 @@ public class MainPanel extends JPanel{
 
 
     private void saveFaceImage(String personID, Mat imageToSave) {
-        String directoryPath = "saved_faces/";
-        String filePath = directoryPath + personID + ".png";
+        String directoryPath = Paths.get(fileHandler.getDataFolder(), "saved_faces").toString();
+        String filePath = Paths.get(directoryPath, personID + ".png").toString();
 
         File directory = new File(directoryPath);
         if (!directory.exists()) {
@@ -637,7 +644,8 @@ public class MainPanel extends JPanel{
         imageLabel.setMinimumSize(new Dimension(160, 160));
 
         try {
-            String filePath = "saved_faces/" + person.getId() + ".png";
+            String directoryPath = Paths.get(fileHandler.getDataFolder(), "saved_faces").toString();
+            String filePath = Paths.get(directoryPath, person.getId() + ".png").toString();
             File imageFile = new File(filePath);
             if (imageFile.exists()) {
                 Mat faceMat = ImageUtils.loadMatFromFile(filePath);
