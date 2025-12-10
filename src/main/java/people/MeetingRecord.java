@@ -5,6 +5,7 @@ import java.io.*;
 import java.nio.file.Paths;
 
 import util.FileHandler;
+import util.PersonDataManager;
 
 public class MeetingRecord {
 
@@ -18,7 +19,7 @@ public class MeetingRecord {
     public MeetingRecord(Person p, String conv) {
         this.p = p;
         this.conv = conv;
-        this.fileHandler = new FileHandler();
+        this.fileHandler = new PersonDataManager();
         File folder = Paths.get(fileHandler.getDataFolder(), FolderName).toAbsolutePath().toFile();
 
         System.out.println("[MeetingRecord] Targeted Folder Path: " + folder.getAbsolutePath());

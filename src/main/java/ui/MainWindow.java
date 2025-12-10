@@ -8,6 +8,7 @@ import org.bytedeco.opencv.opencv_videoio.VideoCapture;
 import service.FaceRecognitionService;
 import util.FileHandler;
 import util.ImageUtils;
+import util.PersonDataManager;
 
 // Static imports for OpenCV functions
 import static org.bytedeco.opencv.global.opencv_imgproc.*;
@@ -34,7 +35,7 @@ public class MainWindow extends JFrame {
     private VideoCapture camera;
     private CascadeClassifier faceDetector;
     private FaceRecognitionService recognitionService;
-    private FileHandler fileHandler;
+    private PersonDataManager fileHandler;
     private List<Person> persons;
 
     private Mat currentFrame; // Holds the last captured raw frame
@@ -45,7 +46,7 @@ public class MainWindow extends JFrame {
         System.out.println("=== MainWindow Constructor START ===");
 
         this.faceDetector = faceDetector;
-        this.fileHandler = new FileHandler();
+        this.fileHandler = new PersonDataManager();
         this.recognitionService = new FaceRecognitionService();
 
         // 1. Data Loading & Initial Training

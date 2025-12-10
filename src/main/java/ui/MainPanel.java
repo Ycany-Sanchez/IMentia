@@ -8,6 +8,7 @@ import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
 import service.FaceRecognitionService;
 import util.FileHandler;
 import util.ImageUtils;
+import util.PersonDataManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -87,7 +88,7 @@ public class MainPanel extends AbstractMainPanel {
     private Mat faceImage;
     private CascadeClassifier faceDetector;
     private FaceRecognitionService recognitionService;
-    private FileHandler fileHandler;
+    private PersonDataManager fileHandler;
     private List<Person> persons;
     private String PersonName;
     private String PersonRelationship;
@@ -95,7 +96,7 @@ public class MainPanel extends AbstractMainPanel {
     boolean isEditingMeetingNotes = false;
 
     public MainPanel(){
-        this.fileHandler = new FileHandler();
+        this.fileHandler = new PersonDataManager();
         persons = fileHandler.loadPersonFile();
 
         this.recognitionService = new FaceRecognitionService();
@@ -247,7 +248,7 @@ public class MainPanel extends AbstractMainPanel {
             if (op == JOptionPane.YES_OPTION) {
                 PersonName = PersonNameField.getText().trim();
                 PersonRelationship = PersonRelationshipField.getText().trim();
-                String PersonCapitalizedName = FileHandler.capitalizeLabel(PersonName);
+                String PersonCapitalizedName = fileHandler.capitalizeLabel(PersonName);
 
                 System.out.println("Cpaitalized name: " + PersonCapitalizedName);
 
