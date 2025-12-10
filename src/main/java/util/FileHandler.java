@@ -1,7 +1,10 @@
 // src/main/java/util/FileHandler.java
 package util;
 
+import people.Person;
+
 import java.io.File;
+import java.util.List;
 
 public abstract class FileHandler {
     protected static final String DATA_FOLDER = "imentia_data";
@@ -17,7 +20,38 @@ public abstract class FileHandler {
         return DATA_FOLDER;
     }
 
+    public void ensureDataFolderExists() {
+        File folder = new File(DATA_FOLDER);
+        if (!folder.exists()) folder.mkdirs();
+    }
+
+    public static String capitalizeLabel(String s) {
+        if (s == null || s.isEmpty()) return s;
+        s = s.toLowerCase();
+        StringBuilder temp = new StringBuilder();
+        temp.append(Character.toUpperCase(s.charAt(0)));
+        for (int i = 1; i < s.length(); i++) {
+            if (Character.isWhitespace(s.charAt(i - 1))) {
+                temp.append(Character.toUpperCase(s.charAt(i)));
+            } else {
+                temp.append(s.charAt(i));
+            }
+        }
+        return temp.toString();
+    }
+
+    public static String generateId(List<Person> persons) {
+        int maxID = 0;
+        for (Person p : persons) {
+            String ID = p.getId().substring(6);
+            maxID = Integer.parseInt(ID);
+        }
+        return "Person" + (maxID + 1);
+    }
+
     // Subclasses must implement their own save/load
     public abstract boolean save(Object obj);
     public abstract Object load();
+
+    public abstract void updatePersons(List<Person> persons);
 }

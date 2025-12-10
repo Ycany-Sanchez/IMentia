@@ -66,9 +66,6 @@ public abstract class AbstractMainPanel extends JPanel {
     /** Capture a face from the camera feed. */
     protected abstract boolean captureFace();
 
-    /** Save a face image to disk. */
-    protected abstract void saveFaceImage(String personID, Mat image);
-
     /** Show details for a given person. */
     protected abstract void setupPersonDetailsForm(Person p);
 

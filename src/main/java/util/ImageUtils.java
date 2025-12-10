@@ -148,13 +148,5 @@ public class ImageUtils {
      * @param filePath The path to the image file (e.g., "saved_faces/ID.png").
      * @return The loaded Mat, or null if loading fails.
      */
-    public static Mat loadMatFromFile(String filePath) {
-        Mat mat = imread(filePath);
-        // Check if the Mat object is empty (meaning the file was not found or failed to load)
-        if (mat.empty()) {
-            System.err.println("ImageUtils: Failed to load Mat from file: " + filePath);
-            return null;
-        }
-        return mat;
-    }
+
 }

@@ -15,6 +15,7 @@ import org.bytedeco.opencv.opencv_face.LBPHFaceRecognizer;
 import people.FaceData;
 import people.Person;
 import util.FileHandler;
+import util.ImageHandler;
 import util.ImageUtils;
 
 /**
@@ -179,7 +180,7 @@ public class FaceRecognitionService {
 
             try {
                 // 1. LOAD IMAGE: Read the image file from disk. IMREAD_COLOR (code 1) is often safer.
-                Mat faceMat = ImageUtils.loadMatFromFile("imentia_data/saved_faces/" + person.getId() + ".png");
+                Mat faceMat = ImageHandler.loadMatFromFile("imentia_data/saved_faces/" + person.getId() + ".png");
 
                 if (faceMat.empty()) {
                     System.out.println("  ✗ ERROR: Could not load image from path");

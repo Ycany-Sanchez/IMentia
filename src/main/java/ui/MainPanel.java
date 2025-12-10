@@ -7,6 +7,7 @@ import org.bytedeco.opencv.opencv_core.*;
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
 import service.FaceRecognitionService;
 import util.FileHandler;
+import util.ImageHandler;
 import util.ImageUtils;
 import util.PersonDataManager;
 
@@ -177,7 +178,7 @@ public class MainPanel extends AbstractMainPanel {
 
     public MainPanel(){
         this.fileHandler = new PersonDataManager();
-        persons = fileHandler.loadPersonFile();
+        persons = fileHandler.loadPersons();
 
         this.recognitionService = new FaceRecognitionService();
         this.recognitionService.train(persons);
@@ -242,7 +243,7 @@ public class MainPanel extends AbstractMainPanel {
         ViewContactsButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                persons = fileHandler.loadPersonFile();
+                persons = fileHandler.loadPersons();
                 refreshContactsPanel();
 
                 cardLayout.show(DisplayPanel, "2");
@@ -350,7 +351,7 @@ public class MainPanel extends AbstractMainPanel {
 
 
                 if(fileHandler.savePersons(persons)){
-                    saveFaceImage(curID, faceImage);
+                    ImageHandler.saveFaceImage(curID, faceImage);
                     recognitionService.train(persons);
                     //showPersonDetails(person, faceImage);
                     setupPersonDetailsForm(person);
@@ -621,27 +622,6 @@ public class MainPanel extends AbstractMainPanel {
     }
 
 
-
-    protected void saveFaceImage(String personID, Mat imageToSave) {
-        String directoryPath = "imentia_data/saved_faces/";
-        String filePath = directoryPath + personID + ".png";
-
-        File directory = new File(directoryPath);
-        if (!directory.exists()) {
-            directory.mkdirs();
-        }
-
-        boolean isSaved = imwrite(filePath, imageToSave);
-
-        if (isSaved) {
-            System.out.println("Image successfully saved to: " + filePath);
-        } else {
-            System.out.println("Failed to save image.");
-            // JOptionPane.showMessageDialog(mainPanel, "Error saving image to disk.");
-        }
-    }
-
-
     protected void updatePanelSizes() {
         int totalHeight = mainPanel.getHeight();
         if (totalHeight > 0) {
@@ -754,7 +734,7 @@ public class MainPanel extends AbstractMainPanel {
             String filePath = Paths.get(directoryPath, person.getId() + ".png").toString();
             File imageFile = new File(filePath);
             if (imageFile.exists()) {
-                Mat faceMat = ImageUtils.loadMatFromFile(filePath);
+                Mat faceMat = ImageHandler.loadMatFromFile(filePath);
                 if (faceMat != null && !faceMat.empty()) {
                     BufferedImage bufferedImage = ImageUtils.matToBufferedImage(faceMat);
                     Image scaledImage = bufferedImage.getScaledInstance(160, 160, Image.SCALE_SMOOTH);
