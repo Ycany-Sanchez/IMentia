@@ -1,11 +1,16 @@
 package people;
 import util.FileHandler;
-
 import java.io.*;
 import java.nio.file.Paths;
+import java.time.LocalDate; // import the LocalDate clas
+import java.time.LocalDateTime;
+import java.time.LocalTime; // import the LocalTime class
 
+<<<<<<< HEAD
 import util.FileHandler;
 import util.PersonDataManager;
+=======
+>>>>>>> 406431abf39816ff4b5d8038a46aa6f980859b42
 
 public class MeetingRecord {
 
@@ -36,17 +41,16 @@ public class MeetingRecord {
         }
     }
     public void createFile() {
-
-        String fileName = Paths.get(fileHandler.getDataFolder(), FolderName, p.getId()  + ".txt").toString();
-        boolean fileExists = new File(fileName).exists();
-
+        String fileName = Paths.get(fileHandler.getDataFolder(), FolderName, p.getId() + ".txt").toString();
+        LocalTime time = LocalTime.now();
+        LocalDate date = LocalDate.now();
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileName, true))){
-
-            if (p.getMeetingRecord() == null) {
-                bw.write(p + "\n\n" + conv + "\n\n");
-            } else {
-                bw.write(conv + "\n\n");
-            }
+            bw.write("----- NOTE START -----\n");
+            bw.write(date + "\n");
+            bw.write(time + "\n");
+            bw.write(conv + "\n");   // conv already contains all user-entered newlines
+            bw.write("----- NOTE END -----\n");
+            bw.write("\n"); // spacing between notes
         } catch (IOException e) {}
     }
 
