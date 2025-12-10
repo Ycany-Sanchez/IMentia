@@ -1,4 +1,5 @@
-// >>> FILE: src/main/java/service/PersonRecognitionManager.java
+// >>> FILE: src/main/java/service/PersonRecognitionManager.java (Updated)
+
 package service;
 
 import people.Person;
@@ -9,7 +10,7 @@ import org.bytedeco.opencv.opencv_core.Mat;
 import util.PersonDataManager;
 
 import java.io.File;
-import java.nio.file.Paths;
+import java.nio.file.Paths; // Required for Path operations
 import java.util.List;
 
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
@@ -106,44 +107,9 @@ public class PersonRecognitionManager {
     }
 
     /**
-     * Facade Method: Coordinates deleting a person from memory, file, and disk.
-     */
-    public void deletePerson(Person person) {
-        cachedPersons.remove(person);
-        fileHandler.updatePersonFile(cachedPersons);
-        recognitionService.train(cachedPersons);
-
-        // Delete image file
-        try {
-            File imageFile = new File(fileHandler.getDataFolder() + "/saved_faces", person.getId() + ".png");
-            if (imageFile.exists()) {
-                imageFile.delete();
-            }
-        } catch (Exception e) {
-            System.err.println("Manager: Failed to delete image file for " + person.getId());
-        }
-    }
-
-    // Helper method hidden from the UI
-    private void saveFaceImageToDisk(String personID, Mat imageToSave) {
-        String directoryPath = fileHandler.getDataFolder() + "/saved_faces/";
-        File directory = new File(directoryPath);
-        if (!directory.exists()) {
-            directory.mkdirs();
-        }
-        String filePath = directoryPath + personID + ".png";
-        imwrite(filePath, imageToSave);
-    }
-
-    // >>> FILE: src/main/java/service/PersonRecognitionManager.java (New Method)
-
-// ... inside PersonRecognitionManager class
-
-    /**
      * Facade Method: Ensures the given Person object has its BufferedImage loaded
      * from disk. If the image is already set, it does nothing.
-     *
-     * @param person The person object to check/update.
+     * (Needed for OOP-compliant image loading in MainPanel)
      */
     public void ensureImageLoaded(Person person) {
         if (person.getPersonImage() != null) {
@@ -165,5 +131,55 @@ public class PersonRecognitionManager {
         } catch (Exception e) {
             System.err.println("Error loading image for person " + person.getId() + ": " + e.getMessage());
         }
+    }
+
+
+    /**
+     * Facade Method: Coordinates deleting a person from memory, file, and disk.
+     */
+    public void deletePerson(Person person) {
+        cachedPersons.remove(person);
+        fileHandler.updatePersonFile(cachedPersons);
+        recognitionService.train(cachedPersons);
+
+        // Delete face image file
+        try {
+            File imageFile = new File(fileHandler.getDataFolder() + "/saved_faces", person.getId() + ".png");
+            if (imageFile.exists()) {
+                if (imageFile.delete()) {
+                    System.out.println("Manager: Deleted image file for " + person.getId());
+                } else {
+                    System.err.println("Manager: Failed to delete image file for " + person.getId());
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Manager: Error deleting image file: " + e.getMessage());
+        }
+
+        // ** NEW: Delete meeting notes file **
+        try {
+            String notesPath = Paths.get(fileHandler.getDataFolder(), "Meeting_Notes", person.getId() + ".txt").toString();
+            File notesFile = new File(notesPath);
+            if (notesFile.exists()) {
+                if (notesFile.delete()) {
+                    System.out.println("Manager: Deleted notes file for " + person.getId());
+                } else {
+                    System.err.println("Manager: Failed to delete notes file for " + person.getId());
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Manager: Error deleting notes file: " + e.getMessage());
+        }
+    }
+
+    // Helper method hidden from the UI
+    private void saveFaceImageToDisk(String personID, Mat imageToSave) {
+        String directoryPath = fileHandler.getDataFolder() + "/saved_faces/";
+        File directory = new File(directoryPath);
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+        String filePath = directoryPath + personID + ".png";
+        imwrite(filePath, imageToSave);
     }
 }

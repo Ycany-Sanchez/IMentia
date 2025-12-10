@@ -1,4 +1,3 @@
-// >>> FILE: src/main/java/ui/MainPanel.java
 package ui;
 
 import util.NoCamException;
@@ -93,6 +92,7 @@ public class MainPanel extends AbstractMainPanel {
 
     //OTHERS
     private List<JPanel> contactListPanels = new ArrayList<>();
+    private List<JTextArea> meetingNoteAreas = new ArrayList<>(); // List to track displayed notes
     private Person currentDisplayedPerson;
     private CardLayout cardLayout = new CardLayout();
     private boolean isEditing = false;
@@ -269,6 +269,7 @@ public class MainPanel extends AbstractMainPanel {
                 // DELEGATE TO FACADE
                 Person savedPerson = personManager.registerNewPerson(pName, pRel, faceImage);
 
+
                 if (savedPerson != null) {
                     setupPersonDetailsForm(savedPerson);
                     cardLayout.show(DisplayPanel, "5");
@@ -291,60 +292,84 @@ public class MainPanel extends AbstractMainPanel {
             isEditingMeetingNotes = !isEditingMeetingNotes;
 
             if(isEditingMeetingNotes){
+                // --- SWITCH TO EDIT/ADD MODE ---
+                ADDMEETINGNOTESButton.setText("SAVE MEETING NOTES");
+
+                // 1. Show New Note Text Area
                 MeetingNotesTextAreaScrollPane.setVisible(true);
                 MeetingNotesTextArea.setVisible(true);
-                ADDMEETINGNOTESButton.setText("SAVE MEETING NOTES");
-                MeetingNotesTextArea.setText("Add meeting notes here...");
-            } else {
-                // Save the meeting notes when user clicks save
-                String noteText = MeetingNotesTextArea.getText().trim();
-                // --- OOP FIX: Delegate image loading to the Facade (Manager) ---
+                // DO NOT reset text here, rely on FocusListener unless it's a fresh panel load
+                // MeetingNotesTextArea.setText("Add meeting notes here...");
+                MeetingNotesTextArea.setForeground(Color.GRAY);
 
-                // Don't save if it's empty or still has placeholder text
-                if (!noteText.isEmpty() && !noteText.equals("Add meeting notes here...")) {
-                    // Find the current person being displayed and add the note
-                    if (currentDisplayedPerson != null) {
-                        try {
-                            // Create new conversation/meeting record for the person
-                            MeetingRecord record = currentDisplayedPerson.newConversation(noteText);
+                // 2. Enable Editing/Deleting on Existing Notes
+                for(JTextArea noteArea : meetingNoteAreas){
+                    noteArea.setEditable(true);
+                    noteArea.setFocusable(true); // Enable focusing/editing
 
-                            // Save the meeting record to file
-                            record.createFile();
-
-                            // *** FACADE USAGE: Update Person State ***
-                            // We need to save the person list to persist the 'lastestConv' reference
-                            personManager.updatePersonDetails(currentDisplayedPerson);
-
-                            // Show confirmation
-                            JOptionPane.showMessageDialog(mainPanel,
-                                    "Meeting note saved successfully!",
-                                    "Success",
-                                    JOptionPane.INFORMATION_MESSAGE);
-
-                            // Refresh the display to show the new note
-                            setupPersonDetailsForm(currentDisplayedPerson);
-
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                            JOptionPane.showMessageDialog(mainPanel,
-                                    "Error saving meeting note: " + ex.getMessage(),
-                                    "Error",
-                                    JOptionPane.ERROR_MESSAGE);
-                        }
-                    }
-                } else {
-                    JOptionPane.showMessageDialog(mainPanel,
-                            "Please enter meeting notes before saving.",
-                            "Empty Note",
-                            JOptionPane.WARNING_MESSAGE);
+                    // Use standard, less jarring color scheme for editing
+                    noteArea.setBackground(Color.WHITE);
+                    noteArea.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(Color.GRAY, 2), // Simple gray border
+                            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+                    ));
                 }
 
-                // Clear the text area and reset
+            } else {
+                // --- SAVE EDITS & ADD NEW NOTE MODE ---
+
+                boolean newNoteAdded = false;
+
+                // 1. Handle Edits to Existing Notes first (Must run if meetingNoteAreas is not empty)
+                if (!meetingNoteAreas.isEmpty()) {
+                    // This method now handles saving the edits and displaying the resulting message
+                    saveEditedNotesToFile(newNoteAdded);
+                }
+
+                // 2. Handle New Note (The input box)
+                String noteText = MeetingNotesTextArea.getText().trim();
+
+                // Check if the user entered *any* non-placeholder text
+                if (currentDisplayedPerson != null && !noteText.isEmpty() && !noteText.equals("Add meeting notes here...")) {
+                    try {
+                        // Create new conversation/meeting record for the person
+                        MeetingRecord record = currentDisplayedPerson.newConversation(noteText);
+                        record.createFile();
+                        personManager.updatePersonDetails(currentDisplayedPerson);
+                        newNoteAdded = true;
+
+                        // If edits were saved above, the message was already shown.
+                        // If no edits were saved (meetingNoteAreas was empty), show new note success message.
+                        if (meetingNoteAreas.isEmpty()) {
+                            JOptionPane.showMessageDialog(mainPanel,
+                                    "New Meeting note saved successfully!",
+                                    "Success",
+                                    JOptionPane.INFORMATION_MESSAGE);
+                        }
+
+
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(mainPanel,
+                                "Error saving new meeting note: " + ex.getMessage(),
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+
+                // --- FIX: Explicitly reset the New Note Text Area after save ---
                 MeetingNotesTextArea.setText("Add meeting notes here...");
                 MeetingNotesTextArea.setForeground(Color.GRAY);
                 MeetingNotesTextArea.setVisible(false);
                 MeetingNotesTextAreaScrollPane.setVisible(false);
+                // -------------------------------------------------------------
+
+
+                // 3. Cleanup and Reset UI
                 ADDMEETINGNOTESButton.setText("ADD MEETING NOTES");
+
+                // 4. Refresh display to show saved state (including new/edited notes)
+                setupPersonDetailsForm(currentDisplayedPerson);
             }
         });
 
@@ -399,7 +424,10 @@ public class MainPanel extends AbstractMainPanel {
             Image scaledImage = p.getPersonImage().getScaledInstance(200, 200, Image.SCALE_FAST);
             PersonDetailsImageLabel.setIcon(new ImageIcon(scaledImage));
         } else {
-            System.out.println("Person is null.");
+            // Updated print statement for clarity
+            PersonDetailsImageLabel.setIcon(null);
+            PersonDetailsImageLabel.setText("No Image");
+            System.out.println("Person image is null.");
         }
 
         PersonDetailPersonName.setText(p.getName());
@@ -414,6 +442,7 @@ public class MainPanel extends AbstractMainPanel {
         MeetingNotesTextArea.setText("Add meeting notes here...");
         MeetingNotesTextArea.setForeground(Color.GRAY);
         MeetingNotesTextArea.setVisible(false);
+        MeetingNotesTextAreaScrollPane.setVisible(false);
         isEditingMeetingNotes = false;
         ADDMEETINGNOTESButton.setText("ADD MEETING NOTES");
 
@@ -488,65 +517,107 @@ public class MainPanel extends AbstractMainPanel {
         }
     }
 
+    // NEW METHOD to save all edited notes by rewriting the file
+    private void saveEditedNotesToFile(boolean newNoteAdded) {
+        if (currentDisplayedPerson == null) return;
+
+        String filePath = Paths.get("imentia_data", "Meeting_Notes", currentDisplayedPerson.getId() + ".txt").toString();
+        File notesFile = new File(filePath);
+
+        List<String> finalNotes = new ArrayList<>();
+        int editedCount = 0;
+        int deletedCount = 0;
+
+        for (JTextArea noteArea : meetingNoteAreas) {
+            String editedText = noteArea.getText().trim();
+
+            if (editedText.isEmpty()) {
+                deletedCount++;
+                continue; // Note was deleted by clearing text
+            }
+
+            // Reconstruct the note block based on the expected format (Date, Time, Content)
+            // Note: The displayed text contains Date\nTime\n\nContent
+            String[] lines = editedText.split("\n", 4);
+
+            StringBuilder noteBlock = new StringBuilder();
+            noteBlock.append("----- NOTE START -----\n");
+
+            // Append header lines (Date and Time, assuming they are the first two lines)
+            // Use lines[0] and lines[1] if they exist
+            if (lines.length > 0) noteBlock.append(lines[0].trim()).append("\n");
+            if (lines.length > 1) noteBlock.append(lines[1].trim()).append("\n");
+            noteBlock.append("\n"); // Blank line after time
+
+            // Append the remaining content (lines[3] onwards)
+            if (lines.length > 2) {
+                // Reconstruct the content from the 3rd line onwards (lines[2] is the blank line)
+                // The actual content starts from lines[3] if it exists, but the split(..., 4) groups the rest into lines[3]
+                // Let's just use the entirety of the text area content and rely on the initial split structure
+
+                // Content is lines[3] if present, or lines[2] if the text area didn't contain the blank line
+                StringBuilder contentBody = new StringBuilder();
+                for (int i = 2; i < lines.length; i++) {
+                    contentBody.append(lines[i]).append("\n");
+                }
+                noteBlock.append(contentBody.toString().trim()).append("\n");
+
+            } else if (lines.length == 1) {
+                // Only one line exists, assume it is the content
+                noteBlock.append(editedText).append("\n");
+            }
+
+
+            noteBlock.append("----- NOTE END -----\n");
+            noteBlock.append("\n");
+
+            finalNotes.add(noteBlock.toString());
+            editedCount++;
+        }
+
+        // Rewrite the entire file (false = overwrite)
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(notesFile, false))) {
+            for (String note : finalNotes) {
+                bw.write(note);
+            }
+
+            String message = "Notes successfully saved. " + editedCount + " notes remaining. " + deletedCount + " notes deleted.";
+            // If a new note was added in the button listener, we skip showing this message
+            if (!newNoteAdded) {
+                JOptionPane.showMessageDialog(mainPanel, message, "Edits Saved", JOptionPane.INFORMATION_MESSAGE);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(mainPanel, "Error saving note edits: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+
     protected void displayMeetingNotes(Person person) {
         JPanel notesPanel = new JPanel();
         notesPanel.setLayout(new BoxLayout(notesPanel, BoxLayout.Y_AXIS));
         notesPanel.setBackground(Color.WHITE);
-        String FolderName = "Meeting_Notes";
+
+        meetingNoteAreas.clear(); // Clear old references
 
         try {
-            // NOTE: We use a local FileHandler instance or hardcoded string just for path resolution here
-            // to keep the facade clean from UI-specific path logic, though logically this could be in Facade.
-            String directoryPath = Paths.get("imentia_data", FolderName).toString();
-            String filePath = Paths.get(directoryPath, person.getId() + ".txt").toString();
+            // Use the MeetingRecord helper to read notes (better data encapsulation)
+            MeetingRecord reader = new MeetingRecord(person, "");
+            List<String> allNotesBlocks = reader.readAllNotes(); // Reads the full blocks with START/END
 
-            File notesFile = new File(filePath);
-
-            System.out.println("Trying to load notes from: " + notesFile.getAbsolutePath());
-            System.out.println("File exists: " + notesFile.exists());
-
-            if (notesFile.exists()) {
-
-                List<String> allNotes = new ArrayList<>();
-
-                try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-                    String line;
-                    StringBuilder currentNote = null;
-
-                    while ((line = br.readLine()) != null) {
-
-                        if (line.equals("----- NOTE START -----")) {
-                            currentNote = new StringBuilder();
-                        }
-                        else if (line.equals("----- NOTE END -----")) {
-                            if (currentNote != null) {
-                                allNotes.add(currentNote.toString());  // store entire note
-                            }
-                            currentNote = null;
-                        }
-                        else if (currentNote != null) {
-                            currentNote.append(line).append("\n");   // preserve ALL newlines
-                        }
-                    }
-                }
-
-                if (allNotes.isEmpty()) {
-                    JLabel noNotesLabel = new JLabel("No meeting notes yet.");
-                    noNotesLabel.setFont(PLabelFont);
-                    noNotesLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-                    notesPanel.add(noNotesLabel);
-                } else {
-                    for (String note : allNotes) {
-                        addNoteToPanel(notesPanel, note);
-                    }
-                    notesPanel.add(Box.createVerticalGlue());
-                }
-
-            } else {
+            if (allNotesBlocks.isEmpty()) {
                 JLabel noNotesLabel = new JLabel("No meeting notes yet.");
                 noNotesLabel.setFont(PLabelFont);
                 noNotesLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
                 notesPanel.add(noNotesLabel);
+            } else {
+                for (String fullBlock : allNotesBlocks) {
+                    // Extract only the displayable text (Date, Time, Content)
+                    String displayableContent = extractContentFromNoteBlock(fullBlock);
+                    addNoteToPanel(notesPanel, displayableContent);
+                }
+                notesPanel.add(Box.createVerticalGlue());
             }
 
         } catch (IOException e) {
@@ -564,6 +635,24 @@ public class MainPanel extends AbstractMainPanel {
         MeetingNotesScrollPane.repaint();
     }
 
+    /**
+     * Extracts date/time header and content from the full note block string,
+     * removing the START/END tags.
+     */
+    private String extractContentFromNoteBlock(String fullBlock) {
+        String content = fullBlock.trim();
+
+        // Remove "START" and "END" tags
+        if (content.startsWith("----- NOTE START -----")) {
+            content = content.substring("----- NOTE START -----".length()).trim();
+        }
+        if (content.endsWith("----- NOTE END -----")) {
+            // Find the last occurrence of the END tag and cut before it
+            content = content.substring(0, content.lastIndexOf("----- NOTE END -----")).trim();
+        }
+        return content;
+    }
+
     // Helper method to add a note entry to the panel
     private void addNoteToPanel(JPanel parent, String noteText) {
         MeetingNotesScrollPane.setVisible(true);
@@ -571,9 +660,9 @@ public class MainPanel extends AbstractMainPanel {
 
         JTextArea noteArea = new JTextArea(noteText);
         noteArea.setBackground(Color.WHITE);
-        noteArea.setFocusable(false);
+        noteArea.setFocusable(false); // Default state: Not focusable/editable
         noteArea.setFont(PLabelFont);
-        noteArea.setEditable(false);
+        noteArea.setEditable(false); // Default state
         noteArea.setLineWrap(true);
         noteArea.setWrapStyleWord(true);
 
@@ -582,10 +671,17 @@ public class MainPanel extends AbstractMainPanel {
         noteArea.setBorder(BorderFactory.createCompoundBorder(lineBorder, marginBorder));
 
         noteArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Calculate height based on content
+        // Set a temporary size to allow JTextArea to calculate its preferred height
+        noteArea.setSize(new Dimension(parent.getWidth(), 9999));
         Dimension preferredSize = noteArea.getPreferredSize();
 
         noteArea.setMaximumSize(new Dimension(Integer.MAX_VALUE, preferredSize.height));
+
         parent.add(noteArea);
+
+        meetingNoteAreas.add(noteArea); // <-- ADD TO LIST
     }
 
     protected void updatePanelSizes() {
@@ -677,7 +773,6 @@ public class MainPanel extends AbstractMainPanel {
     }
 
     private JPanel createPersonEntryPanel(Person person) {
-        // 1. Setup Panel with GridBagLayout (The most flexible layout)
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setOpaque(false);
 
@@ -689,7 +784,6 @@ public class MainPanel extends AbstractMainPanel {
         panel.setMaximumSize(fixedSize);
         panel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
 
-        // -- Image Label --
         JLabel imageLabel = new JLabel("img", SwingConstants.CENTER);
         imageLabel.setPreferredSize(new Dimension(160, 160));
         imageLabel.setMinimumSize(new Dimension(160, 160));
