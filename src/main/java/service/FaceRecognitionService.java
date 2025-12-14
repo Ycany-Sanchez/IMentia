@@ -30,6 +30,11 @@ public class FaceRecognitionService {
         this.trainedPersons = new ArrayList();
     }
 
+    /**
+     * PLEASE DO NOT REMOVE MY COMMENTSSSSSS in any of the methods here.
+     * Naay nag remove. Mag add lng nya ko balik.
+     * And do not remove the console outputs.
+     */
     public void train(List<Person> persons) {
         System.out.println("\n===== TRAINING START =====");
         System.out.println("Received " + persons.size() + " person(s) to train");
@@ -107,6 +112,7 @@ public class FaceRecognitionService {
             System.out.println("  Total persons: " + this.trainedPersons.size());
 
             try {
+                // This is where we actually train. note nga lahi ang recognizer.train and this train method.
                 this.recognizer.train(faceImages, labels);
                 this.isTrained = true;
                 System.out.println("Training successful!");
@@ -155,6 +161,7 @@ public class FaceRecognitionService {
                 double[] confidence = new double[1];
 
                 System.out.println("Calling recognizer.predict()...");
+                // This is the method of face recognizer to recog and predict whoever.
                 this.recognizer.predict(resizedFace, predictedLabel, confidence);
                 System.out.println("Prediction complete");
 

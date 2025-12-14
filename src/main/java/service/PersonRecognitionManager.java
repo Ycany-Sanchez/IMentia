@@ -21,7 +21,8 @@ import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
  * This class acts as the "Manager" Facade. It encapsulates the complexity
  * of synchronizing the FileHandler (Storage) and FaceRecognitionService (AI).
  * Bisag mura siya, by name, going to be mostly about Managing recognition ONLY,
- * it coordinates data to the FaceRecognition
+ * it coordinates the data flow to the FaceRecognition
+ * This is especially important because the Person class has a lot of data that needs to be handled.
  * The UI (MainPanel) interacts ONLY with this class for data operations,
  * unaware of the underlying CSV parsing, image decoding, or model training.
  */
@@ -40,7 +41,7 @@ public class PersonRecognitionManager {
     }
 
     /**
-     * Facade Method: Coordinates loading data from disk and retraining the AI model.
+     * Coordinates loading data from disk and retraining the AI model.
      */
     public void refreshDataAndTrain() {
         this.cachedPersons = fileHandler.loadPersons();
@@ -52,7 +53,7 @@ public class PersonRecognitionManager {
     }
 
     /**
-     * Facade Method: Delegates image analysis to the AI service.
+     * Pass on the image analysis to the AI service.
      */
     public FaceRecognitionService.RecognitionResult recognizeFace(Mat faceImage) {
         if (faceImage == null || faceImage.empty()) {
@@ -62,13 +63,13 @@ public class PersonRecognitionManager {
     }
 
     /**
-     * Facade Method: Encapsulates the complex transaction of creating a new person.
+     * Encapsulates the complex transaction of creating a new person.
      * 1. Capitalizes inputs
      * 2. Generates ID
      * 3. Sets Image
      * 4. Saves to CSV
      * 5. Saves Image to Disk
-     * 6. Retrains AI
+     * 6. Retrains face recog
      */
     public Person registerNewPerson(String name, String relationship, Mat faceImage) {
         String capitalizedName = FileHandler.capitalizeLabel(name);
@@ -99,7 +100,7 @@ public class PersonRecognitionManager {
     }
 
     /**
-     * Facade Method: Handles updates to person details and persistence.
+     * Handles updates to person details and persistence.
      */
     public void updatePersonDetails(Person person) {
         fileHandler.updatePersonFile(cachedPersons);
@@ -108,9 +109,10 @@ public class PersonRecognitionManager {
     }
 
     /**
-     * Facade Method: Ensures the given Person object has its BufferedImage loaded
+     * Ensures the given Person object has its BufferedImage loaded
      * from disk. If the image is already set, it does nothing.
-     * (Needed for OOP-compliant image loading in MainPanel)
+     * Needed kay there are times na the image is not loaded.
+     * However, this method makes it so that we do not need to do the checks ourselves.
      */
     public void ensureImageLoaded(Person person) {
         if (person.getPersonImage() != null) {
@@ -136,7 +138,7 @@ public class PersonRecognitionManager {
 
 
     /**
-     * Facade Method: Coordinates deleting a person from memory, file, and disk.
+     * Coordinates deleting a person from memory, file, and disk.
      */
     public void deletePerson(Person person) {
         cachedPersons.remove(person);
