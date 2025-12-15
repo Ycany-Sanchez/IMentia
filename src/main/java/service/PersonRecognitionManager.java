@@ -104,8 +104,6 @@ public class PersonRecognitionManager {
      */
     public void updatePersonDetails(Person person) {
         fileHandler.updatePersonFile(cachedPersons);
-        // Note: Changing names doesn't strictly require retraining if ID links to image,
-        // but re-saving the file is needed.
     }
 
     /**

@@ -46,9 +46,9 @@ public class FaceRecognitionService {
         }
 
         MatVector faceImages = new MatVector();
-        List<Integer> labelList = new ArrayList();
+        List<Integer> labelList = new ArrayList(); // list of labels
         this.trainedPersons.clear();
-        int label = 0;
+        int label = 0; // label is welp, a label for the person, like ID.
 
         for(Person person : persons) {
             System.out.println("\nProcessing person: " + person.getName());
@@ -96,10 +96,26 @@ public class FaceRecognitionService {
             ++label;
         }
 
-        if (faceImages.size() == 0L) {
+        /*
+          Note: The code below assumes our initial implementation plan to have multiple images of the same person for better accuracy.
+          Since we currently abolished that, we are left with this.
+          This still works for one image of the person, so let us keep this implementation.
+          Should we pick up this project again, we do not need to change our code.
+          Please avoid modifying :>
+          */
+
+        if (faceImages.size() == 0) {
             System.out.println("\nNo valid face images to train on");
             this.isTrained = false;
         } else {
+            /*
+            recognizer.train() needs MatVector the faceImages, and a Mat, the labelList, that we made into a Mat below.
+             Also, we needed to create a Buffer for labels in order to actually put the labelList items in it.
+             C++ cannot work with java arraylist objects so yeah. We create Mat labels to put inside the recognizer.train()
+             Also, CV_32SC1 (train() method expected this) is a 32-bit signed with 1 value(just the person label id thingy).
+             32 bit is the size of java int
+             */
+
             Mat labels = new Mat(labelList.size(), 1, opencv_core.CV_32SC1);
             IntBuffer labelBuffer = labels.createBuffer();
 
@@ -112,7 +128,7 @@ public class FaceRecognitionService {
             System.out.println("  Total persons: " + this.trainedPersons.size());
 
             try {
-                // This is where we actually train. note nga lahi ang recognizer.train and this train method.
+                // This is where we actually train. Note nga lahi ang recognizer.train and this train method.
                 this.recognizer.train(faceImages, labels);
                 this.isTrained = true;
                 System.out.println("Training successful!");

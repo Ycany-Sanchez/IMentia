@@ -13,7 +13,7 @@ public class FaceData implements Serializable {
     private byte[] imageBytes; // Raw pixel data of the face image
     private int imageWidth;    // Width of the face image
     private int imageHeight;   // Height of the face image
-    private int imageType;     // Number of channels (e.g., 3 for BGR, 1 for GRAY)
+    private int imageType;     // Number of channels (e.g., 3 for BGR, 1 for GRAY).For our program, we usually use
     private byte[] encoding;   // Placeholder for a potential face vector/encoding
     private Date capturedAt;   // Timestamp of capture
 

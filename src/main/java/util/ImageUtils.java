@@ -8,15 +8,8 @@ import static org.bytedeco.opencv.global.opencv_imgcodecs.imread;
 
 import java.awt.image.BufferedImage;
 
-/**
- * Utility class for managing conversions between different image formats used
- * in the application:
- * 1. OpenCV's Mat (for processing)
- * 2. Java's BufferedImage (for display in Swing)
- * 3. Custom FaceData (for persistence)
- */
 public class ImageUtils {
-
+    // Note: this class had some more methods we did not end up using or stopped using.
     /**
      * Converts an OpenCV Mat object into a Java BufferedImage for display.
      * This method manually copies pixel data using an Indexer.
@@ -67,91 +60,5 @@ public class ImageUtils {
             }
         }
         return image;
-    }
-
-    /**
-     * Converts an OpenCV Mat object (a face image) into a serializable FaceData object.
-     * @param mat The source face Mat.
-     * @param encoding Optional face encoding bytes (unused in this prototype).
-     * @return The resulting FaceData object.
-     */
-    public static FaceData matToFaceData(Mat mat, byte[] encoding) {
-        System.out.println("Converting Mat to FaceData:");
-        System.out.println("  Size: " + mat.cols() + "x" + mat.rows());
-        System.out.println("  Channels: " + mat.channels());
-
-        int width = mat.cols();
-        int height = mat.rows();
-        int channels = mat.channels();
-
-        UByteIndexer indexer = mat.createIndexer();
-        // Calculate required size for the raw pixel byte array: Width * Height * Channels
-        byte[] bytes = new byte[width * height * channels];
-
-        // Linearize the Mat's pixel data into a single byte array
-        int idx = 0;
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                for (int c = 0; c < channels; c++) {
-                    // Cast unsigned byte from Mat to signed byte for the array
-                    bytes[idx++] = (byte) indexer.get(y, x, c);
-                }
-            }
-        }
-
-        indexer.release();
-
-        System.out.println("  Byte array size: " + bytes.length);
-
-        return new FaceData(bytes, width, height, channels, encoding);
-    }
-
-    /**
-     * Reconstructs an OpenCV Mat object from the raw data stored in a FaceData object.
-     * This is used to load faces from disk for model retraining/recognition.
-     * @param faceData The source FaceData object.
-     * @return The reconstructed Mat.
-     */
-    public static Mat faceDataToMat(FaceData faceData) {
-        System.out.println("Converting FaceData to Mat:");
-        System.out.println("  Stored size: " + faceData.getImageWidth() + "x" + faceData.getImageHeight());
-        System.out.println("  Channels: " + faceData.getImageType());
-
-        int width = faceData.getImageWidth();
-        int height = faceData.getImageHeight();
-        int channels = faceData.getImageType();
-
-        // Determine the OpenCV Mat type based on the channel count
-        int cvType = (channels > 1) ? org.bytedeco.opencv.global.opencv_core.CV_8UC3 : // 3-channel, 8-bit, unsigned
-                org.bytedeco.opencv.global.opencv_core.CV_8UC1; // 1-channel, 8-bit, unsigned
-
-        // Create an empty Mat with the stored dimensions and type
-        Mat mat = new Mat(height, width, cvType);
-
-        UByteIndexer indexer = mat.createIndexer();
-        byte[] bytes = faceData.getImageBytes();
-
-        // Copy the linear byte array back into the 3D structure of the Mat via the Indexer
-        try {
-            int idx = 0;
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    for (int c = 0; c < channels; c++) {
-                        // Use & 0xFF to convert signed byte back to unsigned integer for Mat indexer
-                        indexer.put(y, x, c, bytes[idx++] & 0xFF);
-                    }
-                }
-            }
-        }
-        finally
-        {
-            if (indexer != null) {
-                indexer.release();
-            }
-        }
-
-        System.out.println("  Reconstructed: " + mat.cols() + "x" + mat.rows() + ", channels=" + mat.channels());
-
-        return mat;
     }
 }
