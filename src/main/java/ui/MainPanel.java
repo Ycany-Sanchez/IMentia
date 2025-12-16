@@ -322,6 +322,7 @@ public class MainPanel extends AbstractMainPanel {
                             "Save Error",
                             JOptionPane.ERROR_MESSAGE
                     );
+                    return;
                 }
 
 

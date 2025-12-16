@@ -26,9 +26,6 @@ public class Person implements Serializable {
         this.lastestConv = null;
     }
 
-
-
-
     /**
      * Adds a new FaceData sample to this person's training set.
      * @param face The FaceData object to add.
@@ -85,10 +82,7 @@ public class Person implements Serializable {
         return lastestConv;
 
     }
-
-
     public String toString(){
         return this.id + "," + this.id + ".png" + "," + this.name + "," + this.relationship;
     }
-
 }
