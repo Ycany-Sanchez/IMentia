@@ -20,10 +20,6 @@ public abstract class FileHandler {
         return DATA_FOLDER;
     }
 
-    public void ensureDataFolderExists() {
-        File folder = new File(DATA_FOLDER);
-        if (!folder.exists()) folder.mkdirs();
-    }
 
     public static String capitalizeLabel(String s) {
         if (s == null || s.isEmpty()) return s;
@@ -44,14 +40,10 @@ public abstract class FileHandler {
         int maxID = 0;
         for (Person p : persons) {
             String ID = p.getId().substring(6);
-            maxID = Integer.parseInt(ID);
+            int integerID = Integer.parseInt(ID);
+            if(integerID > maxID)
+                maxID = integerID;
         }
         return "Person" + (maxID + 1);
     }
-
-    // Subclasses must implement their own save/load
-    public abstract boolean save(Object obj);
-    public abstract Object load();
-
-    public abstract void updatePersons(List<Person> persons);
 }

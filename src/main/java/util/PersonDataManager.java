@@ -13,17 +13,6 @@ public class PersonDataManager extends FileHandler
     // In-memory map to track persons by name
     private final Map<String, Boolean> personMap = new HashMap<>();
 
-    @Override
-    public boolean save(Object obj) {
-        if (!(obj instanceof List)) return false;
-        return savePersons((List<Person>) obj);
-    }
-
-    @Override
-    public Object load() {
-        return loadPersons();
-    }
-
     // Save a list of persons (append mode if needed)
     public boolean savePersons(List<Person> persons) {
         File file = new File(DATA_FOLDER, PERSON_FILE);
@@ -82,11 +71,6 @@ public class PersonDataManager extends FileHandler
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public void updatePersons(List<Person> persons) {
-        updatePersonFile(persons);
     }
 
 }

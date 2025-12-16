@@ -22,6 +22,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
@@ -977,7 +978,6 @@ public class MainPanel extends AbstractMainPanel {
         imageLabel.setMinimumSize(new Dimension(160, 160));
 
         try {
-            // Using standard path resolution
             String directoryPath = Paths.get("imentia_data", "saved_faces").toString();
             String filePath = Paths.get(directoryPath, person.getId() + ".png").toString();
             File imageFile = new File(filePath);
@@ -989,10 +989,13 @@ public class MainPanel extends AbstractMainPanel {
                     imageLabel.setIcon(new ImageIcon(scaledImage));
                     imageLabel.setText("");
                 } else { imageLabel.setText("Load Fail"); }
-            } else { imageLabel.setText("No Image"); }
-        } catch (Exception e) { imageLabel.setText("Error"); }
+            } else {
+                imageLabel.setText("No Image");
+            }
+        } catch (Exception e) {
+            imageLabel.setText("Error");
+        }
 
-        // -- Info Panel --
         JPanel infoPanel = new JPanel();
         infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
         infoPanel.setOpaque(false);
@@ -1015,14 +1018,12 @@ public class MainPanel extends AbstractMainPanel {
         deleteButton.setFont(HLabelFont);
 
         deleteButton.addActionListener(e -> {
-            // delete logic
             deleteContact(person);
         });
 
         panel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                // Pass NULL so it loads from disk (since we don't have the memory image here)
                 setupPersonDetailsForm(person);
                 cardLayout.show(DisplayPanel, "5");
             }
@@ -1037,7 +1038,6 @@ public class MainPanel extends AbstractMainPanel {
         gbc.insets = new Insets(0, 0, 0, 10); // Right padding
         panel.add(imageLabel, gbc);
 
-        // B. Add Info Panel (Middle Column)
         gbc.gridx = 1;
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.NONE; // Fill both width and height
@@ -1045,7 +1045,6 @@ public class MainPanel extends AbstractMainPanel {
         gbc.insets = new Insets(0, 0, 0, 0); // Reset padding
         panel.add(infoPanel, gbc);
 
-        // C. Add Delete Button (Right Column)
         gbc.gridx = 2; // Column 2
         gbc.weightx = 0; // Do not stretch width
         gbc.fill = GridBagConstraints.NONE; // Do not resize the button
@@ -1065,6 +1064,13 @@ public class MainPanel extends AbstractMainPanel {
 
         // *** FACADE USAGE: Get Data ***
         List<Person> persons = personManager.getAllPersons();
+
+        persons.sort(new Comparator<Person>(){
+            public int compare(Person p1, Person p2){
+                return p1.getName().compareToIgnoreCase(p2.getName());
+            }
+        });
+
         int numPersons = persons.size();
 
         for (int i = 0; i < numPersons; i += 2) {
@@ -1087,13 +1093,9 @@ public class MainPanel extends AbstractMainPanel {
             PersonPanel.add(rowBox);
         }
 
-        // 3. ESSENTIAL: Tell Swing to redraw the UI with the new components
         PersonPanel.revalidate();
         PersonPanel.repaint();
 
-        // 4. UI EXPERIENCE FIX:
-        // If the user was in "Edit Mode" when they clicked delete,
-        // make sure the delete buttons on the NEW list are visible.
         if (isEditing) {
             toggleDeleteButton();
         }
