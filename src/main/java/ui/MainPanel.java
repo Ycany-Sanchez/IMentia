@@ -72,6 +72,7 @@ public class MainPanel extends AbstractMainPanel {
     private JLabel PersonDetailNameLabel;
     private JLabel PersonDetailRelLabel;
     private JLabel PersonDetailsImageLabel;
+    private JLabel msgLabel;
 
     //TEXTFIELD
     private JTextField PersonNameField;
@@ -162,6 +163,10 @@ public class MainPanel extends AbstractMainPanel {
         setButtonFont(mainPanel);
         setPLabelFont(mainPanel);
         setScrollbarsIncrement(6);
+
+        msgLabel = new JLabel();
+        msgLabel.setFont(PLabelFont);
+
 
         // Initial State: Show Start Screen, Hide Buttons
         cardLayout.show(DisplayPanel, "START");
@@ -267,13 +272,6 @@ public class MainPanel extends AbstractMainPanel {
             }
         });
 
-        // ... (The rest of SavePersonInfoButton, ADDMEETINGNOTESButton, etc. remains exactly the same) ...
-        // I will omit the bottom half for brevity as no logic changes there,
-        // just make sure you keep the existing Save/Edit logic.
-
-        // --- COPY BACK THE REST OF YOUR LISTENERS HERE (SavePersonInfo, AddMeetingNotes, etc) ---
-        // (If you need me to paste the full block let me know, but only the listeners above changed)
-
         SavePersonInfoButton.addActionListener(e -> {
             String htmlMessage = "<html><body style='width: 300px'>Do you want to save this person with these information?<br><br><b>Name:</b> " + PersonNameField.getText() + "<br><b>Relationship:</b> " + PersonRelationshipField.getText() + "</body></html>";
             JLabel messageLabel = new JLabel(htmlMessage);
@@ -288,58 +286,43 @@ public class MainPanel extends AbstractMainPanel {
                 try {
                     savedPerson = personManager.registerNewPerson(pName, pRel, faceImage);
                 } catch (PersonAlreadyExistsException ex) {
-
+                    String pExists = "<html><body>" + ex.getMessage() + "</body></html>";
+                    JLabel pExistsLabel = new JLabel(pExists);
+                    pExistsLabel.setFont(PLabelFont);
                     JOptionPane.showMessageDialog(
                             mainPanel,
-                            ex.getMessage(),
+                            pExistsLabel,
                             "Duplicate Contact",
                             JOptionPane.ERROR_MESSAGE
                     );
-
-                    // OPTIONAL: auto-open that person's details
-                    Person existing = personManager.getAllPersons()
-                            .stream()
-                            .filter(p -> p.getName().equalsIgnoreCase(ex.getPersonName()))
-                            .findFirst()
-                            .orElse(null);
-
-
-                    if (existing != null) {
-                        setupPersonDetailsForm(existing);
-                        //System.out.println("Switching to person panel: " + existing.getName());
-                        cardLayout.show(DisplayPanel, "5");
-                    }
-
-                    PersonNameField.setText("");
-                    PersonRelationshipField.setText("");
-                    return;
-
                 } catch (PersonSaveException ex) {
+                    String pSaveException  = "<html><body>" + ex.getMessage() + "</body></html>";
+                    System.out.println(ex.getMessage());
+                    JLabel pSaveExceptionLabel = new JLabel(pSaveException);
+                    pSaveExceptionLabel.setFont(PLabelFont);
 
                     JOptionPane.showMessageDialog(
                             mainPanel,
-                            ex.getMessage(),
+                            pSaveExceptionLabel,
                             "Save Error",
                             JOptionPane.ERROR_MESSAGE
                     );
-                    return;
+                } finally {
+                    if (savedPerson != null) {
+                        setupPersonDetailsForm(savedPerson);
+                        cardLayout.show(DisplayPanel, "5");
+                    } else {
+                        BackToCameraButton.setVisible(false);
+                        CapturePhotoButton.setVisible(true);
+                        HomeButton.setVisible(true);
+                        ViewContactsButton.setVisible(true);
+                        cardLayout.show(DisplayPanel, "1");
+                    }
+                    PersonNameField.setText("");
+                    PersonRelationshipField.setText("");
                 }
-
-
-                if (savedPerson != null) {
-                    setupPersonDetailsForm(savedPerson);
-                    cardLayout.show(DisplayPanel, "5");
-                } else {
-                    JOptionPane.showMessageDialog(mainPanel, "Error saving person.", "Error", JOptionPane.ERROR_MESSAGE);
-                    BackToCameraButton.setVisible(false);
-                    CapturePhotoButton.setVisible(true);
-                    HomeButton.setVisible(true);
-                    ViewContactsButton.setVisible(true);
-                    cardLayout.show(DisplayPanel, "1");
-                }
-                PersonNameField.setText("");
-                PersonRelationshipField.setText("");
             }
+
         });
 
         ADDMEETINGNOTESButton.addActionListener(e -> {
@@ -367,8 +350,19 @@ public class MainPanel extends AbstractMainPanel {
                         record.createFile();
                         personManager.updatePersonDetails(currentDisplayedPerson);
                         newNoteAdded = true;
-                        if (meetingNoteAreas.isEmpty()) { JOptionPane.showMessageDialog(mainPanel, "New Meeting note saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE); }
-                    } catch (Exception ex) { ex.printStackTrace(); JOptionPane.showMessageDialog(mainPanel, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE); }
+                        if (meetingNoteAreas.isEmpty()) {
+                            String msg = "<html><body>New meeting note saved successfully!</body></html>";
+                            msgLabel.setText(msg);;
+
+                            JOptionPane.showMessageDialog(mainPanel, msgLabel, "Success", JOptionPane.INFORMATION_MESSAGE);
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        String msg = "<html><body>" + "Error: " + ex.getMessage() + "</body></html>";
+                        msgLabel.setText(msg);;
+
+                        JOptionPane.showMessageDialog(mainPanel, msgLabel, "Error", JOptionPane.ERROR_MESSAGE);
+                    }
                 }
                 MeetingNotesTextArea.setText("Add meeting notes here...");
                 MeetingNotesTextArea.setForeground(Color.GRAY);
@@ -380,13 +374,36 @@ public class MainPanel extends AbstractMainPanel {
         });
 
         MeetingNotesTextArea.addFocusListener(new FocusListener() {
-            @Override public void focusGained(FocusEvent e) { if (MeetingNotesTextArea.getText().equals("Add meeting notes here...")) { MeetingNotesTextArea.setText(""); MeetingNotesTextArea.setForeground(Color.BLACK); } }
-            @Override public void focusLost(FocusEvent e) { if (MeetingNotesTextArea.getText().isEmpty()) { MeetingNotesTextArea.setForeground(Color.GRAY); MeetingNotesTextArea.setText("Add meeting notes here..."); } }
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (MeetingNotesTextArea.getText().equals("Add meeting notes here...")) {
+                        MeetingNotesTextArea.setText(""); MeetingNotesTextArea.setForeground(Color.BLACK);
+                }
+            }
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (MeetingNotesTextArea.getText().isEmpty()) {
+                    MeetingNotesTextArea.setForeground(Color.GRAY); MeetingNotesTextArea.setText("Add meeting notes here...");
+                }
+            }
         });
 
-        mainPanel.addMouseListener(new MouseAdapter() { @Override public void mouseClicked(MouseEvent e) { mainPanel.requestFocusInWindow(); } });
+        mainPanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                mainPanel.requestFocusInWindow();
+            }
+        });
 
-        EDITCONTACTButton.addActionListener(e -> { if (currentDisplayedPerson != null) { showEditDetailsDialog(currentDisplayedPerson); } else { JOptionPane.showMessageDialog(mainPanel, "No person selected for editing.", "Error", JOptionPane.ERROR_MESSAGE); } });
+        EDITCONTACTButton.addActionListener(e -> {
+            if (currentDisplayedPerson != null) {
+                showEditDetailsDialog(currentDisplayedPerson);
+            } else {
+                String msg = "<html><body>No person selected for editing.</body></html>";
+                msgLabel.setText(msg);;
+                JOptionPane.showMessageDialog(mainPanel, "No person selected for editing.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
     }
 
     private void setupStartScreen() {
