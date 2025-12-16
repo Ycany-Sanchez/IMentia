@@ -979,8 +979,13 @@ public class MainPanel extends AbstractMainPanel {
         return panel;
     }
 
-    protected void refreshContactsPanel() {
+    public void refreshContactsPanel() {
+        // 1. Clear the UI container
         PersonPanel.removeAll();
+
+        // 2. Clear the internal list of panels to prevent memory leaks/duplicate references
+        contactListPanels.clear();
+
         // *** FACADE USAGE: Get Data ***
         List<Person> persons = personManager.getAllPersons();
         int numPersons = persons.size();
@@ -1003,6 +1008,17 @@ public class MainPanel extends AbstractMainPanel {
                 rowBox.add(Box.createHorizontalGlue());
             }
             PersonPanel.add(rowBox);
+        }
+
+        // 3. ESSENTIAL: Tell Swing to redraw the UI with the new components
+        PersonPanel.revalidate();
+        PersonPanel.repaint();
+
+        // 4. UI EXPERIENCE FIX:
+        // If the user was in "Edit Mode" when they clicked delete,
+        // make sure the delete buttons on the NEW list are visible.
+        if (isEditing) {
+            toggleDeleteButton();
         }
     }
 
