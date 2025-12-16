@@ -1,20 +1,19 @@
 // >>> FILE: src/main/java/ui/MainPanel.java
 package ui;
 
-import util.NoCamException;
 import people.MeetingRecord;
 import people.Person;
 
 import org.bytedeco.opencv.opencv_core.*;
-import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
 import service.FaceRecognitionService;
 import service.PersonRecognitionManager;
 import util.FileHandler;
 import util.ImageHandler;
 import util.ImageUtils;
-import util.PersonDataManager;
+import util.exceptions.PersonAlreadyExistsException;
+import util.exceptions.PersonSaveException;
+import util.exceptions.NoCamException;
 
-import org.bytedeco.opencv.opencv_core.*;
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
@@ -23,7 +22,6 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
@@ -285,7 +283,47 @@ public class MainPanel extends AbstractMainPanel {
             if (op == JOptionPane.YES_OPTION) {
                 String pName = PersonNameField.getText().trim();
                 String pRel = PersonRelationshipField.getText().trim();
-                Person savedPerson = personManager.registerNewPerson(pName, pRel, faceImage);
+                Person savedPerson = null;
+
+                try {
+                    savedPerson = personManager.registerNewPerson(pName, pRel, faceImage);
+                } catch (PersonAlreadyExistsException ex) {
+
+                    JOptionPane.showMessageDialog(
+                            mainPanel,
+                            ex.getMessage(),
+                            "Duplicate Contact",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+
+                    // OPTIONAL: auto-open that person's details
+                    Person existing = personManager.getAllPersons()
+                            .stream()
+                            .filter(p -> p.getName().equalsIgnoreCase(ex.getPersonName()))
+                            .findFirst()
+                            .orElse(null);
+
+
+                    if (existing != null) {
+                        setupPersonDetailsForm(existing);
+                        //System.out.println("Switching to person panel: " + existing.getName());
+                        cardLayout.show(DisplayPanel, "5");
+                    }
+
+                    PersonNameField.setText("");
+                    PersonRelationshipField.setText("");
+                    return;
+
+                } catch (PersonSaveException ex) {
+
+                    JOptionPane.showMessageDialog(
+                            mainPanel,
+                            ex.getMessage(),
+                            "Save Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                }
+
 
                 if (savedPerson != null) {
                     setupPersonDetailsForm(savedPerson);
@@ -1009,7 +1047,6 @@ public class MainPanel extends AbstractMainPanel {
 
         // *** FACADE USAGE: Get Data ***
         List<Person> persons = personManager.getAllPersons();
-        Collections.sort(persons);
         int numPersons = persons.size();
 
         for (int i = 0; i < numPersons; i += 2) {

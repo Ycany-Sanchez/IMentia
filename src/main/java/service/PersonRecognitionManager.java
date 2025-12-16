@@ -8,6 +8,8 @@ import util.ImageHandler;
 import util.ImageUtils;
 import org.bytedeco.opencv.opencv_core.Mat;
 import util.PersonDataManager;
+import util.exceptions.PersonAlreadyExistsException;
+import util.exceptions.PersonSaveException;
 
 import java.io.File;
 import java.nio.file.Paths; // Required for Path operations
@@ -71,32 +73,57 @@ public class PersonRecognitionManager {
      * 5. Saves Image to Disk
      * 6. Retrains face recog
      */
-    public Person registerNewPerson(String name, String relationship, Mat faceImage) {
-        String capitalizedName = FileHandler.capitalizeLabel(name);
-        String capitalizedRel = FileHandler.capitalizeLabel(relationship);
+    public Person registerNewPerson(String name, String relationship, Mat faceImage) throws PersonSaveException {
 
-        Person newPerson = new Person(capitalizedName, capitalizedRel);
-
-        // 1. Generate ID
-        newPerson.setId(fileHandler.generateId(cachedPersons));
-
-        // 2. Set Image for Runtime
-        newPerson.setPersonImage(ImageUtils.matToBufferedImage(faceImage));
-
-        // 3. Add to List
-        cachedPersons.add(newPerson);
-
-        // 4. Persist to CSV
-        if (fileHandler.savePersons(cachedPersons)) {
-            // 5. Save Face Image to Disk
-            saveFaceImageToDisk(newPerson.getId(), faceImage);
-
-            // 6. Retrain Model
-            recognitionService.train(cachedPersons);
-            return newPerson;
+        if (name == null || name.isBlank()) {
+            throw new PersonSaveException("Name cannot be empty.", name);
         }
 
-        return null; // Failed to save
+        if (relationship == null || relationship.isBlank()) {
+            throw new PersonSaveException("Relationship cannot be empty.", name);
+        }
+
+        if (faceImage == null || faceImage.empty()) {
+            throw new PersonSaveException("Face image is missing.", name);
+        }
+
+        // --- Duplicate check using cachedPersons ---
+        for (Person p : cachedPersons) {
+            if (p.getName().equalsIgnoreCase(name)) {
+                throw new PersonAlreadyExistsException(name);
+            }
+        }
+
+        String capitalizedName = FileHandler.capitalizeLabel(name);
+
+        try {
+            Person newPerson = new Person(capitalizedName, FileHandler.capitalizeLabel(relationship));
+
+            newPerson.setId(fileHandler.generateId(cachedPersons));
+            newPerson.setPersonImage(ImageUtils.matToBufferedImage(faceImage));
+
+            cachedPersons.add(newPerson);
+
+            // Save persons to CSV
+            if (!fileHandler.savePersons(cachedPersons)) {
+                throw new PersonSaveException("Failed to save person data.", capitalizedName);
+            }
+
+            // Save face image and retrain model
+            saveFaceImageToDisk(newPerson.getId(), faceImage);
+            recognitionService.train(cachedPersons);
+            return newPerson;
+
+        } catch (PersonAlreadyExistsException e) {
+            throw e; // pass through to UI
+
+        } catch (Exception e) {
+            throw new PersonSaveException(
+                    "Unexpected error while saving person.",
+                    capitalizedName,
+                    e
+            );
+        }
     }
 
     /**

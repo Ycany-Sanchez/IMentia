@@ -1,7 +1,7 @@
 // 1. Create this inner class
 package ui;
 
-import util.NoCamException;
+import util.exceptions.NoCamException;
 import org.bytedeco.opencv.opencv_core.*;
 import org.bytedeco.opencv.opencv_core.Point;
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
