@@ -10,7 +10,7 @@ import java.util.List;
  * Person is the model for a recognized individual, storing their metadata
  * and a list of captured face samples (FaceData) used for training.
  */
-public class Person implements Serializable {
+public class Person implements Serializable, Comparable<Person> {
     private static final long serialVersionUID = 1L;
     private String id;
     private String name;
@@ -89,5 +89,10 @@ public class Person implements Serializable {
 
     public String toString(){
         return this.id + "," + this.id + ".png" + "," + this.name + "," + this.relationship;
+    }
+
+    @Override
+    public int compareTo(Person o) {
+        return this.name.compareToIgnoreCase(o.name);
     }
 }

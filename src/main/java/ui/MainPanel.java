@@ -23,6 +23,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
@@ -1008,6 +1009,7 @@ public class MainPanel extends AbstractMainPanel {
 
         // *** FACADE USAGE: Get Data ***
         List<Person> persons = personManager.getAllPersons();
+        Collections.sort(persons);
         int numPersons = persons.size();
 
         for (int i = 0; i < numPersons; i += 2) {
