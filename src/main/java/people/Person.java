@@ -11,7 +11,6 @@ import java.util.List;
  * and a list of captured face samples (FaceData) used for training.
  */
 public class Person implements Serializable {
-    private static final long serialVersionUID = 1L;
     private String id;
     private String name;
     private String relationship;
@@ -78,10 +77,6 @@ public class Person implements Serializable {
 
     }
 
-    public MeetingRecord getMeetingRecord(){
-        return lastestConv;
-
-    }
     public String toString(){
         return this.id + "," + this.id + ".png" + "," + this.name + "," + this.relationship;
     }

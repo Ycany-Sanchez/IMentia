@@ -23,7 +23,6 @@ class VideoProcessor extends JPanel {
     private VideoCapture camera;
     private Mat currentFrame;
     private CascadeClassifier faceDetector;
-    private Component dialogParent;
     private Rect currentFaceRect;
 
     public VideoProcessor() {

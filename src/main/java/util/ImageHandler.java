@@ -15,13 +15,6 @@ import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
 
 public class ImageHandler extends FileHandler {
 
-    private static final String FACES_FOLDER = "imentia_data/saved_faces/";
-
-    // Ensure the faces folder exists
-    public void ensureFacesFolderExists() {
-        File dir = new File(Paths.get(DATA_FOLDER, FACES_FOLDER).toString());
-        if (!dir.exists()) dir.mkdirs();
-    }
 
 
     public static Mat loadMatFromFile(String filePath) {
@@ -34,16 +27,4 @@ public class ImageHandler extends FileHandler {
         return mat;
     }
 
-    public BufferedImage loadImage(String personId) {
-        try {
-            String directoryPath = Paths.get(DATA_FOLDER, "saved_faces").toString();
-            File imgFile = new File(directoryPath, personId + ".png");
-            if (imgFile.exists()) {
-                return ImageIO.read(imgFile);
-            }
-        } catch (IOException e) {
-            System.out.println("Could not load image for " + personId);
-        }
-        return null;
-    }
 }

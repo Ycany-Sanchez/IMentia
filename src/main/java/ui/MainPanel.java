@@ -101,7 +101,6 @@ public class MainPanel extends AbstractMainPanel {
     private Person currentDisplayedPerson;
     private CardLayout cardLayout = new CardLayout();
     private boolean isEditing = false;
-    private JFrame tempFrame = new JFrame();
     private boolean hasSaved = false;
     private Mat faceImage;
 

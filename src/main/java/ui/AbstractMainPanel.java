@@ -15,45 +15,12 @@ import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
  * Abstract base class for panels that handle
  * camera display, contacts, and person details.
  * Concrete subclasses (like MainPanel) must implement
- * the abstract methods to provide actual behavior.
+ * the abstract methods to provide actual    behavior.
  */
 public abstract class AbstractMainPanel extends JPanel {
 
     // Core UI panels
     protected JPanel mainPanel;
-    protected JPanel cameraPanel;
-    protected JPanel contactsPanel;
-    protected JPanel displayPanel;
-    protected JPanel buttonPanel;
-
-    // Core buttons
-    protected JButton capturePhotoButton;
-    protected JButton viewContactsButton;
-    protected JButton tutorialButton;
-    protected JButton backToCameraButton;
-    protected JButton savePersonInfoButton;
-    protected JButton addMeetingNotesButton;
-
-    // Core labels
-    protected JLabel personNameLabel;
-    protected JLabel personImageLabel;
-    protected JLabel personRelationshipLabel;
-    protected JLabel meetingNotesLabel;
-
-    // Core text fields and areas
-    protected JTextField personNameField;
-    protected JTextField personRelationshipField;
-    protected JTextArea meetingNotesTextArea;
-
-    // Fonts
-    protected Font buttonFont = new Font("", Font.BOLD, 24);
-    protected Font headerLabelFont = new Font("", Font.BOLD, 20);
-    protected Font plainLabelFont = new Font("", Font.PLAIN, 20);
-
-    // State
-    protected Person currentDisplayedPerson;
-    protected List<Person> persons;
-    protected CardLayout cardLayout = new CardLayout();
 
     // === Abstract methods ===
 
