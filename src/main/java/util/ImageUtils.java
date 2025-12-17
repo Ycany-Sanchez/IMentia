@@ -1,6 +1,5 @@
 package util;
 
-import people.FaceData;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.javacpp.indexer.UByteIndexer;
 // *** NEW IMPORT ***

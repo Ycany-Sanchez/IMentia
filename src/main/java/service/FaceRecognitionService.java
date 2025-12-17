@@ -12,7 +12,6 @@ import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.MatVector;
 import org.bytedeco.opencv.opencv_core.Size;
 import org.bytedeco.opencv.opencv_face.LBPHFaceRecognizer;
-import people.FaceData;
 import people.Person;
 import util.FileHandler;
 import util.ImageHandler;
@@ -97,10 +96,10 @@ public class FaceRecognitionService {
         }
 
         /*
-          Note: The code below assumes our initial implementation plan to have multiple images of the same person for better accuracy.
+          Note: faceImages list assumes our initial implementation plan to have multiple images of the same person for better accuracy.
           Since we currently abolished that, we are left with this.
           This still works for one image of the person, so let us keep this implementation.
-          Should we pick up this project again, we do not need to change our code.
+          Should we decide to change this, we have faceImages ready.
           Please avoid modifying :>
           */
 

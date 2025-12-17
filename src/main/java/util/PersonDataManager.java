@@ -5,15 +5,10 @@ import people.Person;
 import java.io.*;
 import java.util.*;
 
-public class PersonDataManager extends FileHandler
-{
-    // CSV file for person data
+public class PersonDataManager extends FileHandler {
     private static final String PERSON_FILE = "Person_File.csv";
-
-    // In-memory map to track persons by name
     private final Map<String, Boolean> personMap = new HashMap<>();
 
-    // Save a list of persons (append mode if needed)
     public boolean savePersons(List<Person> persons) {
         File file = new File(DATA_FOLDER, PERSON_FILE);
         boolean savedNewPerson = false;

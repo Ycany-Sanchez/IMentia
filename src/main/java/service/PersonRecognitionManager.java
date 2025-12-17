@@ -12,7 +12,7 @@ import util.exceptions.PersonAlreadyExistsException;
 import util.exceptions.PersonSaveException;
 
 import java.io.File;
-import java.nio.file.Paths; // Required for Path operations
+import java.nio.file.Paths;
 import java.util.List;
 
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
@@ -184,7 +184,6 @@ public class PersonRecognitionManager {
             System.err.println("Manager: Error deleting image file: " + e.getMessage());
         }
 
-        // ** NEW: Delete meeting notes file **
         try {
             String notesPath = Paths.get(fileHandler.getDataFolder(), "Meeting_Notes", person.getId() + ".txt").toString();
             File notesFile = new File(notesPath);

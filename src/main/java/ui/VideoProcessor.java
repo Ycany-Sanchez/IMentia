@@ -39,7 +39,6 @@ class VideoProcessor extends JPanel {
         this.repaint();
     }
 
-    // UPDATED: Now throws specific NoCamException
     public void startCamera() throws NoCamException {
         System.out.println("Starting camera...");
         camera = new VideoCapture(0);
@@ -67,7 +66,7 @@ class VideoProcessor extends JPanel {
 
                 currentFrame = frame.clone();
 
-                if (frameCount % 4 == 0) {
+                if (frameCount % 4 == 0) { // Detects every 4 frames. 5 is too inaccurate.
                     cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
 
                     RectVector detections = new RectVector();
@@ -81,6 +80,8 @@ class VideoProcessor extends JPanel {
                         Rect[] faces = new Rect[numFaces];
                         for (int i = 0; i < numFaces; i++) {
                             Rect temp = detections.get(i);
+
+                            // Needed to recreate Rect bypass some weird c++ memory limit thing to improve performance
                             faces[i] = new Rect(temp.x(), temp.y(), temp.height(), temp.width());
                         }
                         currentFaceRect = getBiggestFace(faces);
@@ -112,10 +113,10 @@ class VideoProcessor extends JPanel {
                 });
 
                 try {
-                    Thread.sleep(30);
+                    Thread.sleep(16); // 60fps camera feed, performance effect not known for now
                 } catch (InterruptedException e) {
                     System.out.println("Camera thread interrupted.");
-                    Thread.currentThread().interrupt(); // Restore interrupted status
+                    Thread.currentThread().interrupt();
                     break;
                 }
             }
@@ -128,7 +129,6 @@ class VideoProcessor extends JPanel {
         cameraThread.start();
     }
 
-    // UPDATED: Throws IOException instead of catching generically
     private static CascadeClassifier loadFaceDetector() throws IOException {
         System.out.println("Loading face detector from resources...");
         InputStream is = MainPanel.class.getResourceAsStream("/haarcascade_frontalface_default.xml");
@@ -138,6 +138,7 @@ class VideoProcessor extends JPanel {
             return null;
         }
 
+        // Needed temp file because haarcascade is on the resources folder, as by the InputStream
         File tempFile = File.createTempFile("haarcascade", ".xml");
         tempFile.deleteOnExit();
 

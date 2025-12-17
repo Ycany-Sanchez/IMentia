@@ -14,7 +14,6 @@ public class Person implements Serializable {
     private String id;
     private String name;
     private String relationship;
-    private FaceData face; // List of face samples for this person
     private BufferedImage personImage;
     private MeetingRecord lastestConv;
 
@@ -25,13 +24,6 @@ public class Person implements Serializable {
         this.lastestConv = null;
     }
 
-    /**
-     * Adds a new FaceData sample to this person's training set.
-     * @param face The FaceData object to add.
-     */
-    public void addFace(FaceData face) {
-        this.face = face;
-    }
 
     public String getId() {
         return this.id;
@@ -43,10 +35,6 @@ public class Person implements Serializable {
 
     public String getRelationship() {
         return this.relationship;
-    }
-
-    public FaceData getFace() {
-        return face;
     }
 
     public BufferedImage getPersonImage(){

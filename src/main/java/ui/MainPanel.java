@@ -697,7 +697,9 @@ public class MainPanel extends AbstractMainPanel {
 
             personManager.updatePersonDetails(person);
 
-            JOptionPane.showMessageDialog(mainPanel, "Contact details updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            String msg = "<html><body>Contact details  updated successfully!</body><html>";
+            msgLabel.setText(msg);
+            JOptionPane.showMessageDialog(mainPanel, msgLabel, "Success", JOptionPane.INFORMATION_MESSAGE);
             setupPersonDetailsForm(person);
         }
     }
@@ -1058,15 +1060,13 @@ public class MainPanel extends AbstractMainPanel {
     }
 
     public void refreshContactsPanel() {
-        // 1. Clear the UI container
         PersonPanel.removeAll();
-
-        // 2. Clear the internal list of panels to prevent memory leaks/duplicate references
         contactListPanels.clear();
 
         // *** FACADE USAGE: Get Data ***
         List<Person> persons = personManager.getAllPersons();
 
+        // Comparator for sorting. Person details bug fixed already, please do not modify.
         persons.sort(new Comparator<Person>(){
             public int compare(Person p1, Person p2){
                 return p1.getName().compareToIgnoreCase(p2.getName());

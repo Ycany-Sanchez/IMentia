@@ -4,14 +4,19 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Paths;
 
 public class AnimatedBackgroundPanel extends JPanel {
 
     private BufferedImage background;
     private int xOffset = 0;
     private final int speed = 1; // pixels per frame
+    private int scaledWidth;
+
 
     public AnimatedBackgroundPanel() {
         loadImage();
@@ -20,9 +25,10 @@ public class AnimatedBackgroundPanel extends JPanel {
 
     private void loadImage() {
         try {
-            URL url = getClass().getResource("/images/smiling1.jpg");
+            // Need to use URL instead of our usual Paths.get because we have the image thingy inside the resources for JAR.
+            URL url = getClass ().getResource( "/images/smiling1.jpg");
             if (url == null) {
-                throw new RuntimeException("Image not found: /images/smiling1.jpg");
+                throw new FileNotFoundException("Image not found: /images/smiling1.jpg");
             }
             background = ImageIO.read(url);
         } catch (IOException e) {
@@ -31,12 +37,13 @@ public class AnimatedBackgroundPanel extends JPanel {
     }
 
     private void startAnimation() {
-        Timer timer = new Timer(16, e -> { // ~60 FPS
+        // made it slower, down to around I think 14.9 fps ish para dili labad sa ulo
+        // and 67
+        Timer timer = new Timer(67, e -> {
             if (background == null) return;
 
             xOffset -= speed;
 
-            int scaledWidth = getScaledWidth();
             if (Math.abs(xOffset) >= scaledWidth) {
                 xOffset = 0;
             }
@@ -45,86 +52,36 @@ public class AnimatedBackgroundPanel extends JPanel {
         timer.start();
     }
 
-    private int getScaledWidth() {
-        int panelHeight = getHeight();
-        if (panelHeight == 0 || background == null) return 0;
-
-        int topSpace = 60;
-        int bottomSpace = 60;
-        int imageHeight = panelHeight - topSpace - bottomSpace;
-
-        return background.getWidth() * imageHeight / background.getHeight();
-    }
-
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
 
-        // Enable anti-aliasing for smoother rendering
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-
         if (background == null) return;
 
-        int panelHeight = getHeight();
-        int scaledWidth = getScaledWidth();
+        // Removed method getScaledWidth and integrated it directly as an attribute para di na mag sigeg call method
+        // For imageHeight, we are doing 60 padding for top and bottom, so 120. Adjust this if needed more padding
+        int imageHeight = getHeight() - 120;
+        scaledWidth = background.getWidth() * imageHeight / background.getHeight();
 
-        // Add vertical spacing
-        int topSpace = 60;
-        int bottomSpace = 60;
-        int imageHeight = panelHeight - topSpace - bottomSpace;
-        int scaledWidthWithSpacing = background.getWidth() * imageHeight / background.getHeight();
-
+        int padding = 60;
         // Draw two images for seamless infinite scrolling with vertical spacing
-        g2d.drawImage(background, xOffset, topSpace, scaledWidthWithSpacing, imageHeight, this);
-        g2d.drawImage(background, xOffset + scaledWidthWithSpacing, topSpace, scaledWidthWithSpacing, imageHeight, this);
+        // Like... image1 first, then image2, then image1, and so on
+        g2d.drawImage(background, xOffset, padding, scaledWidth, imageHeight, this);
+        g2d.drawImage(background, xOffset + scaledWidth, padding, scaledWidth, imageHeight, this);
 
-        // Add gradient overlay for better depth
-        GradientPaint gradient = new GradientPaint(
-                0, 0, new Color(0, 0, 0, 180),
-                0, getHeight(), new Color(0, 0, 0, 120)
-        );
-        g2d.setPaint(gradient);
+        // For shadow
+        g2d.setPaint(new Color(0, 0, 0, 150));
         g2d.fillRect(0, 0, getWidth(), getHeight());
 
-        // Add subtle vignette effect (darker edges)
-        RadialGradientPaint vignette = new RadialGradientPaint(
-                getWidth() / 2f, getHeight() / 2f,
-                Math.max(getWidth(), getHeight()) * 0.8f,
-                new float[]{0.0f, 1.0f},
-                new Color[]{new Color(0, 0, 0, 0), new Color(0, 0, 0, 100)}
-        );
-        g2d.setPaint(vignette);
-        g2d.fillRect(0, 0, getWidth(), getHeight());
-
-        // Add white center box for better contrast
+        // For box with greyish white
         int boxWidth = 550;
         int boxHeight = 550;
         int boxX = (getWidth() - boxWidth) / 2;
         int boxY = ((getHeight() - boxHeight) / 2) + 20;
 
-        // shadow
-        g2d.setColor(new Color(0, 0, 0, 60));
-        g2d.fillRoundRect(boxX + 8, boxY + 8, boxWidth, boxHeight, 35, 35);
-        g2d.setColor(new Color(0, 0, 0, 40));
-        g2d.fillRoundRect(boxX + 12, boxY + 12, boxWidth, boxHeight, 35, 35);
-
-        // white box thingy
-        g2d.setColor(new Color(255, 255, 255, 250));
+        g2d.setColor(new Color(240, 240, 240));
         g2d.fillRoundRect(boxX, boxY, boxWidth, boxHeight, 35, 35);
-
-        // Add a very subtle inner glow/highlight at the top
-        GradientPaint innerGlow = new GradientPaint(
-                boxX, boxY, new Color(255, 255, 255, 50),
-                boxX, boxY + 100, new Color(255, 255, 255, 0)
-        );
-        g2d.setPaint(innerGlow);
         g2d.fillRoundRect(boxX, boxY, boxWidth, 100, 35, 35);
-
-        // Optional: Add a subtle border
-        g2d.setColor(new Color(220, 220, 220, 150));
-        g2d.setStroke(new BasicStroke(1.5f));
-        g2d.drawRoundRect(boxX, boxY, boxWidth, boxHeight, 35, 35);
     }
 }
