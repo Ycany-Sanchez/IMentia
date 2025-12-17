@@ -17,7 +17,6 @@ import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
 
 /**
  * FACADE PATTERN IMPLEMENTATION
- *
  * This class acts as the "Manager" Facade. It encapsulates the complexity
  * of synchronizing the FileHandler (Storage) and FaceRecognitionService (AI).
  * Bisag mura siya, by name, going to be mostly about Managing recognition ONLY,

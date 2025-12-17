@@ -2,8 +2,6 @@ package util;
 
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.javacpp.indexer.UByteIndexer;
-// *** NEW IMPORT ***
-import static org.bytedeco.opencv.global.opencv_imgcodecs.imread;
 
 import java.awt.image.BufferedImage;
 

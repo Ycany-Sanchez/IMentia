@@ -1,15 +1,8 @@
 package ui;
 
 import people.Person;
-import people.MeetingRecord;
-
 import javax.swing.*;
-import java.awt.*;
-import java.util.List;
 
-
-import org.bytedeco.opencv.opencv_core.*;
-import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
 
 /**
  * Abstract base class for panels that handle

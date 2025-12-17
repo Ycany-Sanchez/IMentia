@@ -4,11 +4,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.Paths;
 
 public class AnimatedBackgroundPanel extends JPanel {
 
@@ -32,7 +30,7 @@ public class AnimatedBackgroundPanel extends JPanel {
             }
             background = ImageIO.read(url);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Error while loading image");
         }
     }
 
