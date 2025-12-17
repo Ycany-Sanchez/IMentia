@@ -1,5 +1,3 @@
-// >>> FILE: src/main/java/service/PersonRecognitionManager.java (Updated)
-
 package service;
 
 import people.Person;

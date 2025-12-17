@@ -1,4 +1,3 @@
-// >>> FILE: src/main/java/people/Person.java
 package people;
 
 import java.awt.image.BufferedImage;

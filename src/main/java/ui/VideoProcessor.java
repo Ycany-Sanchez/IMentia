@@ -1,4 +1,3 @@
-// 1. Create this inner class
 package ui;
 
 import util.exceptions.NoCamException;

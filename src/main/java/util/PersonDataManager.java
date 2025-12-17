@@ -1,4 +1,3 @@
-// src/main/java/util/PersonDataManager.java
 package util;
 
 import people.Person;

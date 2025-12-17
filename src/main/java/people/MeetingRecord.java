@@ -1,5 +1,3 @@
-// >>> FILE: src/main/java/people/MeetingRecord.java (Updated)
-
 package people;
 import util.FileHandler;
 import java.io.*;

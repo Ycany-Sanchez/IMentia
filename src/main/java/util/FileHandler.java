@@ -1,4 +1,3 @@
-// src/main/java/util/FileHandler.java
 package util;
 
 import people.Person;

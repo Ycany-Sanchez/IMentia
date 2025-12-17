@@ -1,4 +1,3 @@
-// >>> FILE: src/main/java/service/FaceRecognitionService.java
 package service;
 
 import java.io.PrintStream;
