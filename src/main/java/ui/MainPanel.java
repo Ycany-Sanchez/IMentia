@@ -25,8 +25,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-import static org.bytedeco.opencv.global.opencv_imgcodecs.imwrite;
-
 public class MainPanel extends AbstractMainPanel {
 
     // --- SERVICES ---
@@ -351,17 +349,16 @@ public class MainPanel extends AbstractMainPanel {
                         MeetingRecord record = currentDisplayedPerson.newConversation(noteText);
                         record.createFile();
                         personManager.updatePersonDetails(currentDisplayedPerson);
-                        newNoteAdded = true;
                         if (meetingNoteAreas.isEmpty()) {
                             String msg = "<html><body>New meeting note saved successfully!</body></html>";
-                            msgLabel.setText(msg);;
+                            msgLabel.setText(msg);
 
                             JOptionPane.showMessageDialog(mainPanel, msgLabel, "Success", JOptionPane.INFORMATION_MESSAGE);
                         }
                     } catch (Exception ex) {
                         ex.printStackTrace();
                         String msg = "<html><body>" + "Error: " + ex.getMessage() + "</body></html>";
-                        msgLabel.setText(msg);;
+                        msgLabel.setText(msg);
 
                         JOptionPane.showMessageDialog(mainPanel, msgLabel, "Error", JOptionPane.ERROR_MESSAGE);
                     }
@@ -402,7 +399,7 @@ public class MainPanel extends AbstractMainPanel {
                 showEditDetailsDialog(currentDisplayedPerson);
             } else {
                 String msg = "<html><body>No person selected for editing.</body></html>";
-                msgLabel.setText(msg);;
+                msgLabel.setText(msg);
                 JOptionPane.showMessageDialog(mainPanel, "No person selected for editing.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
@@ -766,8 +763,7 @@ public class MainPanel extends AbstractMainPanel {
         for(JPanel panel : contactListPanels){
             for(Component c : panel.getComponents()){
                 if(c instanceof JButton b){
-                    if(!b.isVisible()) b.setVisible(true);
-                    else b.setVisible(false);
+                    b.setVisible(!b.isVisible());
                 }
             }
         }
