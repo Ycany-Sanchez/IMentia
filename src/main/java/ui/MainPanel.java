@@ -286,43 +286,56 @@ public class MainPanel extends AbstractMainPanel {
                 try {
                     savedPerson = personManager.registerNewPerson(pName, pRel, faceImage);
                 } catch (PersonAlreadyExistsException ex) {
-                    String pExists = "<html><body>" + ex.getMessage() + "</body></html>";
-                    JLabel pExistsLabel = new JLabel(pExists);
-                    pExistsLabel.setFont(PLabelFont);
                     JOptionPane.showMessageDialog(
                             mainPanel,
-                            pExistsLabel,
+                            ex.getMessage(),
                             "Duplicate Contact",
                             JOptionPane.ERROR_MESSAGE
                     );
+
+                    //OPENS THE RECOGNIZED NAME PANEL
+                    Person existing = personManager.getAllPersons()
+                            .stream()
+                            .filter(p -> p.getName().equalsIgnoreCase(ex.getPersonName()))
+                            .findFirst()
+                            .orElse(null);
+
+
+                    if (existing != null) {
+                        setupPersonDetailsForm(existing);
+                        cardLayout.show(DisplayPanel, "5");
+                    }
+
+                    PersonNameField.setText("");
+                    PersonRelationshipField.setText("");
+                    return;
+
                 } catch (PersonSaveException ex) {
-                    String pSaveException  = "<html><body>" + ex.getMessage() + "</body></html>";
-                    System.out.println(ex.getMessage());
-                    JLabel pSaveExceptionLabel = new JLabel(pSaveException);
-                    pSaveExceptionLabel.setFont(PLabelFont);
 
                     JOptionPane.showMessageDialog(
                             mainPanel,
-                            pSaveExceptionLabel,
+                            ex.getMessage(),
                             "Save Error",
                             JOptionPane.ERROR_MESSAGE
                     );
-                } finally {
-                    if (savedPerson != null) {
-                        setupPersonDetailsForm(savedPerson);
-                        cardLayout.show(DisplayPanel, "5");
-                    } else {
-                        BackToCameraButton.setVisible(false);
-                        CapturePhotoButton.setVisible(true);
-                        HomeButton.setVisible(true);
-                        ViewContactsButton.setVisible(true);
-                        cardLayout.show(DisplayPanel, "1");
-                    }
-                    PersonNameField.setText("");
-                    PersonRelationshipField.setText("");
+                    return;
                 }
-            }
 
+
+                if (savedPerson != null) {
+                    setupPersonDetailsForm(savedPerson);
+                    cardLayout.show(DisplayPanel, "5");
+                } else {
+                    JOptionPane.showMessageDialog(mainPanel, "Error saving person.", "Error", JOptionPane.ERROR_MESSAGE);
+                    BackToCameraButton.setVisible(false);
+                    CapturePhotoButton.setVisible(true);
+                    HomeButton.setVisible(true);
+                    ViewContactsButton.setVisible(true);
+                    cardLayout.show(DisplayPanel, "1");
+                }
+                PersonNameField.setText("");
+                PersonRelationshipField.setText("");
+            }
         });
 
         ADDMEETINGNOTESButton.addActionListener(e -> {
