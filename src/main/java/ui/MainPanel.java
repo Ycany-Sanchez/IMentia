@@ -75,6 +75,8 @@ public class MainPanel extends AbstractMainPanel {
     private JLabel PersonDetailsImageLabel;
     private JLabel msgLabel;
 
+
+
     //TEXTFIELD
     private JTextField PersonNameField;
     private JTextField PersonRelationshipField;
@@ -409,7 +411,8 @@ public class MainPanel extends AbstractMainPanel {
     private void setupStartScreen() {
         // 1. Initialize Panel
         if (StartScreenPanel == null) {
-            StartScreenPanel = new JPanel();
+            StartScreenPanel = new AnimatedBackgroundPanel();
+            StartScreenPanel.setLayout(new GridBagLayout());
         }
         StartScreenPanel.removeAll();
         StartScreenPanel.setLayout(new GridBagLayout()); // GridBag is best for centering
@@ -466,7 +469,7 @@ public class MainPanel extends AbstractMainPanel {
         // 5. Tutorial Link
         JLabel helpLabel = new JLabel("Don't know how to use IMentia?");
         helpLabel.setFont(new Font("SansSerif", Font.PLAIN, 18));
-        helpLabel.setForeground(Color.BLACK);
+        helpLabel.setForeground(Color.blue);
         helpLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         helpLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
