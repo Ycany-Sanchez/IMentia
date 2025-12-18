@@ -75,6 +75,7 @@ public class MainPanel extends AbstractMainPanel {
 
 
 
+
     //TEXTFIELD
     private JTextField PersonNameField;
     private JTextField PersonRelationshipField;
@@ -103,6 +104,7 @@ public class MainPanel extends AbstractMainPanel {
     private boolean isEditing = false;
     private boolean hasSaved = false;
     private Mat faceImage;
+    private CameraLifecycleManager cameraManager;
 
     boolean isEditingMeetingNotes = false;
 
@@ -122,15 +124,8 @@ public class MainPanel extends AbstractMainPanel {
 
         setUpUI();
 
-        try {
-            videoProcessor.startCamera();
-        } catch (NoCamException e) {
-            JOptionPane.showMessageDialog(mainPanel,
-                    e.getMessage(),
-                    "Camera Error",
-                    JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-        }
+
+        cameraManager = new CameraLifecycleManager(videoProcessor, mainPanel);
     }
 
     // UI Setup and Display
@@ -183,6 +178,7 @@ public class MainPanel extends AbstractMainPanel {
         ViewContactsButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                cameraManager.stopCamera();
                 personManager.refreshDataAndTrain();
                 refreshContactsPanel();
 
@@ -202,6 +198,7 @@ public class MainPanel extends AbstractMainPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 // Go back to Start Screen
+                cameraManager.stopCamera();
                 cardLayout.show(DisplayPanel, "START");
                 // Hide the main button controls since Start Screen has its own "Start" button
                 ButtonPanel.setVisible(false);
@@ -229,6 +226,7 @@ public class MainPanel extends AbstractMainPanel {
             public void actionPerformed(ActionEvent e) {
                 // --- NEW LOGIC: Check if we are in Tutorial Mode ---
                 if (BackToCameraButton.getText().equals("BACK TO HOME SCREEN")) {
+                    cameraManager.stopCamera();
                     cardLayout.show(DisplayPanel, "START");
                     ButtonPanel.setVisible(false); // Hide buttons on Start Screen
                     return; // Stop here, don't execute the rest
@@ -243,6 +241,7 @@ public class MainPanel extends AbstractMainPanel {
                 }
                 hasSaved = false;
                 cardLayout.show(DisplayPanel, "1");
+                cameraManager.startCamera();
 
                 // Reset buttons for Camera view
                 BackToCameraButton.setVisible(false);
@@ -250,12 +249,14 @@ public class MainPanel extends AbstractMainPanel {
                 if(HomeButton != null) HomeButton.setVisible(true);
                 ViewContactsButton.setVisible(true);
 
+                cameraManager.startCamera();
                 ButtonPanel.setVisible(true);
             }
         });
 
         CapturePhotoButton.addActionListener(e -> {
             if(captureFace()){
+                cameraManager.stopCamera();
                 cardLayout.show(DisplayPanel, "3");
                 BufferedImage bufferedImage = ImageUtils.matToBufferedImage(faceImage);
                 Image scaledImage = bufferedImage.getScaledInstance(200, 200, Image.SCALE_FAST);
@@ -465,6 +466,7 @@ public class MainPanel extends AbstractMainPanel {
             if(HomeButton != null) HomeButton.setVisible(true);
             CapturePhotoButton.setVisible(true);
             ViewContactsButton.setVisible(true);
+            cameraManager.startCamera();
 
             // Hide the "Back" button and reset its text
             BackToCameraButton.setVisible(false);
@@ -808,6 +810,7 @@ public class MainPanel extends AbstractMainPanel {
             // ...
             System.out.println("Person recognized: " + result.getPerson().getId());
             setupPersonDetailsForm(result.getPerson());
+            cameraManager.stopCamera();
             CapturePhotoButton.setVisible(false);
             BackToCameraButton.setVisible(true);
             HomeButton.setVisible(false); // Hide Home

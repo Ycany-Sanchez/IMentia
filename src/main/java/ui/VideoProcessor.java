@@ -23,6 +23,7 @@ class VideoProcessor extends JPanel {
     private Mat currentFrame;
     private CascadeClassifier faceDetector;
     private Rect currentFaceRect;
+    private volatile boolean isRunning = false;
 
     public VideoProcessor() {
         try {
@@ -39,6 +40,11 @@ class VideoProcessor extends JPanel {
     }
 
     public void startCamera() throws NoCamException {
+        // Prevent starting if already running
+        if (isRunning) {
+            return;
+        }
+
         System.out.println("Starting camera...");
         camera = new VideoCapture(0);
 
@@ -48,6 +54,7 @@ class VideoProcessor extends JPanel {
         }
 
         System.out.println("Camera opened successfully");
+        isRunning = true; // Set flag to true
 
         Thread cameraThread = new Thread(() -> {
             System.out.println("Camera thread started");
@@ -58,7 +65,8 @@ class VideoProcessor extends JPanel {
             int missedDetectionCount = 0;
             int maxMissedDetections = 60;
 
-            while (true) {
+
+            while (isRunning) {
                 if (!camera.read(frame)) {
                     continue;
                 }
@@ -119,13 +127,21 @@ class VideoProcessor extends JPanel {
                     break;
                 }
             }
-
-            camera.release();
+            if (camera != null) {
+                camera.release();
+            }
             System.out.println("Camera thread stopped");
         });
 
         cameraThread.setDaemon(true);
         cameraThread.start();
+    }
+
+    public void stopCamera() {
+        isRunning = false;
+        // Optionally clear the image so it doesn't look "frozen"
+         this.image = null;
+         this.repaint();
     }
 
     private static CascadeClassifier loadFaceDetector() throws IOException {
