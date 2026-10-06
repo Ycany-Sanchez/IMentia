@@ -6,10 +6,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import org.bytedeco.opencv.global.opencv_core;
-import org.bytedeco.opencv.global.opencv_imgproc;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.MatVector;
-import org.bytedeco.opencv.opencv_core.Size;
 import org.bytedeco.opencv.opencv_face.LBPHFaceRecognizer;
 import people.Person;
 import util.FileHandler;
@@ -62,18 +60,8 @@ public class FaceRecognitionService {
                     continue;
                 }
 
-                Mat grayFace = new Mat();
-                if (faceMat.channels() > 1) {
-                    opencv_imgproc.cvtColor(faceMat, grayFace, 6);
-                    System.out.println("Converted to grayscale");
-                } else {
-                    grayFace = faceMat.clone();
-                    System.out.println("Already grayscale");
-                }
-
-                Mat resizedFace = new Mat();
-                opencv_imgproc.resize(grayFace, resizedFace, new Size(100, 100));
-                System.out.println("Resized to 100x100");
+                Mat resizedFace = ImageUtils.preprocessFace(faceMat);
+                System.out.println("Preprocessed to 100x100 + equalized");
 
                 faceImages.push_back(resizedFace);
                 labelList.add(label);
@@ -160,18 +148,8 @@ public class FaceRecognitionService {
             System.out.println("Input face: " + faceImage.cols() + "x" + faceImage.rows() + ", channels=" + faceImage.channels());
 
             try {
-                Mat grayFace = new Mat();
-                if (faceImage.channels() > 1) {
-                    opencv_imgproc.cvtColor(faceImage, grayFace, 6);
-                    System.out.println("Converted to grayscale");
-                } else {
-                    grayFace = faceImage.clone();
-                    System.out.println("Already grayscale");
-                }
-
-                Mat resizedFace = new Mat();
-                opencv_imgproc.resize(grayFace, resizedFace, new Size(100, 100));
-                System.out.println("Resized to 100x100");
+                Mat resizedFace = ImageUtils.preprocessFace(faceImage);
+                System.out.println("Preprocessed to 100x100 + equalized");
 
                 int[] predictedLabel = new int[1];
                 double[] confidence = new double[1];

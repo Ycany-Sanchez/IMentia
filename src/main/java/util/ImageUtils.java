@@ -1,11 +1,39 @@
 package util;
 
 import org.bytedeco.opencv.opencv_core.Mat;
+import org.bytedeco.opencv.opencv_core.Size;
+import org.bytedeco.opencv.global.opencv_imgproc;
 import org.bytedeco.javacpp.indexer.UByteIndexer;
 
 import java.awt.image.BufferedImage;
 
 public class ImageUtils {
+    /** Standard face size fed to the recognizer. */
+    public static final int FACE_SIZE = 100;
+
+    /**
+     * Standard preprocessing applied to every face before training AND
+     * recognition (both paths must match): grayscale, resize to
+     * FACE_SIZE x FACE_SIZE, histogram equalization for lighting robustness.
+     * @param face BGR or grayscale face crop. Not modified.
+     * @return New single-channel FACE_SIZE x FACE_SIZE Mat. Caller owns it.
+     */
+    public static Mat preprocessFace(Mat face) {
+        Mat gray = new Mat();
+        if (face.channels() > 1) {
+            opencv_imgproc.cvtColor(face, gray, opencv_imgproc.COLOR_BGR2GRAY);
+        } else {
+            gray = face.clone();
+        }
+
+        Mat resized = new Mat();
+        opencv_imgproc.resize(gray, resized, new Size(FACE_SIZE, FACE_SIZE));
+
+        Mat equalized = new Mat();
+        opencv_imgproc.equalizeHist(resized, equalized);
+        return equalized;
+    }
+
     // Note: this class had some more methods we did not end up using or stopped using.
     /**
      * Converts an OpenCV Mat object into a Java BufferedImage for display.
