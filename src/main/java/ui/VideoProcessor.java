@@ -20,9 +20,10 @@ import static org.bytedeco.opencv.global.opencv_imgproc.*;
 class VideoProcessor extends JPanel {
     private BufferedImage image;
     private VideoCapture camera;
-    private Mat currentFrame;
+    // Written by the camera thread, read by the UI thread: volatile for safe publication.
+    private volatile Mat currentFrame;
     private CascadeClassifier faceDetector;
-    private Rect currentFaceRect;
+    private volatile Rect currentFaceRect;
     private volatile boolean isRunning = false;
 
     public VideoProcessor() {
@@ -89,7 +90,7 @@ class VideoProcessor extends JPanel {
                             Rect temp = detections.get(i);
 
                             // Needed to recreate Rect bypass some weird c++ memory limit thing to improve performance
-                            faces[i] = new Rect(temp.x(), temp.y(), temp.height(), temp.width());
+                            faces[i] = new Rect(temp.x(), temp.y(), temp.width(), temp.height());
                         }
                         currentFaceRect = getBiggestFace(faces);
                         missedDetectionCount = 0;
@@ -204,6 +205,27 @@ class VideoProcessor extends JPanel {
 
     public Rect getCurrentFaceRect() {
         return currentFaceRect;
+    }
+
+    /**
+     * Returns the detected face rectangle clamped inside the current frame,
+     * or null when there is no usable detection. Use this for cropping
+     * (new Mat(frame, rect)) so edge-of-frame detections cannot throw.
+     */
+    public Rect getClampedFaceRect() {
+        Rect r = currentFaceRect;
+        Mat f = currentFrame;
+        if (r == null || f == null || f.empty()) {
+            return null;
+        }
+        int x = Math.max(0, r.x());
+        int y = Math.max(0, r.y());
+        int w = Math.min(r.width(), f.cols() - x);
+        int h = Math.min(r.height(), f.rows() - y);
+        if (w <= 0 || h <= 0) {
+            return null;
+        }
+        return new Rect(x, y, w, h);
     }
 
     public Mat getCurrentFrame() {

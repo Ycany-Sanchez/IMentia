@@ -45,6 +45,27 @@ class FileHandlerTest {
         assertThat(FileHandler.generateId(persons)).isEqualTo("Person6");
     }
 
+    @Test
+    void generateId_ignoresNullAndMalformedIds() {
+        List<Person> persons = new ArrayList<>();
+        persons.add(personWithId("Person3"));
+        persons.add(personWithId(null));
+        persons.add(personWithId("PersonTest-ab12cd34"));
+        persons.add(personWithId("bogus"));
+        persons.add(null);
+        assertThat(FileHandler.generateId(persons)).isEqualTo("Person4");
+    }
+
+    @Test
+    void csvHelpers_quoteAndParseRoundTrip() {
+        assertThat(FileHandler.escapeCsv("plain")).isEqualTo("plain");
+        assertThat(FileHandler.escapeCsv("Dela Cruz, Jr.")).isEqualTo("\"Dela Cruz, Jr.\"");
+        assertThat(FileHandler.parseCsvLine("Person1,\"Dela Cruz, Jr.\",Son"))
+                .containsExactly("Person1", "Dela Cruz, Jr.", "Son");
+        assertThat(FileHandler.parseCsvLine("Person1,Ada,Mother"))
+                .containsExactly("Person1", "Ada", "Mother");
+    }
+
     private static Person personWithId(String id) {
         Person p = new Person("Test", "Friend");
         p.setId(id);

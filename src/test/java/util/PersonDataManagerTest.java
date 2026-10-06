@@ -2,7 +2,6 @@ package util;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import people.Person;
@@ -87,8 +86,6 @@ class PersonDataManagerTest {
     }
 
     @Test
-    @Disabled("Documents Phase 1 bug: names containing commas break split(\",\"). "
-            + "Enable after CSV quoting is added.")
     void saveThenLoad_nameWithComma() {
         PersonDataManager manager = new PersonDataManager();
         List<Person> toSave = new ArrayList<>();

@@ -3,6 +3,7 @@ package util;
 import people.Person;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class FileHandler {
@@ -38,11 +39,71 @@ public abstract class FileHandler {
     public static String generateId(List<Person> persons) {
         int maxID = 0;
         for (Person p : persons) {
-            String ID = p.getId().substring(6);
-            int integerID = Integer.parseInt(ID);
-            if(integerID > maxID)
-                maxID = integerID;
+            if (p == null || p.getId() == null) {
+                continue;
+            }
+            String id = p.getId();
+            if (!id.startsWith("Person")) {
+                continue;
+            }
+            try {
+                int integerID = Integer.parseInt(id.substring("Person".length()));
+                if (integerID > maxID) {
+                    maxID = integerID;
+                }
+            } catch (NumberFormatException e) {
+                // Malformed id (e.g. test ids like "PersonTest-xxxx"): ignore it.
+            }
         }
         return "Person" + (maxID + 1);
+    }
+
+    /**
+     * Quotes a CSV field when it contains a comma, quote or newline.
+     * Plain values (ids, normal names) are written unchanged, so existing
+     * Person_File.csv files stay compatible.
+     */
+    public static String escapeCsv(String s) {
+        if (s == null) {
+            return "";
+        }
+        if (s.contains(",") || s.contains("\"") || s.contains("\n")) {
+            return "\"" + s.replace("\"", "\"\"") + "\"";
+        }
+        return s;
+    }
+
+    /**
+     * Splits one CSV line, honouring double-quoted fields.
+     * Lines written without quotes parse exactly like String.split(",").
+     */
+    public static String[] parseCsvLine(String line) {
+        List<String> fields = new ArrayList<>();
+        StringBuilder cur = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < line.length(); i++) {
+            char ch = line.charAt(i);
+            if (inQuotes) {
+                if (ch == '"') {
+                    if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                        cur.append('"');
+                        i++;
+                    } else {
+                        inQuotes = false;
+                    }
+                } else {
+                    cur.append(ch);
+                }
+            } else if (ch == '"') {
+                inQuotes = true;
+            } else if (ch == ',') {
+                fields.add(cur.toString());
+                cur.setLength(0);
+            } else {
+                cur.append(ch);
+            }
+        }
+        fields.add(cur.toString());
+        return fields.toArray(new String[0]);
     }
 }

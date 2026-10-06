@@ -57,8 +57,8 @@ public class FaceRecognitionService {
                 String filePath = Paths.get(directoryPath, person.getId() + ".png").toString();
                 Mat faceMat = ImageHandler.loadMatFromFile(filePath);
 
-                if (faceMat.empty()) {
-                    System.out.println("ERROR: Could not load image from path");
+                if (faceMat == null || faceMat.empty()) {
+                    System.out.println("ERROR: Could not load image from path, skipping " + person.getName() + " (no label assigned)");
                     continue;
                 }
 
@@ -80,6 +80,12 @@ public class FaceRecognitionService {
 
                 System.out.println("Added to training set with label " + label);
 
+                // Only persons with a usable image get a label, so the
+                // trainedPersons index always matches the recognizer label.
+                this.trainedPersons.add(person);
+                System.out.println("Person assigned label: " + label);
+                ++label;
+
             } catch (RuntimeException e) {
                 // OpenCV/JavaCV often throws RuntimeExceptions for native errors
                 System.out.println("OPENCV ERROR processing face:");
@@ -88,10 +94,6 @@ public class FaceRecognitionService {
                 System.out.println("GENERAL ERROR processing face:");
                 e.printStackTrace();
             }
-
-            this.trainedPersons.add(person);
-            System.out.println("Person assigned label: " + label);
-            ++label;
         }
 
         /*

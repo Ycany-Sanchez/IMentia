@@ -244,7 +244,6 @@ public class MainPanel extends AbstractMainPanel {
                 }
                 hasSaved = false;
                 cardLayout.show(DisplayPanel, "1");
-                cameraManager.startCamera();
 
                 // Reset buttons for Camera view
                 BackToCameraButton.setVisible(false);
@@ -945,7 +944,7 @@ public class MainPanel extends AbstractMainPanel {
     // UI Logic
     protected boolean captureFace() {
         System.out.println("=== captureFace() called ===");
-        Rect currentFaceRect = videoProcessor.getCurrentFaceRect();
+        Rect currentFaceRect = videoProcessor.getClampedFaceRect();
         Mat currentFrame = videoProcessor.getCurrentFrame();
 
         if (currentFrame == null || currentFaceRect == null) {

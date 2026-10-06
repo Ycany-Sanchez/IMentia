@@ -65,6 +65,6 @@ public class Person implements Serializable {
     }
 
     public String toString(){
-        return this.id + "," + this.id + ".png" + "," + this.name + "," + this.relationship;
+        return this.id + "," + this.name + "," + this.relationship;
     }
 }
