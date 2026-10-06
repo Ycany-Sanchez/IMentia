@@ -7,6 +7,7 @@ import people.Person;
 import org.bytedeco.opencv.opencv_core.*;
 import service.FaceRecognitionService;
 import service.PersonRecognitionManager;
+import service.SpeechService;
 import util.FileHandler;
 import util.ImageHandler;
 import util.ImageUtils;
@@ -30,6 +31,7 @@ public class MainPanel extends AbstractMainPanel {
     // --- SERVICES ---
     private PersonRecognitionManager personManager;
     private VideoProcessor videoProcessor;
+    private final SpeechService speechService = new SpeechService();
 
     //PANELS
     private JPanel mainPanel;
@@ -931,6 +933,11 @@ public class MainPanel extends AbstractMainPanel {
         return mainPanel;
     }
 
+    /** Releases background resources (speech thread). Called on app exit. */
+    public void shutdown() {
+        speechService.shutdown();
+    }
+
     protected void toggleDeleteButton(){
         for(JPanel panel : contactListPanels){
             for(Component c : panel.getComponents()){
@@ -1027,6 +1034,8 @@ public class MainPanel extends AbstractMainPanel {
             // ...
             System.out.println("Person recognized: " + result.getPerson().getId());
             setupPersonDetailsForm(result.getPerson());
+            speechService.speak("This is " + result.getPerson().getName()
+                    + ", your " + result.getPerson().getRelationship() + ".");
             cameraManager.stopCamera();
             CapturePhotoButton.setVisible(false);
             BackToCameraButton.setVisible(true);

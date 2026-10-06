@@ -2,6 +2,9 @@ import javax.swing.*;
 
 import ui.MainPanel;
 
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
 public class Main {
     public static void main(String[] args) {
         JFrame myFrame = new JFrame("IMentia");
@@ -9,6 +12,12 @@ public class Main {
         myFrame.setContentPane(mainPanel.getPanel());
         myFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         myFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        myFrame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                mainPanel.shutdown();
+            }
+        });
 
         myFrame.setVisible(true);
         myFrame.setResizable(false);
