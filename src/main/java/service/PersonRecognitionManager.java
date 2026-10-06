@@ -41,10 +41,13 @@ public class PersonRecognitionManager {
 
     /**
      * Coordinates loading data from disk and retraining the AI model.
+     * Skips retraining when a persisted model still matches the data.
      */
     public void refreshDataAndTrain() {
         this.cachedPersons = fileHandler.loadPersons();
-        this.recognitionService.train(cachedPersons);
+        if (!this.recognitionService.tryLoadModel(cachedPersons)) {
+            this.recognitionService.train(cachedPersons);
+        }
     }
 
     public List<Person> getAllPersons() {

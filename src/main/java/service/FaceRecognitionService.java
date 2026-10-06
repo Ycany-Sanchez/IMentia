@@ -1,9 +1,12 @@
 package service;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.nio.IntBuffer;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.bytedeco.opencv.global.opencv_core;
 import org.bytedeco.opencv.opencv_core.Mat;
@@ -19,6 +22,8 @@ public class FaceRecognitionService {
     private List<Person> trainedPersons;
     private boolean isTrained = false;
     private static final double CONFIDENCE_THRESHOLD = (double)100.0F;
+    private static final String MODEL_FILE_NAME = "LBPH_model.yml";
+    private static final String MANIFEST_FILE_NAME = "LBPH_model.manifest";
 
     public FaceRecognitionService() {
         System.out.println("FaceRecognitionService created");
@@ -38,6 +43,7 @@ public class FaceRecognitionService {
         if (persons.isEmpty()) {
             System.out.println("No persons to train on - marking as untrained");
             this.isTrained = false;
+            deletePersistedModel();
             return;
         }
 
@@ -49,38 +55,43 @@ public class FaceRecognitionService {
         for(Person person : persons) {
             System.out.println("\nProcessing person: " + person.getName());
 
-            try {
-                FileHandler fileHandler = new ImageHandler();
-                String directoryPath = Paths.get(fileHandler.getDataFolder(), "saved_faces").toString();
-                String filePath = Paths.get(directoryPath, person.getId() + ".png").toString();
-                Mat faceMat = ImageHandler.loadMatFromFile(filePath);
+            boolean personAdded = false;
+            for (String filePath : listFaceFiles(directoryPath(), person.getId())) {
+                try {
+                    Mat faceMat = ImageHandler.loadMatFromFile(filePath);
 
-                if (faceMat == null || faceMat.empty()) {
-                    System.out.println("ERROR: Could not load image from path, skipping " + person.getName() + " (no label assigned)");
-                    continue;
+                    if (faceMat == null || faceMat.empty()) {
+                        System.out.println("ERROR: Could not load image from path, skipping file: " + filePath);
+                        continue;
+                    }
+
+                    Mat resizedFace = ImageUtils.preprocessFace(faceMat);
+                    System.out.println("Preprocessed to 100x100 + equalized: " + filePath);
+
+                    faceImages.push_back(resizedFace);
+                    labelList.add(label);
+
+                    System.out.println("Added to training set with label " + label);
+                    personAdded = true;
+
+                } catch (RuntimeException e) {
+                    // OpenCV/JavaCV often throws RuntimeExceptions for native errors
+                    System.out.println("OPENCV ERROR processing face:");
+                    e.printStackTrace();
+                } catch (Exception e) {
+                    System.out.println("GENERAL ERROR processing face:");
+                    e.printStackTrace();
                 }
+            }
 
-                Mat resizedFace = ImageUtils.preprocessFace(faceMat);
-                System.out.println("Preprocessed to 100x100 + equalized");
-
-                faceImages.push_back(resizedFace);
-                labelList.add(label);
-
-                System.out.println("Added to training set with label " + label);
-
+            if (personAdded) {
                 // Only persons with a usable image get a label, so the
                 // trainedPersons index always matches the recognizer label.
                 this.trainedPersons.add(person);
                 System.out.println("Person assigned label: " + label);
                 ++label;
-
-            } catch (RuntimeException e) {
-                // OpenCV/JavaCV often throws RuntimeExceptions for native errors
-                System.out.println("OPENCV ERROR processing face:");
-                e.printStackTrace();
-            } catch (Exception e) {
-                System.out.println("GENERAL ERROR processing face:");
-                e.printStackTrace();
+            } else {
+                System.out.println("WARNING: No usable images for " + person.getName() + ", skipped (no label assigned)");
             }
         }
 
@@ -120,6 +131,7 @@ public class FaceRecognitionService {
                 this.recognizer.train(faceImages, labels);
                 this.isTrained = true;
                 System.out.println("Training successful!");
+                persistModel(persons);
             } catch (RuntimeException e) {
                 System.out.println("Training failed (Native Error):");
                 e.printStackTrace();
@@ -210,6 +222,125 @@ public class FaceRecognitionService {
 
     public boolean isTrained() {
         return this.isTrained;
+    }
+
+    /**
+     * Tries to load a previously persisted model instead of retraining.
+     * Succeeds only when the model file, its manifest, and the current
+     * persons+image files all match; otherwise returns false (caller trains).
+     * Restores trainedPersons in the exact training order so labels align.
+     */
+    public boolean tryLoadModel(List<Person> persons) {
+        if (persons == null || persons.isEmpty()) {
+            return false;
+        }
+        try {
+            String dataFolder = new ImageHandler().getDataFolder();
+            File modelFile = new File(dataFolder, MODEL_FILE_NAME);
+            File manifestFile = new File(dataFolder, MANIFEST_FILE_NAME);
+            if (!modelFile.isFile() || !manifestFile.isFile()) {
+                return false;
+            }
+            String expected = buildManifest(persons);
+            String saved = Files.readString(manifestFile.toPath());
+            if (!expected.equals(saved)) {
+                System.out.println("Model manifest changed, retraining instead of loading.");
+                return false;
+            }
+            LBPHFaceRecognizer loaded = LBPHFaceRecognizer.create(1, 8, 8, 8, (double)100.0F);
+            loaded.read(modelFile.getAbsolutePath());
+
+            List<Person> labeled = new ArrayList<>();
+            String dir = directoryPath();
+            for (Person p : persons) {
+                if (p != null && !listFaceFiles(dir, p.getId()).isEmpty()) {
+                    labeled.add(p);
+                }
+            }
+            this.recognizer = loaded;
+            this.trainedPersons = labeled;
+            this.isTrained = true;
+            System.out.println("Loaded persisted model for " + labeled.size() + " person(s), no retraining needed.");
+            return true;
+        } catch (Exception e) {
+            System.out.println("Could not load persisted model (" + e.getMessage() + "), retraining.");
+            return false;
+        }
+    }
+
+    /** Faces folder shared by training, manifest and persistence. */
+    private static String directoryPath() {
+        return Paths.get(new ImageHandler().getDataFolder(), "saved_faces").toString();
+    }
+
+    /**
+     * All training images for one person, in stable order: legacy
+     * {@code <id>.png} first, then multi-sample {@code <id>_*.png} files.
+     */
+    static List<String> listFaceFiles(String facesDir, String personId) {
+        List<String> files = new ArrayList<>();
+        if (personId == null) {
+            return files;
+        }
+        File legacy = new File(facesDir, personId + ".png");
+        if (legacy.isFile()) {
+            files.add(legacy.getAbsolutePath());
+        }
+        File dir = new File(facesDir);
+        File[] multi = dir.listFiles((d, name) -> name.startsWith(personId + "_") && name.endsWith(".png"));
+        if (multi != null) {
+            Arrays.sort(multi);
+            for (File f : multi) {
+                files.add(f.getAbsolutePath());
+            }
+        }
+        return files;
+    }
+
+    /**
+     * Fingerprint of the training set in training order: one line per image
+     * file (person, name, size, mtime). Any added/removed/changed image, or
+     * any reordering, changes the manifest and forces a retrain on load.
+     */
+    private static String buildManifest(List<Person> persons) {
+        StringBuilder sb = new StringBuilder();
+        String dir = directoryPath();
+        for (Person p : persons) {
+            if (p == null) {
+                continue;
+            }
+            for (String path : listFaceFiles(dir, p.getId())) {
+                File f = new File(path);
+                sb.append(p.getId()).append('|').append(f.getName())
+                        .append('|').append(f.length()).append('|').append(f.lastModified())
+                        .append('\n');
+            }
+        }
+        return sb.toString();
+    }
+
+    /** Writes the trained model plus its manifest next to the app data. */
+    private void persistModel(List<Person> persons) {
+        try {
+            String dataFolder = new ImageHandler().getDataFolder();
+            String modelPath = Paths.get(dataFolder, MODEL_FILE_NAME).toString();
+            this.recognizer.write(modelPath);
+            Files.writeString(Paths.get(dataFolder, MANIFEST_FILE_NAME), buildManifest(persons));
+            System.out.println("Model saved to " + modelPath);
+        } catch (Exception e) {
+            System.out.println("WARNING: Could not persist model: " + e.getMessage());
+        }
+    }
+
+    /** Removes stale model files (e.g. when the last contact is deleted). */
+    private static void deletePersistedModel() {
+        try {
+            String dataFolder = new ImageHandler().getDataFolder();
+            new File(dataFolder, MODEL_FILE_NAME).delete();
+            new File(dataFolder, MANIFEST_FILE_NAME).delete();
+        } catch (Exception e) {
+            System.out.println("WARNING: Could not delete stale model: " + e.getMessage());
+        }
     }
 
     public static class RecognitionResult {
