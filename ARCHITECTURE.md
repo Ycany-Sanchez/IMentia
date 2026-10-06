@@ -85,6 +85,13 @@ Camera (VideoProcessor thread, Haar detection every 4th frame)
 - Maven: `mvn test` (needs JDK 17 + `JAVA_HOME`; first run downloads OpenCV).
 - Automation MUST build in a scratch copy (e.g. `Temp/opencode/IMentia-build`),
   never into the working `target/` — it would clobber IntelliJ outputs.
+
+## Platform direction
+
+A Meta-glasses / smart-glasses client is planned as a thin client of the
+service layer: capture on device, recognize via API, speak/overlay the answer.
+Keep `service/` display-free (no dialogs, no toolkit calls) and business logic
+out of `ui/` so the glasses path reuses the exact same code.
 - Tests (`src/test/...`, 8 files): FileHandler (generateId, CSV quote/parse),
   PersonDataManager (CSV round-trip incl. comma names), MeetingRecord (note
   round-trip), ImageUtils (preprocess geometry), FaceRecognitionModel
