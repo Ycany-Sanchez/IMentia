@@ -70,10 +70,19 @@ public class PersonRecognitionManager {
      * 2. Generates ID
      * 3. Sets Image
      * 4. Saves to CSV
-     * 5. Saves Image to Disk
+     * 5. Saves Images to Disk
      * 6. Retrains face recog
+     * The first sample is stored as the display photo ({@code <id>.png});
+     * the rest as {@code <id>_1.png}, {@code <id>_2.png}, ... for training.
      */
     public Person registerNewPerson(String name, String relationship, Mat faceImage) throws PersonSaveException {
+        if (faceImage == null || faceImage.empty()) {
+            throw new PersonSaveException("Face image is missing.", name);
+        }
+        return registerNewPerson(name, relationship, java.util.Collections.singletonList(faceImage));
+    }
+
+    public Person registerNewPerson(String name, String relationship, java.util.List<Mat> faceImages) throws PersonSaveException {
 
         if (name == null || name.isBlank()) {
             throw new PersonSaveException("Name cannot be empty.", name);
@@ -83,7 +92,7 @@ public class PersonRecognitionManager {
             throw new PersonSaveException("Relationship cannot be empty.", name);
         }
 
-        if (faceImage == null || faceImage.empty()) {
+        if (faceImages == null || faceImages.isEmpty() || faceImages.get(0) == null || faceImages.get(0).empty()) {
             throw new PersonSaveException("Face image is missing.", name);
         }
 
@@ -100,7 +109,7 @@ public class PersonRecognitionManager {
             Person newPerson = new Person(capitalizedName, FileHandler.capitalizeLabel(relationship));
 
             newPerson.setId(fileHandler.generateId(cachedPersons));
-            newPerson.setPersonImage(ImageUtils.matToBufferedImage(faceImage));
+            newPerson.setPersonImage(ImageUtils.matToBufferedImage(faceImages.get(0)));
 
             cachedPersons.add(newPerson);
 
@@ -109,8 +118,8 @@ public class PersonRecognitionManager {
                 throw new PersonSaveException("Failed to save person data.", capitalizedName);
             }
 
-            // Save face image and retrain model
-            saveFaceImageToDisk(newPerson.getId(), faceImage);
+            // Save face images and retrain model
+            saveFaceImagesToDisk(newPerson.getId(), faceImages);
             recognitionService.train(cachedPersons);
             return newPerson;
 
@@ -170,18 +179,22 @@ public class PersonRecognitionManager {
         fileHandler.updatePersonFile(cachedPersons);
         recognitionService.train(cachedPersons);
 
-        // Delete face image file
+        // Delete face image files (display photo plus multi-sample files)
         try {
-            File imageFile = new File(fileHandler.getDataFolder() + "/saved_faces", person.getId() + ".png");
-            if (imageFile.exists()) {
-                if (imageFile.delete()) {
-                    System.out.println("Manager: Deleted image file for " + person.getId());
-                } else {
-                    System.err.println("Manager: Failed to delete image file for " + person.getId());
+            File facesDir = new File(fileHandler.getDataFolder() + "/saved_faces");
+            File[] leftovers = facesDir.listFiles((dir, name) ->
+                    name.equals(person.getId() + ".png") || name.startsWith(person.getId() + "_"));
+            if (leftovers != null) {
+                for (File imageFile : leftovers) {
+                    if (imageFile.delete()) {
+                        System.out.println("Manager: Deleted image file " + imageFile.getName());
+                    } else {
+                        System.err.println("Manager: Failed to delete image file " + imageFile.getName());
+                    }
                 }
             }
         } catch (Exception e) {
-            System.err.println("Manager: Error deleting image file: " + e.getMessage());
+            System.err.println("Manager: Error deleting image files: " + e.getMessage());
         }
 
         try {
@@ -200,13 +213,20 @@ public class PersonRecognitionManager {
     }
 
     // Helper method hidden from the UI
-    private void saveFaceImageToDisk(String personID, Mat imageToSave) {
+    private void saveFaceImagesToDisk(String personID, java.util.List<Mat> imagesToSave) {
         String directoryPath = fileHandler.getDataFolder() + "/saved_faces/";
         File directory = new File(directoryPath);
         if (!directory.exists()) {
             directory.mkdirs();
         }
-        String filePath = directoryPath + personID + ".png";
-        imwrite(filePath, imageToSave);
+        for (int i = 0; i < imagesToSave.size(); i++) {
+            Mat img = imagesToSave.get(i);
+            if (img == null || img.empty()) {
+                continue;
+            }
+            // First sample keeps the legacy name (also the display photo).
+            String fileName = (i == 0) ? personID + ".png" : personID + "_" + i + ".png";
+            imwrite(directoryPath + fileName, img);
+        }
     }
 }

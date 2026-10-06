@@ -103,7 +103,7 @@ public class MainPanel extends AbstractMainPanel {
     private CardLayout cardLayout = new CardLayout();
     private boolean isEditing = false;
     private boolean hasSaved = false;
-    private Mat faceImage;
+    private List<Mat> faceImages = new ArrayList<>();
     private CameraLifecycleManager cameraManager;
 
     boolean isEditingMeetingNotes = false;
@@ -260,7 +260,7 @@ public class MainPanel extends AbstractMainPanel {
             if(captureFace()){
                 cameraManager.stopCamera();
                 cardLayout.show(DisplayPanel, "3");
-                BufferedImage bufferedImage = ImageUtils.matToBufferedImage(faceImage);
+                BufferedImage bufferedImage = ImageUtils.matToBufferedImage(faceImages.get(0));
                 Image scaledImage = bufferedImage.getScaledInstance(200, 200, Image.SCALE_FAST);
                 ImageIcon imageIcon = new ImageIcon(scaledImage);
 
@@ -287,7 +287,7 @@ public class MainPanel extends AbstractMainPanel {
                 Person savedPerson = null;
 
                 try {
-                    savedPerson = personManager.registerNewPerson(pName, pRel, faceImage);
+                    savedPerson = personManager.registerNewPerson(pName, pRel, faceImages);
                 } catch (PersonAlreadyExistsException ex) {
                     JOptionPane.showMessageDialog(
                             mainPanel,
@@ -941,13 +941,74 @@ public class MainPanel extends AbstractMainPanel {
         }
     }
 
+    /** Face samples captured per new person for multi-sample training. */
+    private static final int BURST_SAMPLES = 5;
+    /** Delay between burst samples so expressions and angles vary slightly. */
+    private static final int BURST_DELAY_MS = 250;
+
+    /**
+     * Captures up to BURST_SAMPLES face crops about BURST_DELAY_MS apart
+     * while a modal progress dialog keeps the UI responsive. Returns
+     * whatever was captured (possibly fewer than requested, never null).
+     */
+    private List<Mat> captureBurst() {
+        JDialog progress = new JDialog(SwingUtilities.getWindowAncestor(mainPanel),
+                "Capturing...", Dialog.ModalityType.APPLICATION_MODAL);
+        JProgressBar bar = new JProgressBar(0, BURST_SAMPLES);
+        bar.setStringPainted(true);
+        bar.setString("Stay still... 0/" + BURST_SAMPLES);
+        progress.add(bar);
+        progress.setSize(320, 80);
+        progress.setLocationRelativeTo(mainPanel);
+
+        SwingWorker<List<Mat>, Integer> worker = new SwingWorker<>() {
+            @Override
+            protected List<Mat> doInBackground() {
+                List<Mat> samples = new ArrayList<>();
+                for (int i = 0; i < BURST_SAMPLES && !isCancelled(); i++) {
+                    Rect r = videoProcessor.getClampedFaceRect();
+                    Mat f = videoProcessor.getCurrentFrame();
+                    if (r != null && f != null && !f.empty()) {
+                        samples.add(new Mat(f, r));
+                    }
+                    publish(samples.size());
+                    try {
+                        Thread.sleep(BURST_DELAY_MS);
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+                return samples;
+            }
+
+            @Override
+            protected void process(List<Integer> chunks) {
+                int n = chunks.get(chunks.size() - 1);
+                bar.setValue(n);
+                bar.setString("Stay still... " + n + "/" + BURST_SAMPLES);
+            }
+
+            @Override
+            protected void done() {
+                progress.dispose();
+            }
+        };
+        worker.execute();
+        progress.setVisible(true); // blocks until the worker disposes the dialog
+        try {
+            return worker.get();
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
     // UI Logic
     protected boolean captureFace() {
         System.out.println("=== captureFace() called ===");
-        Rect currentFaceRect = videoProcessor.getClampedFaceRect();
-        Mat currentFrame = videoProcessor.getCurrentFrame();
+        List<Mat> burst = captureBurst();
 
-        if (currentFrame == null || currentFaceRect == null) {
+        if (burst.isEmpty()) {
             System.out.println("No face detected in current frame");
             JLabel errorLabel = new JLabel("No face detected! Please look at the camera.");
             errorLabel.setFont(PLabelFont);
@@ -956,12 +1017,11 @@ public class MainPanel extends AbstractMainPanel {
             return false;
         }
 
-        System.out.println("Extracting face from frame...");
-
-        faceImage = new Mat(currentFrame, currentFaceRect);
+        faceImages = burst;
+        System.out.println("Captured " + burst.size() + " face sample(s), recognizing first...");
 
         // *** FACADE USAGE: Recognize ***
-        FaceRecognitionService.RecognitionResult result = personManager.recognizeFace(faceImage);
+        FaceRecognitionService.RecognitionResult result = personManager.recognizeFace(faceImages.get(0));
 
         if(result.isRecognized()){
             // ...
