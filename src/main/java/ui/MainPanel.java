@@ -109,6 +109,9 @@ public class MainPanel extends AbstractMainPanel {
     boolean isEditingMeetingNotes = false;
 
     public MainPanel() {
+        // Builds all UI components in code (replaces IntelliJ GUI Designer
+        // .form injection, so the app compiles and runs with any build tool).
+        buildFormUI();
         // Initialize the Facade Manager
         this.personManager = new PersonRecognitionManager();
 
@@ -768,6 +771,161 @@ public class MainPanel extends AbstractMainPanel {
                 setPLabelFont(c2);
             }
         }
+    }
+
+    /**
+     * Constructs the UI component tree in code. Generated from MainPanel.form
+     * (same components, hierarchy, texts and constraints) using only standard
+     * Swing layouts, so any compiler (IntelliJ or plain javac/Maven) works.
+     * Runtime setup in setUpUI() then adjusts layouts, fonts and listeners.
+     */
+    private void buildFormUI() {
+        mainPanel = new JPanel(new GridBagLayout());
+        DisplayPanel = new JPanel(new CardLayout(0, 0));
+        DisplayPanel.setBackground(new Color(-15728877));
+        mainPanel.add(DisplayPanel, new GridBagConstraints(0, 0, 3, 1, 0.5, 0.5, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+        CameraPanel = new JPanel(new BorderLayout(0, 0));
+        CameraPanel.setBackground(new Color(-1118482));
+        DisplayPanel.add(CameraPanel);
+        ContactsPanel = new JPanel(new GridBagLayout());
+        ContactsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        ContactsPanel.setBackground(new Color(-1642241));
+        DisplayPanel.add(ContactsPanel);
+        JLabel listOfContactsLabel = new JLabel();
+        listOfContactsLabel.setText("List of Contacts");
+        ContactsPanel.add(listOfContactsLabel, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+        EditContactButton = new JButton();
+        EditContactButton.setText("EDIT LIST");
+        ContactsPanel.add(EditContactButton, new GridBagConstraints(1, 0, 1, 1, 0.5, 0.0, GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+        ContactsScrollPane = new JScrollPane();
+        ContactsPanel.add(ContactsScrollPane, new GridBagConstraints(0, 1, 2, 1, 1.0, 1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
+        PersonPanel = new JPanel(new GridBagLayout());
+        PersonPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        ContactsScrollPane.setViewportView(PersonPanel);
+        TutorialPanel = new JPanel(new GridBagLayout());
+        DisplayPanel.add(TutorialPanel);
+        PersonFormPanel = new JPanel(new GridBagLayout());
+        PersonFormPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
+        PersonFormPanel.setBackground(new Color(-1118482));
+        PersonFormPanel.setForeground(new Color(-1118482));
+        DisplayPanel.add(PersonFormPanel);
+        PersonImageLabel = new JLabel();
+        PersonImageLabel.setText("img");
+        PersonImageLabel.setMinimumSize(new Dimension(200, 200));
+        PersonImageLabel.setPreferredSize(new Dimension(200, 200));
+        PersonImageLabel.setMaximumSize(new Dimension(200, 200));
+        PersonFormPanel.add(PersonImageLabel, new GridBagConstraints(0, 0, 2, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+        SavePersonInfoButton = new JButton();
+        SavePersonInfoButton.setText("SAVE CONTACT");
+        PersonFormPanel.add(SavePersonInfoButton, new GridBagConstraints(0, 3, 2, 1, 0.5, 0.0, GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+        NamePanel = new JPanel(new GridBagLayout());
+        PersonFormPanel.add(NamePanel, new GridBagConstraints(0, 1, 2, 1, 0.5, 0.5, GridBagConstraints.SOUTH, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+        PersonNameLabel = new JLabel();
+        PersonNameLabel.setText("Enter Person's Name:");
+        PersonNameLabel.setMinimumSize(new Dimension(250, PersonNameLabel.getMinimumSize().height));
+        PersonNameLabel.setPreferredSize(new Dimension(250, PersonNameLabel.getMinimumSize().height));
+        PersonNameLabel.setMaximumSize(new Dimension(250, PersonNameLabel.getMinimumSize().height));
+        NamePanel.add(PersonNameLabel, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+        PersonNameField = new JTextField();
+        PersonNameField.setHorizontalAlignment(10);
+        PersonNameField.setMinimumSize(new Dimension(300, PersonNameField.getMinimumSize().height));
+        PersonNameField.setPreferredSize(new Dimension(300, PersonNameField.getMinimumSize().height));
+        PersonNameField.setMaximumSize(new Dimension(300, PersonNameField.getMinimumSize().height));
+        NamePanel.add(PersonNameField, new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+        RelationshipPanel = new JPanel(new GridBagLayout());
+        PersonFormPanel.add(RelationshipPanel, new GridBagConstraints(0, 2, 2, 1, 0.5, 0.5, GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+        PersonRelationshipLabel = new JLabel();
+        PersonRelationshipLabel.setText("Enter Relationship:");
+        PersonRelationshipLabel.setMinimumSize(new Dimension(250, PersonRelationshipLabel.getMinimumSize().height));
+        PersonRelationshipLabel.setPreferredSize(new Dimension(250, PersonRelationshipLabel.getMinimumSize().height));
+        PersonRelationshipLabel.setMaximumSize(new Dimension(250, PersonRelationshipLabel.getMinimumSize().height));
+        RelationshipPanel.add(PersonRelationshipLabel, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+        PersonRelationshipField = new JTextField();
+        PersonRelationshipField.setHorizontalAlignment(10);
+        PersonRelationshipField.setMinimumSize(new Dimension(300, PersonRelationshipField.getMinimumSize().height));
+        PersonRelationshipField.setPreferredSize(new Dimension(300, PersonRelationshipField.getMinimumSize().height));
+        PersonRelationshipField.setMaximumSize(new Dimension(300, PersonRelationshipField.getMinimumSize().height));
+        RelationshipPanel.add(PersonRelationshipField, new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+        PersonDetailsForm = new JPanel(new GridBagLayout());
+        DisplayPanel.add(PersonDetailsForm);
+        PersonDetailsTopSection = new JPanel(new GridBagLayout());
+        PersonDetailsForm.add(PersonDetailsTopSection, new GridBagConstraints(0, 0, 1, 1, 1.0, 0.1, GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL, new Insets(10, 10, 0, 10), 0, 0));
+        PersonDetailsImageLabel = new JLabel();
+        PersonDetailsImageLabel.setBackground(new Color(-1642448));
+        PersonDetailsImageLabel.setForeground(new Color(-8133279));
+        PersonDetailsImageLabel.setMaximumSize(new Dimension(200, 200));
+        PersonDetailsImageLabel.setMinimumSize(new Dimension(200, 200));
+        PersonDetailsImageLabel.setPreferredSize(new Dimension(200, 200));
+        PersonDetailsImageLabel.setText("img");
+        PersonDetailsTopSection.add(PersonDetailsImageLabel, new GridBagConstraints(0, 0, 1, 5, 0.0, 1.0, GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, new Insets(20, 20, 0, 0), 0, 0));
+        PersonDetailNameLabel = new JLabel();
+        PersonDetailNameLabel.setText("Person Name:");
+        PersonDetailsTopSection.add(PersonDetailNameLabel, new GridBagConstraints(1, 0, 1, 4, 0.01, 0.5, GridBagConstraints.SOUTHWEST, GridBagConstraints.NONE, new Insets(0, 20, 5, 0), 0, 0));
+        PersonDetailRelLabel = new JLabel();
+        PersonDetailRelLabel.setText("Your Relation:");
+        PersonDetailsTopSection.add(PersonDetailRelLabel, new GridBagConstraints(1, 4, 2, 1, 0.01, 0.5, GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, new Insets(5, 20, 0, 0), 0, 0));
+        PersonDetailPersonName = new JLabel();
+        PersonDetailPersonName.setText("Label");
+        PersonDetailsTopSection.add(PersonDetailPersonName, new GridBagConstraints(2, 3, 2, 1, 0.3, 0.5, GridBagConstraints.SOUTHWEST, GridBagConstraints.NONE, new Insets(0, 0, 5, 0), 0, 0));
+        PersonDetailPersonRel = new JLabel();
+        PersonDetailPersonRel.setText("Label");
+        PersonDetailsTopSection.add(PersonDetailPersonRel, new GridBagConstraints(3, 4, 2, 1, 0.3, 0.5, GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, new Insets(5, 0, 0, 0), 0, 0));
+        EDITCONTACTButton = new JButton();
+        EDITCONTACTButton.setText("EDIT CONTACT");
+        PersonDetailsTopSection.add(EDITCONTACTButton, new GridBagConstraints(6, 0, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+        SAVEEDITButton = new JButton();
+        SAVEEDITButton.setText("SAVE EDIT");
+        SAVEEDITButton.setVisible(false);
+        PersonDetailsTopSection.add(SAVEEDITButton, new GridBagConstraints(6, 1, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+        CANCELEDITButton = new JButton();
+        CANCELEDITButton.setText("CANCEL EDIT");
+        CANCELEDITButton.setVisible(false);
+        PersonDetailsTopSection.add(CANCELEDITButton, new GridBagConstraints(6, 2, 1, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+        PersonNameEdit = new JTextField();
+        PersonNameEdit.setVisible(false);
+        PersonNameEdit.setPreferredSize(new Dimension(150, PersonNameEdit.getMinimumSize().height));
+        PersonDetailsTopSection.add(PersonNameEdit, new GridBagConstraints(4, 3, 2, 1, 0.3, 0.5, GridBagConstraints.SOUTHWEST, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 5, 0), 0, 0));
+        PersonRelEdit = new JTextField();
+        PersonRelEdit.setVisible(false);
+        PersonRelEdit.setPreferredSize(new Dimension(150, PersonRelEdit.getMinimumSize().height));
+        PersonDetailsTopSection.add(PersonRelEdit, new GridBagConstraints(5, 4, 1, 1, 0.3, 0.5, GridBagConstraints.NORTHWEST, GridBagConstraints.HORIZONTAL, new Insets(5, 0, 0, 0), 0, 0));
+        PersonDetailsBottomSection = new JPanel(new GridBagLayout());
+        PersonDetailsForm.add(PersonDetailsBottomSection, new GridBagConstraints(0, 1, 1, 1, 1.0, 0.8, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 10, 10, 10), 0, 0));
+        ADDMEETINGNOTESButton = new JButton();
+        ADDMEETINGNOTESButton.setText("ADD MEETING NOTES");
+        PersonDetailsBottomSection.add(ADDMEETINGNOTESButton, new GridBagConstraints(1, 0, 1, 1, 0.5, 0.1, GridBagConstraints.SOUTHEAST, GridBagConstraints.NONE, new Insets(0, 0, 10, 0), 0, 0));
+        MeetingNotesLabel = new JLabel();
+        MeetingNotesLabel.setText("Meeting Notes");
+        PersonDetailsBottomSection.add(MeetingNotesLabel, new GridBagConstraints(0, 0, 1, 1, 0.5, 0.1, GridBagConstraints.SOUTHWEST, GridBagConstraints.NONE, new Insets(0, 10, 10, 0), 0, 0));
+        MeetingNotesScrollPane = new JScrollPane();
+        MeetingNotesScrollPane.setAutoscrolls(true);
+        PersonDetailsBottomSection.add(MeetingNotesScrollPane, new GridBagConstraints(0, 1, 2, 1, 1.0, 0.4, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 10, 0, 10), 0, 0));
+        MeetingNotesTextAreaScrollPane = new JScrollPane();
+        MeetingNotesTextAreaScrollPane.setVisible(true);
+        PersonDetailsBottomSection.add(MeetingNotesTextAreaScrollPane, new GridBagConstraints(0, 2, 2, 1, 1.0, 0.5, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(10, 10, 0, 10), 0, 0));
+        MeetingNotesTextArea = new JTextArea();
+        MeetingNotesTextArea.setForeground(new Color(-1776412));
+        MeetingNotesTextArea.setLineWrap(true);
+        MeetingNotesTextArea.setMargin(new Insets(10, 10, 10, 10));
+        MeetingNotesTextArea.setText("");
+        MeetingNotesTextAreaScrollPane.setViewportView(MeetingNotesTextArea);
+        ButtonPanel = new JPanel(new GridBagLayout());
+        ButtonPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
+        ButtonPanel.setBackground(new Color(-2565928));
+        mainPanel.add(ButtonPanel, new GridBagConstraints(0, 1, 3, 1, 0.5, 0.5, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+        CapturePhotoButton = new JButton();
+        CapturePhotoButton.setText("CAPTURE PHOTO");
+        ButtonPanel.add(CapturePhotoButton, new GridBagConstraints(1, 0, 1, 1, 0.5, 0.0, GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+        HomeButton = new JButton();
+        HomeButton.setText("HOME SCREEN");
+        ButtonPanel.add(HomeButton, new GridBagConstraints(0, 0, 1, 1, 0.5, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+        ViewContactsButton = new JButton();
+        ViewContactsButton.setText("VIEW CONTACTS");
+        ButtonPanel.add(ViewContactsButton, new GridBagConstraints(3, 0, 1, 1, 0.5, 0.0, GridBagConstraints.EAST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+        BackToCameraButton = new JButton();
+        BackToCameraButton.setText("BACK TO CAMERA");
+        BackToCameraButton.setVisible(false);
+        ButtonPanel.add(BackToCameraButton, new GridBagConstraints(2, 0, 1, 1, 0.5, 0.0, GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
     }
 
     public JPanel getPanel(){
